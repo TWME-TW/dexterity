@@ -1,0 +1,10 @@
+name: Dexterity
+version: 1.0.0
+author: c7dev
+main: me.c7dev.tensegrity.Dexterity
+api-version: 1.19
+
+commands:
+  dex:
+    aliases: [dexterity]
+    description: Dexterity main command
