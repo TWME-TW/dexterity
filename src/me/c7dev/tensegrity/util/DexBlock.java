@@ -76,6 +76,12 @@ public class DexBlock {
 		return rot_xy;
 	}
 	
+	public void scaleRadius(double s) {
+		radius_xz *= s;
+		radius_xy *= s;
+		radius_zy *= s;
+	}
+	
 	public Location getLocation() {
 		//if (armor_stand) return entity.getLocation().add(AS_OFFSET);
 		return entity.getLocation().add(0.5, 0.5, 0.5);

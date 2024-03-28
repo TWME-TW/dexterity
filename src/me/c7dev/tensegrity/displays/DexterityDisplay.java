@@ -1,21 +1,22 @@
 package me.c7dev.tensegrity.displays;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.RotationAnimation;
 import me.c7dev.tensegrity.util.DexBlock;
-import me.c7dev.tensegrity.util.DoubleHolder;
 import me.c7dev.tensegrity.util.Plane;
 
 public class DexterityDisplay {
@@ -58,7 +59,7 @@ public class DexterityDisplay {
 		plugin.getLabelMap().put(s, id);
 		label = s;
 		BlockDisplay bd = blocks.get(0).getEntity();
-		bd.setRotation(35f, 35f);
+		//bd.setRotation(35f, 35f);
 		return true;
 	}
 	
@@ -84,6 +85,7 @@ public class DexterityDisplay {
 			b.getEntity().remove();
 		}
 		plugin.getDisplays().remove(this);
+		plugin.getLabelMap().remove(label);
 		plugin.saveDisplays();
 	}
 	
@@ -123,8 +125,16 @@ public class DexterityDisplay {
 		//}
 	}
 	
-	public void setScale(double s) {
-		
+	public void setScale(float s) {
+		for (DexBlock db : blocks) {
+			Vector displacement = db.getEntity().getLocation().toVector().subtract(center.toVector()).multiply(s - 1);
+			db.getEntity().setTransformation(new Transformation(
+					new Vector3f((float) displacement.getX(),(float) displacement.getY(), (float)displacement.getZ()),
+					new AxisAngle4f(1f, 0f, 0f, 1f),
+					new Vector3f(s, s, s),
+					new AxisAngle4f(0f, 0f, 0f, 0f)));
+		}
+		this.scale = s;
 	}
 	@Deprecated
 	public void forceSetScale(double s) { //for init only
@@ -149,9 +159,39 @@ public class DexterityDisplay {
 		}
 		
 		final RotationAnimation a = animation;
-		final long start = System.currentTimeMillis();
 		
-		new BukkitRunnable() {
+		double sin = Math.sin(radians/2);
+		double cos = Math.cos(radians/2);
+		double x = sin*plane.getNormal().getX();
+		double y = sin*plane.getNormal().getY();
+		double z = sin*plane.getNormal().getZ();
+		double w = cos;
+		
+		double mag = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2) + Math.pow(w, 2));
+		x = x/mag; y = y/mag; z = z/mag; w = w/mag;
+		
+		Quaternionf left = new Quaternionf(-x, -y, -z, w);
+		Quaternionf right = new Quaternionf(x, y, z, w);
+		
+		boolean printed = false;
+		for (DexBlock db : blocks) {
+			Transformation tr1 = db.getEntity().getTransformation();
+			if (!printed) {
+				printed = true;
+				Bukkit.broadcastMessage(tr1.getLeftRotation().toString());
+				Bukkit.broadcastMessage(tr1.getRightRotation().toString());
+			}
+			
+			Transformation tr2 = new Transformation(
+					tr1.getTranslation(),
+					left,
+					tr1.getScale(),
+					right
+					);
+			db.getEntity().setTransformation(tr2);
+		}
+		
+		/*new BukkitRunnable() {
 			double sin = 2*Math.sin(radians/2), root2 = Math.sqrt(2)/2;
 			
 			@Override
@@ -203,7 +243,7 @@ public class DexterityDisplay {
 					}
 				}.runTask(plugin);
 			}
-		}.runTaskAsynchronously(plugin);
+		}.runTaskAsynchronously(plugin);*/
 	}
 
 }

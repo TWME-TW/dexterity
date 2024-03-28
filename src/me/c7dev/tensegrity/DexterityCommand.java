@@ -241,6 +241,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		
+		else if (args[0].equalsIgnoreCase("scale")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			
+			if (def == null) {
+				p.sendMessage("§4Usage: §c/dex scale <multiplier>");
+				return true;
+			}
+			
+			float scale = 1;
+			try {
+				scale = Float.parseFloat(def);
+			} catch(Exception ex) {
+				p.sendMessage("§4Error: §cYou must send a multiplier!");
+				return true;
+			}
+			
+			d.setScale(scale);
+			
+			p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + scale + cc + "!");
+		}
+		
 		else {
 			p.sendMessage("§cUnknown sub-command.");
 		}
@@ -271,6 +293,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("remove");
 			ret.add("rename");
 			ret.add("list");
+			ret.add("scale");
 		}
 		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select") || argsr[0].equalsIgnoreCase("set")) {
 			ret.add("-continuous");
