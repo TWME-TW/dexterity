@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -26,6 +27,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	private Dexterity plugin;
 	ChatColor cc, cc2;
 	String noperm;
+	
+	public String[] commands = {
+		"convert", "deconvert", "deselect", "list", "merge", "move", "pos1", "remove", "rename", "rotate", "scale", "select", "wand"
+	};
+	public String[] descriptions = {
+		"Create a display from selected region", //convert
+		"Revert display back into block form", //deconvert
+		"Clear selected region", //deselect
+		"List all displays", //list
+		"Combine two displays", //merge
+		"Teleport a display", //move
+		"Set the first position", //pos1
+		"Delete a display", //remove
+		"Change a display's name", //rename
+		"Rotate a display", //rotate
+		"Resize a display", //scale
+		"Select a display", //sel
+		"Get a wand to select block locations" //wand
+	};
 	
 	public DexterityCommand(Dexterity plugin) {
 		this.plugin= plugin;
@@ -73,13 +93,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		String def = DexUtils.getDefaultAttribute(args);
 
 		if (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?")) {
+			int page = 0, pagelen = 5;
+			if (attrs.containsKey("page")) {
+				page = Math.max(attrs.get("page") - 1, 0);
+			} else if (args.length >= 2) page = Math.max(DexUtils.parseInt(args[1]) - 1, 0);
+			int maxpage = (commands.length/pagelen) + (commands.length % pagelen > 0 ? 1 : 0);
+			
+			if (page >= maxpage) page = maxpage - 1;
+			
 			p.sendMessage("\n\n");
-			p.sendMessage(cc + "§lDexterity Commands:");
-			p.sendMessage(cc2 + "- /dex wand §8- " + cc + "Get a wand to select block locations");
-			p.sendMessage(cc2 + "- /dex sel §8- " + cc + "Add a point to your selection");
-			p.sendMessage(cc2 + "- /dex desel §8- " + cc + "Stop editing selected points or displays");
-			p.sendMessage(cc2 + "- /dex polygon §8- " + cc + "Draw a polygon between all the points");
-			p.sendMessage(cc2 + "- /dex plane §8- " + cc + "Draw a plane through 2 or 3 points");
+			p.sendMessage(cc + "§lDexterity Commands: §6Page §6§l" + (page+1) + "§6/" + maxpage);
+			int pagestart = pagelen*page;
+			int pageend = Math.min(pagestart + pagelen, commands.length);
+			for (int i = pagestart; i < pageend; i++) {
+				p.sendMessage(cc2 + "- /dex " + commands[i] + " §8- " + cc + descriptions[i]);
+			}
 		}
 
 		else if (args[0].equalsIgnoreCase("wand")) {
@@ -92,22 +120,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
-			if (def != null) {
-				DexterityDisplay disp = plugin.getDisplay(def);
-				if (disp == null) {
-					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
-					return true;
-				}
-				session.setSelected(disp);
-				p.sendMessage(cc + "Selected " + cc2 + def + cc + "!");
-				return true;
-			}
-			
 			int index = -1;
 			if (args[0].equalsIgnoreCase("pos1")) index = 0;
 			else if (args[0].equalsIgnoreCase("pos2")) index = 1;
 			else if (args.length >= 2) index = DexUtils.parseInt(args[1])-1;
 			
+			if (index < 0) {
+				if (args.length == 1) {
+					p.sendMessage("§4Usage: §c/dex sel <name>");
+					return true;
+				}
+				if (def != null) {
+					DexterityDisplay disp = plugin.getDisplay(def);
+					if (disp == null) {
+						p.sendMessage("§4Error: §cCould not find display '" + def + "'");
+						return true;
+					}
+					session.setSelected(disp);
+					p.sendMessage(cc + "Selected " + cc2 + def + cc + "!");
+					return true;
+				}
+			}
+
 			Location loc = p.getLocation();
 			boolean continuous = flags.contains("continuous") || flags.contains("c") || flags.contains("cont");
 			
@@ -133,7 +167,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			session.deleteLocation(index);
 		}
 		
-		else if (args[0].equalsIgnoreCase("convert")) {
+		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (session.getLocations().size() >= 2) {
 				DexterityDisplay d = plugin.createDisplay(session.getLocations().get(0), session.getLocations().get(1));
 				
@@ -214,7 +248,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(cc + "Rotated " + cc2 + d.getLabel() + cc + " by " + degrees + " degrees!");
 			
 		}
-		else if (args[0].equalsIgnoreCase("remove")) {
+		else if (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("deconvert") || args[0].equalsIgnoreCase("deconv")) {
 			DexterityDisplay d = session.getSelected();
 			if (d == null) {
 				if (def == null) return true;
@@ -224,9 +258,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
-			d.remove();
+			boolean res = !args[0].equalsIgnoreCase("remove");
+			d.remove(res);
 			String label2 = d.getLabel() == null ? "at " + cc2 + DexUtils.locationString(d.getCenter(), 0) : cc2 + d.getLabel();
-			p.sendMessage(cc + "Removed the display " + label2);
+			p.sendMessage(cc + (res ? "Restored" : "Removed") + " the display " + label2);
 		}
 		
 		else if (args[0].equalsIgnoreCase("list")) {
@@ -262,6 +297,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + scale + cc + "!");
 		}
+		else if (args[0].equalsIgnoreCase("merge")) {
+			
+		}
 		
 		else {
 			p.sendMessage("§cUnknown sub-command.");
@@ -275,25 +313,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] argsr) {
 		List<String> params = new ArrayList<String>();
 		for (String s : argsr) {
-			params.add(DexUtils.attrAlias(s.split("=")[0]));
+			String[] ssplit = s.split("=");
+			if (ssplit.length > 0) params.add(DexUtils.attrAlias(ssplit[0]));
 		}
 		
 		List<String> ret = new ArrayList<String>();
 		
 		if (argsr.length <= 1) {
-			ret.add("sel");
-			ret.add("wand");
-			ret.add("sphere");
-			ret.add("polygon");
-			ret.add("deselect");
-			ret.add("undo");
-			ret.add("rotate");
-			ret.add("move");
-			ret.add("convert");
-			ret.add("remove");
-			ret.add("rename");
-			ret.add("list");
-			ret.add("scale");
+			for (String s : commands) ret.add(s);
+		}
+		else if (argsr[0].equalsIgnoreCase("?") || argsr[0].equalsIgnoreCase("help")) {
+			ret.add("page=");
 		}
 		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select") || argsr[0].equalsIgnoreCase("set")) {
 			ret.add("-continuous");

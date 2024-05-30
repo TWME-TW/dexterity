@@ -3,7 +3,10 @@ package me.c7dev.tensegrity.util;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 
@@ -13,19 +16,27 @@ public class DexBlock {
 	private float rot_xz, rot_xy;
 	private int angle_step = 0;
 	private BlockDisplay entity;
+	private DexTransformation trans;
 	//private boolean armor_stand;
 	
 	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
 	
 	public DexBlock(Block display, DexterityDisplay d) {
-		this.entity = display.getLocation().getWorld().spawn(display.getLocation(), BlockDisplay.class, (spawned) -> {
+		trans = new DexTransformation(new Transformation(
+				new Vector3f((float) -0.5,(float) -0.5, (float) -0.5),
+				new AxisAngle4f(0f, 0f, 0f, 0f),
+				new Vector3f(1, 1, 1),
+				new AxisAngle4f(0f, 0f, 0f, 0f)));
+		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
 			spawned.setBlock(display.getBlockData());
+			spawned.setTransformation(trans.build());
 			d.getPlugin().getBlockUUIDMap().put(spawned.getUniqueId(), d.getID());
 		});
 		recalculateRadius(d.getCenter());
 	}
 	public DexBlock(BlockDisplay bd, DexterityDisplay d) {
 		this.entity = bd;
+		trans = new DexTransformation(bd.getTransformation());
 		recalculateRadius(d.getCenter());
 		d.getPlugin().getBlockUUIDMap().put(bd.getUniqueId(), d.getID());
 	}
@@ -33,6 +44,21 @@ public class DexBlock {
 	public BlockDisplay getEntity() {
 		return this.entity;
 	}
+	
+	
+	public DexTransformation getTransformation() {
+		return trans;
+	}
+		
+	public void setTransformation(DexTransformation dt) {
+		trans = dt;
+		entity.setTransformation(dt.build());
+	}
+	
+	public void updateTransformation() {
+		entity.setTransformation(trans.build());
+	}
+	
 	
 	public void teleport(Location loc) {
 		entity.teleport(loc);

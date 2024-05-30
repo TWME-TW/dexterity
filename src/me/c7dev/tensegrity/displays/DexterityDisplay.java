@@ -17,6 +17,7 @@ import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.RotationAnimation;
 import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.Plane;
 
 public class DexterityDisplay {
@@ -80,8 +81,14 @@ public class DexterityDisplay {
 		plugin.getDisplays().add(this);
 	}
 	
-	public void remove() {
+	public void remove(boolean restore) {
+		if (restore) setScale(1f);
 		for (DexBlock b : blocks) {
+			if (restore) {
+				Location loc = DexUtils.blockLoc(b.getEntity().getLocation());
+				//loc.getBlock().setType(b.getEntity().getBlock().getMaterial());
+				loc.getBlock().setBlockData(b.getEntity().getBlock());
+			}
 			b.getEntity().remove();
 		}
 		plugin.getDisplays().remove(this);
@@ -128,11 +135,16 @@ public class DexterityDisplay {
 	public void setScale(float s) {
 		for (DexBlock db : blocks) {
 			Vector displacement = db.getEntity().getLocation().toVector().subtract(center.toVector()).multiply(s - 1);
-			db.getEntity().setTransformation(new Transformation(
+			/*db.getEntity().setTransformation(new Transformation(
 					new Vector3f((float) displacement.getX(),(float) displacement.getY(), (float)displacement.getZ()),
 					new AxisAngle4f(1f, 0f, 0f, 1f),
 					new Vector3f(s, s, s),
-					new AxisAngle4f(0f, 0f, 0f, 0f)));
+					new AxisAngle4f(0f, 0f, 0f, 0f)));*/
+			Vector3f dispv = new Vector3f((float) displacement.getX(), (float) displacement.getY(), (float) displacement.getZ());
+			db.getTransformation()
+					.setDisplacement(dispv.add(db.getTransformation().getDisplacement()))
+					.setScale(s, s, s);
+			db.updateTransformation();
 		}
 		this.scale = s;
 	}
