@@ -7,10 +7,9 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
+
+import me.c7dev.tensegrity.displays.DexterityDisplay;
 
 public class DexUtils {
 	
@@ -166,24 +165,19 @@ public class DexUtils {
 		}
 	}
 	
-	public static BlockDisplay getClickedBlockDisplay(Player p) {
-		BlockDisplay nearest = null;
-		double angle = 1000;
-		Vector dir = p.getLocation().getDirection();
-		
-		for (Entity e : p.getNearbyEntities(5, 5, 5)) {
-			if (e instanceof BlockDisplay) {
-				Vector disp = e.getLocation().add(0.5, 0.5, 0.5).toVector().subtract(p.getEyeLocation().toVector());
-				double angle1 = dir.angle(disp);
-				if ((nearest == null || angle1 < angle) && disp.length() <= 6) {
-					angle = angle1;
-					nearest = (BlockDisplay) e;
-				}
-			}
-		}
+	public static int maxPage(int size, int pagelen) {
+		return (size/pagelen) + (size % pagelen > 0 ? 1 : 0);
+	}
+	
+	public static void paginate(Player p, String[] strs, int page, int pagelen) {
+		int maxpage = (strs.length/pagelen) + (strs.length % pagelen > 0 ? 1 : 0);
+		if (page >= maxpage) page = maxpage - 1;
+		int pagestart = pagelen*page;
+		int pageend = Math.min(pagestart + pagelen, strs.length);
 				
-		if (angle < 0.4) return nearest;
-		else return null;
+		for (int i = pagestart; i < pageend; i++) {
+			if (strs[i] != null) p.sendMessage(strs[i]);
+		}
 	}
 	
 	public static Location deserializeLocation(FileConfiguration config, String dir) {

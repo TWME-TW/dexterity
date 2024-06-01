@@ -14,7 +14,7 @@ import net.md_5.bungee.api.ChatColor;
 public class DexSession {
 	
 	private Player p;
-	private List<Location> locations = new ArrayList<>();
+	private Location l1, l2;
 	private List<DexterityDisplay> displays = new ArrayList<>();
 	private DexterityDisplay selected = null;
 	private Dexterity plugin;
@@ -26,14 +26,15 @@ public class DexSession {
 		this.plugin = plugin;
 		cc = plugin.getChatColor(); cc2 = plugin.getChatColor2();
 		plugin.setEditSession(player.getUniqueId(), this);
-		
-		locations.add(null); //add first 2 locations
-		locations.add(null);
 	}
 	
-	public List<Location> getLocations(){
-		return locations;
+	public Location getLocation1() {
+		return l1;
 	}
+	public Location getLocation2() {
+		return l2;
+	}
+	
 	public List<DexterityDisplay> getEdits(){
 		return displays;
 	}
@@ -49,23 +50,18 @@ public class DexSession {
 	}
 	
 	public World getWorld() {
-		for (Location loc : locations) {
-			if (loc != null) return loc.getWorld();
-		}
-		return null;
+		return l1 == null ? null : l1.getWorld();
 	}
 	
-	public void setLocation(Location loc, boolean continuous, int index) {
+	public void setLocation(Location loc, boolean is_l1) {
 		int decimals = 3;
 		if (System.currentTimeMillis() - click_cooldown < 100) return;
 		click_cooldown = System.currentTimeMillis();
 		
-		if (!continuous){
-			loc.setX(loc.getBlockX());
-			loc.setY(loc.getBlockY());
-			loc.setZ(loc.getBlockZ());
-			decimals = 0;
-		}
+		loc.setX(loc.getBlockX());
+		loc.setY(loc.getBlockY());
+		loc.setZ(loc.getBlockZ());
+		decimals = 0;
 		loc.setYaw(0);
 		loc.setPitch(0);
 		
@@ -75,38 +71,15 @@ public class DexSession {
 			return;
 		}
 		
-		if (index < 0 || index == locations.size()) {
-			locations.add(loc);
-			p.sendMessage(cc + "Set point " + locations.size() + " to " + cc2 + "X:" + DexUtils.round(loc.getX(), decimals) + 
-					" Y:" + DexUtils.round(loc.getY(), decimals) +
-					" Z:" + DexUtils.round(loc.getZ(), decimals));
-		} else {
-			if (index > locations.size() - 1) {
-				p.sendMessage("§4Error: §cThere are only " + locations.size() + " points!");
-				return;
-			}
+		if (is_l1) l1 = loc;
+		else l2 = loc;
 			
-			locations.set(index, loc);
-			p.sendMessage(cc + "Set point #" + (index + 1) + " to " + cc2 + DexUtils.locationString(loc, decimals));
-		}
+		p.sendMessage(cc + "Set point #" + (is_l1 ? 1 : 2) + " to " + cc2 + DexUtils.locationString(loc, decimals));
 	}
 	
-	public void deleteLocation(int index) {
-		if (index < 0) {
-			locations.clear();
-			p.sendMessage(cc + "Cleared point selection.");
-		} else {
-			if (locations.size() == 0) {
-				p.sendMessage("§4Error: §cNo points have been set!");
-				return;
-			}
-			if (index > locations.size() - 1) {
-				p.sendMessage("§4Error: §cThere are only " + locations.size() + " points!");
-				return;
-			}
-			locations.remove(index);
-			p.sendMessage(cc + "Deleted point #" + (index + 1) + ".");
-		}
+	public void clearLocationSelection() {
+		l1 = null;
+		l2 = null;
 	}
 
 }

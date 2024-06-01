@@ -7,17 +7,17 @@ import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
@@ -29,7 +29,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm;
 	
 	public String[] commands = {
-		"convert", "deconvert", "deselect", "list", "merge", "move", "pos1", "remove", "rename", "rotate", "scale", "select", "wand"
+		"convert", "deconvert", "deselect", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
+		"scale", "select", "unmerge", "wand"
 	};
 	public String[] descriptions = {
 		"Create a display from selected region", //convert
@@ -44,8 +45,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		"Rotate a display", //rotate
 		"Resize a display", //scale
 		"Select a display", //sel
+		"Separate a display group", //unmerge
 		"Get a wand to select block locations" //wand
 	};
+	public String[] command_strs = new String[commands.length];
 	
 	public DexterityCommand(Dexterity plugin) {
 		this.plugin= plugin;
@@ -54,6 +57,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		plugin.getCommand("dex").setExecutor(this);
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission", "§cYou don't have permission!");
+		
+		for (int i = 0; i < commands.length; i++) {
+			command_strs[i] = cc2 + "- /dex " + commands[i] + " §8- " + cc + descriptions[i];
+		}
 	}
 	
 	public DexterityDisplay getSelected(DexSession session) {
@@ -63,6 +70,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return null;
 		}
 		return d;
+	}
+	
+	public int constructList(String[] strs, DexterityDisplay disp, String selected, int i, int level) {
+		int count = 1;
+		
+		String line = "";
+		for (int j = 0; j < level; j++) line += "  ";
+		
+		line += disp.getLabel() == null ? "§oUnnamed" : disp.getLabel();
+		if (disp.getBlocks().size() > 0) line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + line + "§7: " + cc + DexUtils.locationString(disp.getCenter(), 0) + " (" + disp.getCenter().getWorld().getName() + ")";
+		else line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + "§l" + line + cc + ":";
+		
+		strs[i] = line;
+		
+		for (int j = 1; j <= disp.getSubdisplays().size(); j++) {
+			count += constructList(strs, disp.getSubdisplays().get(j-1), selected, i+j, level+1);
+		}
+		
+		return count;
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -89,25 +115,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		HashMap<String,Integer> attrs = DexUtils.getAttributes(args);
+		HashMap<String,String> attr_str = DexUtils.getAttributesStrings(args);
 		List<String> flags = DexUtils.getFlags(args);
 		String def = DexUtils.getDefaultAttribute(args);
 
 		if (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?")) {
-			int page = 0, pagelen = 5;
+			int page = 0;
 			if (attrs.containsKey("page")) {
 				page = Math.max(attrs.get("page") - 1, 0);
 			} else if (args.length >= 2) page = Math.max(DexUtils.parseInt(args[1]) - 1, 0);
-			int maxpage = (commands.length/pagelen) + (commands.length % pagelen > 0 ? 1 : 0);
-			
+			int maxpage = DexUtils.maxPage(commands.length, 5);
 			if (page >= maxpage) page = maxpage - 1;
-			
+						
 			p.sendMessage("\n\n");
 			p.sendMessage(cc + "§lDexterity Commands: §6Page §6§l" + (page+1) + "§6/" + maxpage);
-			int pagestart = pagelen*page;
-			int pageend = Math.min(pagestart + pagelen, commands.length);
-			for (int i = pagestart; i < pageend; i++) {
-				p.sendMessage(cc2 + "- /dex " + commands[i] + " §8- " + cc + descriptions[i]);
-			}
+			DexUtils.paginate(p, command_strs, page, 5);
 		}
 
 		else if (args[0].equalsIgnoreCase("wand")) {
@@ -119,31 +141,36 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
+		else if (args[0].equalsIgnoreCase("test")) {
+			for (Entity e : p.getWorld().getEntities()) {
+				if (e instanceof BlockDisplay) e.remove();
+			}
+		}
+		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			int index = -1;
 			if (args[0].equalsIgnoreCase("pos1")) index = 0;
 			else if (args[0].equalsIgnoreCase("pos2")) index = 1;
-			else if (args.length >= 2) index = DexUtils.parseInt(args[1])-1;
 			
 			if (index < 0) {
 				if (args.length == 1) {
 					p.sendMessage("§4Usage: §c/dex sel <name>");
 					return true;
 				}
-				if (def != null) {
-					DexterityDisplay disp = plugin.getDisplay(def);
-					if (disp == null) {
-						p.sendMessage("§4Error: §cCould not find display '" + def + "'");
-						return true;
-					}
+			}
+			if (def != null) {
+				DexterityDisplay disp = plugin.getDisplay(def);
+				if (disp != null) {
 					session.setSelected(disp);
 					p.sendMessage(cc + "Selected " + cc2 + def + cc + "!");
+					return true;
+				} else if (index < 0) {
+					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
 					return true;
 				}
 			}
 
 			Location loc = p.getLocation();
-			boolean continuous = flags.contains("continuous") || flags.contains("c") || flags.contains("cont");
 			
 			if (args.length == 4) {
 				try {
@@ -152,37 +179,32 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					double z = Double.parseDouble(args[3]);
 					loc = new Location(p.getWorld(), x, y, z, 0, 0);
 					index = -1;
-					continuous = true;
 				} catch (Exception ex) {
 					p.sendMessage("§4Error: §cx, y, and z must be numbers!");
 					return true;
 				}
 			}
-			session.setLocation(loc, continuous, index);
+			session.setLocation(loc, index == 0);
 		}
 		
 		else if (args[0].equalsIgnoreCase("desel") || args[0].equalsIgnoreCase("deselect") || args[0].equalsIgnoreCase("clear")) {
-			int parsed_def = def != null ? DexUtils.parseInt(def) - 1 : -1;
-			int index = attrs.containsKey("point_num") ? attrs.get("point_num") - 1 : parsed_def;
-			session.deleteLocation(index);
+			if (session.getSelected() != null) {
+				session.setSelected(null);
+				p.sendMessage(cc + "Cleared selection!");
+			}
 		}
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
-			if (session.getLocations().size() >= 2) {
-				DexterityDisplay d = plugin.createDisplay(session.getLocations().get(0), session.getLocations().get(1));
-				
-				if (flags.contains("offset_center")) {
-					if (session.getLocations().size() >= 3) {
-						p.sendMessage("§7Set center of rotation to 3rd point");
-						d.setCenter(session.getLocations().get(2));
-					}
-				}
+			if (session.getLocation1() != null && session.getLocation2() != null) {
+				DexterityDisplay d = plugin.createDisplay(session.getLocation1(), session.getLocation2());
 				
 				session.setSelected(d);
 				
+				session.clearLocationSelection();
+				
 				p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
 				
-			} else p.sendMessage("§4Error: §cThis command requires a minimum of 2 locations set!");
+			} else p.sendMessage("§4Error: §cBoth locations must be set!");
 		}
 		
 		else if (args[0].equalsIgnoreCase("move")) {
@@ -236,7 +258,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			Plane plane = Plane.XZ;
 			if (attrs.containsKey("plane")) {
-				HashMap<String,String> attr_str = DexUtils.getAttributesStrings(args);
 				plane = Plane.valueOf(attr_str.get("plane").toUpperCase());
 				if (plane == null) {
 					p.sendMessage("§4Error: §cValid planes are XZ, XY, and ZY.");
@@ -260,6 +281,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			boolean res = !args[0].equalsIgnoreCase("remove");
 			d.remove(res);
+			session.setSelected(null);
 			String label2 = d.getLabel() == null ? "at " + cc2 + DexUtils.locationString(d.getCenter(), 0) : cc2 + d.getLabel();
 			p.sendMessage(cc + (res ? "Restored" : "Removed") + " the display " + label2);
 		}
@@ -269,36 +291,113 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage("§cThere are no displays set up!");
 				return true;
 			}
+			
+			int page = 0;
+			if (attrs.containsKey("page")) {
+				page = Math.max(attrs.get("page") - 1, 0);
+			} else if (args.length >= 2) page = Math.max(DexUtils.parseInt(args[1]) - 1, 0);			
+			int maxpage = DexUtils.maxPage(plugin.getDisplays().size(), 10);
+			if (page >= maxpage) page = maxpage - 1;
+			
+			int total = 0;
+			for (DexterityDisplay d : plugin.getDisplays()) total += d.getGroupSize();
+			
 			p.sendMessage("§b");
-			p.sendMessage(cc2 + "§l" + plugin.getDisplays().size() + cc + " display" + (plugin.getDisplays().size() == 1 ? " has" : "s have") + " been created:"); //TODO: paginate
+			p.sendMessage(cc + "§lDisplay list: §6Page §6§l" + (page+1) + "§6/" + maxpage);
+			String[] strs = new String[total];
+			int i = 0;
 			for (DexterityDisplay disp : plugin.getDisplays()) {
-				p.sendMessage(cc2 + (disp.getLabel() == null ? "§oUnnamed" : disp.getLabel()) + "§7: " + cc + DexUtils.locationString(disp.getCenter(), 0) + " (" + disp.getCenter().getWorld().getName() + ")");
+				
+				if (disp == null) {
+					Bukkit.broadcastMessage("null, i=" + i + ", len=" + plugin.getDisplays().size());
+					for (DexterityDisplay d : plugin.getDisplays()) {
+						p.sendMessage(d == null ? "NULL" : d.getLabel());
+					}
+					return true;
+				}
+				
+				i += constructList(strs, disp, session.getSelected() == null ? null : session.getSelected().getLabel(), i, 0);
 			}
+			DexUtils.paginate(p, strs, page, 10);
+			
 		}
 		
 		else if (args[0].equalsIgnoreCase("scale")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
-			if (def == null) {
-				p.sendMessage("§4Usage: §c/dex scale <multiplier>");
-				return true;
+			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
+				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
+				float sx = attrsd.getOrDefault("x", d.getScaleX()).floatValue();
+				float sy = attrsd.getOrDefault("y", d.getScaleY()).floatValue();
+				float sz = attrsd.getOrDefault("z", d.getScaleZ()).floatValue();
+				
+				d.setScale(sx, sy, sz);
+				p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + sx + ", " + sy + ", " + sz + cc + "!");
+			} else {
+				float scale = 1;
+				try {
+					scale = Float.parseFloat(def);
+				} catch(Exception ex) {
+					p.sendMessage("§4Error: §cYou must send a multiplier!");
+					return true;
+				}
+
+				d.setScale(scale);
+
+				p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + scale + cc + "!");
 			}
-			
-			float scale = 1;
-			try {
-				scale = Float.parseFloat(def);
-			} catch(Exception ex) {
-				p.sendMessage("§4Error: §cYou must send a multiplier!");
-				return true;
-			}
-			
-			d.setScale(scale);
-			
-			p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + scale + cc + "!");
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
-			
+			if (def == null) {
+				p.sendMessage("§4Usage: §c/dex merge <sub-display>");
+				return true;
+			}
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			DexterityDisplay parent = plugin.getDisplay(def);
+			if (parent == null) {
+				p.sendMessage("§4Error: §cCould not find display '" + def + "'");
+				return true;
+			}
+			String new_group = attr_str.get("new_group");
+			if (d == parent || d.getLabel().equals(parent.getLabel())) {
+				p.sendMessage("§4Error: §cMust be a different display than selected!");
+				return true;
+			}
+			if (!d.getCenter().getWorld().getName().equals(parent.getCenter().getWorld().getName())) {
+				p.sendMessage("§4Error: §cDisplays must be in the same world!");
+				return true;
+			}
+			if (d.getParent() != null) {
+				p.sendMessage("§4Error: §cCannot merge two sub-groups, unmerge first!");
+				return true;
+			}
+			if (d.containsSubdisplay(parent)) {
+				p.sendMessage("§4Error: §cThis display has already been merged with '" + d.getLabel() + "'!");
+				return true;
+			}
+			if (new_group != null && plugin.getDisplayLabels().contains(new_group)) {
+				p.sendMessage("§4Error: §cA group with this name already exists!");
+				return true;
+			}
+
+			DexterityDisplay g = d.merge(parent, new_group);
+			if (g != null) {
+				session.setSelected(g);
+				if (new_group == null) p.sendMessage(cc + "Successfully merged " + cc2 + parent.getLabel() + cc + "!");
+				else p.sendMessage(cc + "Successfully created new group " + cc2 + new_group + cc + "!");
+			} else p.sendMessage("§cFailed to merge!");
+		}
+		else if (args[0].equalsIgnoreCase("unmerge")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			if (d.getParent() == null) {
+				p.sendMessage(cc + "Nothing to un-merge, " + cc2 + d.getLabel() + cc + " has no parent display!");
+				return true;
+			}
+			d.unmerge();
+			p.sendMessage(cc + "Un-merged " + cc2 + d.getLabel() + cc + "!");
 		}
 		
 		else {
@@ -318,15 +417,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		List<String> ret = new ArrayList<String>();
+		boolean add_labels = false;
 		
 		if (argsr.length <= 1) {
 			for (String s : commands) ret.add(s);
 		}
-		else if (argsr[0].equalsIgnoreCase("?") || argsr[0].equalsIgnoreCase("help")) {
+		else if (argsr[0].equalsIgnoreCase("?") || argsr[0].equalsIgnoreCase("help") || argsr[0].equalsIgnoreCase("list")) {
 			ret.add("page=");
 		}
 		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select") || argsr[0].equalsIgnoreCase("set")) {
-			ret.add("-continuous");
+			add_labels = true;
+		}
+		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
+			add_labels = true;
+		}
+		else if (argsr[0].equalsIgnoreCase("scale")) {
+			ret.add("x=");
+			ret.add("y=");
+			ret.add("z=");
+		}
+		else if (argsr[0].equalsIgnoreCase("merge")) {
+			ret.add("new_group=");
+			add_labels = true;
 		}
 		else if (argsr[0].equalsIgnoreCase("move")) {
 			ret.add("x=");
@@ -349,11 +461,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("plane=ZY");
 			}
 		}
-		else if (argsr[0].equalsIgnoreCase("sphere")) {
-			if (!params.contains("radius")) ret.add("radius=");
-			if (!params.contains("filled")) ret.add("filled=");
-			if (!params.contains("granularity")) ret.add("granularity=");
-		}
+		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
 
 		return ret;
 	}

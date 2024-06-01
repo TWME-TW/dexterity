@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -16,7 +17,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
@@ -26,14 +29,14 @@ import net.md_5.bungee.api.ChatColor;
 
 public class Dexterity extends JavaPlugin {
 	
-	private HashMap<Integer,DexterityDisplay> displays = new HashMap<>();
+	private HashMap<String,DexterityDisplay> displays = new HashMap<>();
+	private HashMap<String,DexterityDisplay> all_displays = new HashMap<>();
 	private HashMap<UUID,DexSession> sessions = new HashMap<>();
-	private HashMap<UUID,Integer> block_uuid = new HashMap<>();
-	private HashMap<String,Integer> label_map = new HashMap<>();
-	private int next_id = 0;
 	
-	private ChatColor chat_color = ChatColor.of("#49eb9a"); //#ffa217
-	private ChatColor chat_color2 = ChatColor.of("#42f5ef"); //ffd417
+	public final ChatColor chat_color = ChatColor.of("#49eb9a"); //#ffa217
+	public final ChatColor chat_color2 = ChatColor.of("#42f5ef"); //ffd417
+	
+	public static final Vector3f DEFAULT_DISP = new Vector3f(-0.5f, -0.5f, -0.5f);
 	
 	@Override
 	public void onEnable() {
@@ -49,31 +52,6 @@ public class Dexterity extends JavaPlugin {
 		saveDisplays();
 	}
 	
-	public Collection<DexterityDisplay> getDisplays(){
-		return displays.values();
-		//return new ArrayList<DexterityDisplay>(displays.values());
-	}
-	
-	public DexterityDisplay getDisplay(int id) {
-		return displays.get(id);
-	}
-	public DexterityDisplay getDisplay(String label) {
-		if (!label_map.containsKey(label)) return null;
-		return displays.get(label_map.get(label));
-	}
-	
-	public DexSession getEditSession(UUID u) {
-		return sessions.get(u);
-	}
-	
-	public HashMap<String,Integer> getLabelMap(){
-		return label_map;
-	}
-	
-	public void setEditSession(UUID u, DexSession s) {
-		sessions.put(u, s);
-	}
-	
 	public ChatColor getChatColor() {
 		return chat_color;
 	}
@@ -81,18 +59,14 @@ public class Dexterity extends JavaPlugin {
 		return chat_color2;
 	}
 	
-	public int getNextDisplayId() {
-		next_id++;
-		return next_id - 1;
-	}
-	
 	public String getConfigString(String dir, String def) {
 		String r = getConfigString(dir);
 		return r == null ? def.replaceAll("&", "§").replaceAll("\\Q[newline]\\E", "\n") : r;
 	}
 	
-	public HashMap<UUID,Integer> getBlockUUIDMap(){
-		return block_uuid;
+	public DexterityDisplay getClickedDisplay(Player p) {
+		
+		return null;
 	}
 
 	public String getConfigString(String dir) {
@@ -119,9 +93,7 @@ public class Dexterity extends JavaPlugin {
 		}
 		
 		displays.clear();
-		block_uuid.clear();
 		sessions.clear();
-		label_map.clear();
 		int display_count = 0;
 		
 		try {
@@ -137,24 +109,30 @@ public class Dexterity extends JavaPlugin {
 						blocks.add((BlockDisplay) entity);
 					} else missing_blocks = true;
 				}
-				if (blocks.size() == 0) { //none, skip
-					Bukkit.getLogger().severe("Could not load display '" + label + "' as none of the blocks were found!");
-					continue;
-				}
 				if (missing_blocks) {
 					Bukkit.getLogger().warning("Some of the blocks for display '" + label + "' are missing!");
 				}
 				
 				Location center = DexUtils.deserializeLocation(afile, label + ".center");
 				DexterityDisplay disp = new DexterityDisplay(this, center, label);
-				disp.forceSetScale(afile.getDouble(label + ".scale"));
 				disp.setRotationPlane(Plane.valueOf(afile.getString(label + ".rotation-plane")));
 				
 				for (BlockDisplay bd : blocks) {
 					disp.getBlocks().add(new DexBlock(bd, disp));
 				}
 				
-				displays.put(disp.getID(), disp);
+				String parent_label = afile.getString(label + ".parent");
+				if (parent_label != null) {
+					DexterityDisplay parent = getDisplay(parent_label);
+					if (parent == null) Bukkit.getLogger().severe("Could not find parent display '" + parent_label + "'!");
+					else {
+						parent.getSubdisplays().add(disp);
+						disp.setParent(parent);
+					}
+				}
+								
+				if (disp.getParent() == null) displays.put(disp.getLabel(), disp);
+				all_displays.put(disp.getLabel(), disp);
 			}
 			
 			return display_count;
@@ -181,12 +159,7 @@ public class Dexterity extends JavaPlugin {
 		for (String s : afile.getKeys(false)) afile.set(s, null);
 		
 		for (DexterityDisplay disp : getDisplays()) {
-			afile.set(disp.getLabel() + ".scale", disp.getScale());
-			afile.set(disp.getLabel() + ".rotation-plane", disp.getRotationPlane().toString());
-			afile.set(disp.getLabel() + ".center", disp.getCenter().serialize());
-			List<String> uuids = new ArrayList<>();
-			for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
-			afile.set(disp.getLabel() + ".uuids", uuids);
+			saveDisplay(disp, afile);
 			//TODO serialize animations
 		}
 		
@@ -198,7 +171,47 @@ public class Dexterity extends JavaPlugin {
 		}
 	}
 	
+	private void saveDisplay(DexterityDisplay disp, FileConfiguration afile) {
+		afile.set(disp.getLabel() + ".rotation-plane", disp.getRotationPlane().toString());
+		afile.set(disp.getLabel() + ".center", disp.getCenter().serialize());
+		List<String> uuids = new ArrayList<>();
+		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
+		afile.set(disp.getLabel() + ".uuids", uuids);
+				
+		if (disp.getParent() != null) afile.set(disp.getLabel() + ".parent", disp.getParent().getLabel());
+		
+		for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub, afile);
+	}
+	
+	public void registerDisplay(String label, DexterityDisplay d) {
+		if (all_displays.containsKey(label) && all_displays.get(label) != d) return;
+		if (d.getParent() == null) displays.put(label, d);
+		all_displays.put(label, d);
+	}
+	
 	//////////////////////////////////////////////////////////
+	
+	public Set<String> getDisplayLabels(){
+		return all_displays.keySet();
+		//return new ArrayList<DexterityDisplay>(displays.values());
+	}
+	
+	public Collection<DexterityDisplay> getDisplays() {
+		return displays.values();
+	}
+	
+	public DexterityDisplay getDisplay(String label) {
+		if (!all_displays.containsKey(label)) return null;
+		return all_displays.get(label);
+	}
+	
+	public DexSession getEditSession(UUID u) {
+		return sessions.get(u);
+	}
+	
+	public void setEditSession(UUID u, DexSession s) {
+		sessions.put(u, s);
+	}
 	
 	public DexterityDisplay createDisplay(Location l1, Location l2) { //l1 and l2 bounding box, all blocks inside converted
 		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
@@ -214,7 +227,7 @@ public class Dexterity extends JavaPlugin {
 		center.add(0.5, 0.5, 0.5);
 		
 		DexterityDisplay d = new DexterityDisplay(this, center, null);
-		
+
 		for (int x = xmin; x <= xmax; x++) {
 			for (int y = ymin; y <= ymax; y++) {
 				for (int z = zmin; z <= zmax; z++) {
@@ -232,7 +245,8 @@ public class Dexterity extends JavaPlugin {
 		//RotationAnimation rotation = new RotationAnimation(d, Plane.XZ);
 		//rotation.start();
 		
-		displays.put(d.getID(), d);
+		displays.put(d.getLabel(), d);
+		all_displays.put(d.getLabel(), d);
 		
 		saveDisplays();
 		

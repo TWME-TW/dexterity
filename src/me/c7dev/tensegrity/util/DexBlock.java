@@ -23,14 +23,13 @@ public class DexBlock {
 	
 	public DexBlock(Block display, DexterityDisplay d) {
 		trans = new DexTransformation(new Transformation(
-				new Vector3f((float) -0.5,(float) -0.5, (float) -0.5),
+				new Vector3f(-0.5f, -0.5f, -0.5f),
 				new AxisAngle4f(0f, 0f, 0f, 0f),
 				new Vector3f(1, 1, 1),
 				new AxisAngle4f(0f, 0f, 0f, 0f)));
 		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
 			spawned.setBlock(display.getBlockData());
 			spawned.setTransformation(trans.build());
-			d.getPlugin().getBlockUUIDMap().put(spawned.getUniqueId(), d.getID());
 		});
 		recalculateRadius(d.getCenter());
 	}
@@ -38,7 +37,6 @@ public class DexBlock {
 		this.entity = bd;
 		trans = new DexTransformation(bd.getTransformation());
 		recalculateRadius(d.getCenter());
-		d.getPlugin().getBlockUUIDMap().put(bd.getUniqueId(), d.getID());
 	}
 	
 	public BlockDisplay getEntity() {

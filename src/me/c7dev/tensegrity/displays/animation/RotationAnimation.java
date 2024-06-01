@@ -23,8 +23,8 @@ public class RotationAnimation extends Animation {
 	private Plane plane;
 	private BukkitRunnable runnable;
 	
-	public RotationAnimation(DexterityDisplay display, Plane plane) {
-		super(display);
+	public RotationAnimation(DexterityDisplay display, double seconds, Plane plane) {
+		super(display, seconds);
 		this.plane = plane;
 		for (Animation an : display.getAnimations()) {
 			if (an instanceof RotationAnimation) {
@@ -62,12 +62,12 @@ public class RotationAnimation extends Animation {
 		if (plane == Plane.XZ) anglev = new Vector(1, 0, 0);
 		else anglev = new Vector(0, 1, 0);
 		
-		for (DexBlock block : display.getBlocks()) {
-			Vector displacement = block.getLocation().toVector().subtract(display.getCenter().toVector());
+		for (DexBlock block : getDisplay().getBlocks()) {
+			Vector displacement = block.getLocation().toVector().subtract(getDisplay().getCenter().toVector());
 			double angle = displacement.angle(anglev);
 			
 			int step = (int) (n_steps*angle/(2*Math.PI));
-			if (block.getLocation().getBlockZ() < display.getCenter().getBlockZ()) step = n_steps - step;
+			if (block.getLocation().getBlockZ() < getDisplay().getCenter().getBlockZ()) step = n_steps - step;
 			
 			block.setAngleStep(step);
 		}
@@ -139,12 +139,6 @@ public class RotationAnimation extends Animation {
 		runnable.runTaskTimer(getDisplay().getPlugin(), 0, 1l);
 		
 		started_instance = true;
-	}
-	
-	public void remove() {
-		paused = true;
-		runnable.cancel();
-		super.remove();
 	}
 
 }

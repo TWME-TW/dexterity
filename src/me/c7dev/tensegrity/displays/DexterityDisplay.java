@@ -25,42 +25,31 @@ public class DexterityDisplay {
 	private Dexterity plugin;
 	private Location center;
 	private Plane rot_plane = Plane.XZ;
-	private int id;
 	private String label;
-	private double scale = 1;
+	private double scale_x = 1, scale_y = 1, scale_z = 1;
+	private DexterityDisplay parent;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
+	private List<DexterityDisplay> subdisplays = new ArrayList<>();
 		
 	public DexterityDisplay(Dexterity plugin, Location center, String label) {
 		this.plugin = plugin;
 		this.center = center;
-		this.id = plugin.getNextDisplayId();
 		
 		if (label == null) {
 			int i =1;
-			for (; i < plugin.getDisplays().size()+1; i++) {
-				if (!plugin.getLabelMap().containsKey("display-" + i)) break;
-			}
+			while (plugin.getDisplayLabels().contains("display-" + i)) i++;
 			this.label = "display-" + i;
 		} else this.label = label;
-		plugin.getLabelMap().put(this.label, id);
-	}
-	
-	public int getID() {
-		return id;
 	}
 	
 	public String getLabel() {
 		return label;
 	}
 	public boolean setLabel(String s) {
-		if (plugin.getLabelMap().containsKey(s)) return false;
-		
-		plugin.getLabelMap().put(s, id);
+		if (plugin.getDisplayLabels().contains(s)) return false;
 		label = s;
-		BlockDisplay bd = blocks.get(0).getEntity();
-		//bd.setRotation(35f, 35f);
 		return true;
 	}
 	
@@ -73,7 +62,16 @@ public class DexterityDisplay {
 	}
 	
 	public double getScale() {
-		return scale;
+		return Math.pow(scale_x*scale_y*scale_z, 1/3.0); // M0
+	}
+	public double getScaleX() {
+		return scale_x;
+	}
+	public double getScaleZ() {
+		return scale_z;
+	}
+	public double getScaleY() {
+		return scale_y;
 	}
 
 	public void setEntities(List<DexBlock> entities_){
@@ -81,19 +79,110 @@ public class DexterityDisplay {
 		plugin.getDisplays().add(this);
 	}
 	
+	public List<DexterityDisplay> getSubdisplays() {
+		return subdisplays;
+	}
+	
+	public DexterityDisplay getParent() {
+		return parent;
+	}
+	
+	public void setParent(DexterityDisplay p) {
+		if (p == this) {
+			Bukkit.getLogger().severe("Tried to set parent to self");
+			return;
+		}
+		parent = p;
+	}
+	
+	public DexterityDisplay getRootDisplay() {
+		return rootDisplay(this);
+	}
+	
+	public DexterityDisplay rootDisplay(DexterityDisplay d) {
+		if (d.getParent() == null) return this;
+		else return rootDisplay(d.getParent());
+	}
+	
+	public boolean containsSubdisplay(DexterityDisplay d) {
+		if (subdisplays.contains(d)) return true;
+		for (DexterityDisplay child : subdisplays) {
+			if (child.containsSubdisplay(d)) return true;
+		}
+		return false;
+	}
+	
+	public DexterityDisplay merge(DexterityDisplay m, String new_group) { //TODO serialize
+		if (m == this || m.getLabel().equals(label) || subdisplays.contains(m) || parent != null) return null;
+		if (rootDisplay(this).containsSubdisplay(m)) return null;
+		if (!m.getCenter().getWorld().getName().equals(center.getWorld().getName())) return null;
+		if (new_group != null && plugin.getDisplayLabels().contains(new_group)) return null;
+		
+		plugin.getDisplays().remove(this);
+		stopAnimations();
+		m.stopAnimations();
+		Vector c2v = center.toVector().add(m.getCenter().toVector()).multiply(0.5); //midpoint
+		Location c2 = new Location(center.getWorld(), c2v.getX(), c2v.getY(), c2v.getZ());
+		center = c2;
+		m.setCenter(c2);
+		
+		DexterityDisplay r;
+		if (new_group == null) {
+			m.getSubdisplays().add(this);
+			setParent(m);
+			r = m;
+		} else {
+			plugin.getDisplays().remove(m);
+			DexterityDisplay p = new DexterityDisplay(plugin, c2, new_group);
+			
+			setParent(p);
+			m.setParent(p);
+			p.getSubdisplays().add(this);
+			p.getSubdisplays().add(m);
+			plugin.registerDisplay(new_group, p);
+			r = p;
+		}
+		
+		plugin.saveDisplays();
+		return r;
+	}
+	
+	public void unmerge() {
+		if (parent == null) return;
+		parent.getSubdisplays().remove(this);
+		parent = null;
+		plugin.registerDisplay(label, this);
+		plugin.saveDisplays();
+	}
+	
 	public void remove(boolean restore) {
-		if (restore) setScale(1f);
+		if (parent != null) parent.getSubdisplays().remove(this);
+		removeHelper(restore);
+		plugin.saveDisplays();
+	}
+	
+	private void removeHelper(boolean restore) {
 		for (DexBlock b : blocks) {
 			if (restore) {
 				Location loc = DexUtils.blockLoc(b.getEntity().getLocation());
-				//loc.getBlock().setType(b.getEntity().getBlock().getMaterial());
 				loc.getBlock().setBlockData(b.getEntity().getBlock());
 			}
 			b.getEntity().remove();
 		}
+		
 		plugin.getDisplays().remove(this);
-		plugin.getLabelMap().remove(label);
-		plugin.saveDisplays();
+		plugin.getDisplayLabels().remove(label);
+		
+		for (DexterityDisplay subdisplay : subdisplays) subdisplay.remove(restore);
+	}
+	
+	public int getGroupSize() {
+		return getGroupSize(this);
+	}
+	public int getGroupSize(DexterityDisplay s) {
+		int i = 1;
+		for (DexterityDisplay sub : s.getSubdisplays()) i += getGroupSize(sub);
+		return i;
 	}
 	
 	public Dexterity getPlugin() {
@@ -111,13 +200,24 @@ public class DexterityDisplay {
 		}
 	}
 	
+	public void stopAnimations() {
+		for (Animation a : animations) {
+			a.stop();
+		}
+	}
+	
 	public void teleport(Location loc) {
 		Vector diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
 		//else diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
+		teleport(diff);
+	}
+	
+	public void teleport(Vector diff) {
 		center.add(diff);
 		for (DexBlock b : blocks) {
 			b.move(diff);
 		}
+		for (DexterityDisplay subd : subdisplays) subd.teleport(diff);
 	}
 	
 	public Plane getRotationPlane() {
@@ -133,24 +233,23 @@ public class DexterityDisplay {
 	}
 	
 	public void setScale(float s) {
+		setScale(s, s, s);
+	}
+		
+	public void setScale(float x, float y, float z) {
 		for (DexBlock db : blocks) {
-			Vector displacement = db.getEntity().getLocation().toVector().subtract(center.toVector()).multiply(s - 1);
-			/*db.getEntity().setTransformation(new Transformation(
-					new Vector3f((float) displacement.getX(),(float) displacement.getY(), (float)displacement.getZ()),
-					new AxisAngle4f(1f, 0f, 0f, 1f),
-					new Vector3f(s, s, s),
-					new AxisAngle4f(0f, 0f, 0f, 0f)));*/
+			Vector displacement = db.getEntity().getLocation().toVector().subtract(center.toVector());
+			displacement.setX((displacement.getX() * (x - 1)) + (x >= 0 ? -0.5 : Math.abs(x) - 0.5));
+			displacement.setY((displacement.getY() * (y - 1)) + (y >= 0 ? -0.5 : Math.abs(y) - 0.5));
+			displacement.setZ((displacement.getZ() * (z - 1)) + (z >= 0 ? -0.5 : Math.abs(z) - 0.5));
 			Vector3f dispv = new Vector3f((float) displacement.getX(), (float) displacement.getY(), (float) displacement.getZ());
 			db.getTransformation()
-					.setDisplacement(dispv.add(db.getTransformation().getDisplacement()))
-					.setScale(s, s, s);
+					.setDisplacement(dispv)
+					.setScale(x, y, z);
 			db.updateTransformation();
 		}
-		this.scale = s;
-	}
-	@Deprecated
-	public void forceSetScale(double s) { //for init only
-		this.scale = s;
+		scale_x = x; scale_y = y; scale_z = z;
+		for (DexterityDisplay sub : subdisplays) sub.setScale(x, y, z);
 	}
 	
 	public void rotate(double degrees, Plane plane) {

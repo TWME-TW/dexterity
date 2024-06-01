@@ -1,31 +1,28 @@
 package me.c7dev.tensegrity.api.events;
 
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.displays.animation.Animation;
 
-public class PlayerClickBlockDisplayEvent extends Event {
-	
+public class AnimationEndEvent {
+
 	private Player p;
-	private BlockDisplay block;
-	private DexterityDisplay d;
-	public PlayerClickBlockDisplayEvent(Player p_, BlockDisplay block_, DexterityDisplay d_) {
+	private Animation a;
+	public AnimationEndEvent(Player p_, Animation a_) {
 		p = p_;
-		block = block_;
-		d = d_;
+		a = a_;
 	}
 	
 	public Player getPlayer() {
 		return p;
 	}
-	public BlockDisplay getBlockDisplay() {
-		return block;
+	public Animation getAnimation() {
+		return a;
 	}
 	public DexterityDisplay getDisplay() {
-		return d;
+		return a.getDisplay();
 	}
 	
 	private static final HandlerList handlers = new HandlerList();
@@ -37,5 +34,5 @@ public class PlayerClickBlockDisplayEvent extends Event {
 	static public HandlerList getHandlerList() {
 		return handlers;
 	}
-
+	
 }
