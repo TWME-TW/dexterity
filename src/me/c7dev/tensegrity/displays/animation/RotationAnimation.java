@@ -1,15 +1,10 @@
 package me.c7dev.tensegrity.displays.animation;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event.Result;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType.SlotType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.Plane;
@@ -23,8 +18,8 @@ public class RotationAnimation extends Animation {
 	private Plane plane;
 	private BukkitRunnable runnable;
 	
-	public RotationAnimation(DexterityDisplay display, double seconds, Plane plane) {
-		super(display, seconds);
+	public RotationAnimation(DexterityDisplay display, Dexterity plugin, int ticks, Plane plane) {
+		super(display, plugin, ticks);
 		this.plane = plane;
 		for (Animation an : display.getAnimations()) {
 			if (an instanceof RotationAnimation) {

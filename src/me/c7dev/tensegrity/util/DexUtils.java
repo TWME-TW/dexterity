@@ -8,8 +8,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-
-import me.c7dev.tensegrity.displays.DexterityDisplay;
+import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
 public class DexUtils {
 	
@@ -163,6 +163,10 @@ public class DexUtils {
 		} catch (Exception ex) {
 			return -2;
 		}
+	}
+	
+	public static Vector3f vector(Vector v) {
+		return new Vector3f((float) v.getX(), (float) v.getY(), (float) v.getZ());
 	}
 	
 	public static int maxPage(int size, int pagelen) {

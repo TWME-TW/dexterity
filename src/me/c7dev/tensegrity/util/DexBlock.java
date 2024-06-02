@@ -30,6 +30,7 @@ public class DexBlock {
 		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
 			spawned.setBlock(display.getBlockData());
 			spawned.setTransformation(trans.build());
+			spawned.setTeleportDuration(1);
 		});
 		recalculateRadius(d.getCenter());
 	}

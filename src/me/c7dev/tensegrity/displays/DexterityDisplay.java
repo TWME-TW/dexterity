@@ -1,16 +1,15 @@
 package me.c7dev.tensegrity.displays;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.AxisAngle4f;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.Dexterity;
@@ -18,6 +17,7 @@ import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.RotationAnimation;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.DoubleHolder;
 import me.c7dev.tensegrity.util.Plane;
 
 public class DexterityDisplay {
@@ -28,6 +28,7 @@ public class DexterityDisplay {
 	private String label;
 	private double scale_x = 1, scale_y = 1, scale_z = 1;
 	private DexterityDisplay parent;
+	private boolean started_animations = false;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
@@ -50,6 +51,7 @@ public class DexterityDisplay {
 	public boolean setLabel(String s) {
 		if (plugin.getDisplayLabels().contains(s)) return false;
 		label = s;
+		plugin.saveDisplays();
 		return true;
 	}
 	
@@ -119,8 +121,8 @@ public class DexterityDisplay {
 		if (new_group != null && plugin.getDisplayLabels().contains(new_group)) return null;
 		
 		plugin.getDisplays().remove(this);
-		stopAnimations();
-		m.stopAnimations();
+		stopAnimations(true);
+		m.stopAnimations(true);
 		Vector c2v = center.toVector().add(m.getCenter().toVector()).multiply(0.5); //midpoint
 		Location c2 = new Location(center.getWorld(), c2v.getX(), c2v.getY(), c2v.getZ());
 		center = c2;
@@ -171,9 +173,8 @@ public class DexterityDisplay {
 		}
 		
 		plugin.getDisplays().remove(this);
-		plugin.getDisplayLabels().remove(label);
 		
-		for (DexterityDisplay subdisplay : subdisplays) subdisplay.remove(restore);
+		for (DexterityDisplay subdisplay : subdisplays.toArray(new DexterityDisplay[subdisplays.size()])) subdisplay.remove(restore);
 	}
 	
 	public int getGroupSize() {
@@ -200,10 +201,24 @@ public class DexterityDisplay {
 		}
 	}
 	
-	public void stopAnimations() {
+	public void startAnimations() {
+		if (started_animations) return;
+		started_animations = true;
 		for (Animation a : animations) {
-			a.stop();
+			a.start();
 		}
+	}
+	
+	public void stopAnimations(boolean force) {
+		started_animations = false;
+		for (Animation a : animations) {
+			if (force) a.kill();
+			else a.stop();
+		}
+	}
+	
+	public boolean hasStartedAnimations() {
+		return started_animations;
 	}
 	
 	public void teleport(Location loc) {
@@ -230,6 +245,18 @@ public class DexterityDisplay {
 		//for (DexBlock b : blocks) {
 		//	b.recalculateRadius(center);
 		//}
+	}
+	
+	public void setGlow(Color c) {
+		if (c == null) {
+			for (DexBlock b : blocks) b.getEntity().setGlowing(false);
+		} else {
+			for (DexBlock b : blocks) {
+				b.getEntity().setGlowColorOverride(c);
+				b.getEntity().setGlowing(true);
+			}
+		}
+		for (DexterityDisplay d : subdisplays) d.setGlow(c);
 	}
 	
 	public void setScale(float s) {
@@ -269,7 +296,7 @@ public class DexterityDisplay {
 			else animation.setPaused(true);
 		}
 		
-		final RotationAnimation a = animation;
+		/*final RotationAnimation a = animation;
 		
 		double sin = Math.sin(radians/2);
 		double cos = Math.cos(radians/2);
@@ -300,9 +327,9 @@ public class DexterityDisplay {
 					right
 					);
 			db.getEntity().setTransformation(tr2);
-		}
+		}*/
 		
-		/*new BukkitRunnable() {
+		new BukkitRunnable() {
 			double sin = 2*Math.sin(radians/2), root2 = Math.sqrt(2)/2;
 			
 			@Override
@@ -315,7 +342,7 @@ public class DexterityDisplay {
 					double angle = block.calculateAngle(center, plane);
 					if (Double.isNaN(angle)) angle = 0;
 					//Bukkit.broadcastMessage("angle=" + angle + ", r=" + block.getRadius());
-					vx_map.put(block.getEntity().getUniqueId(), new DoubleHolder(-block.getRadius(plane)*sin*Math.sin(angle + radians/2) - 
+					vx_map.put(block.getEntity().getUniqueId(), new DoubleHolder(-block.getRadius(plane)*sin *Math.sin(angle + radians/2) - 
 							0*root2*sin*Math.sin(Math.toRadians(block.getRotationXZ()) + radians/2)));
 					vy_map.put(block.getEntity().getUniqueId(), new DoubleHolder( block.getRadius(plane)*sin*Math.cos(angle + radians/2) +
 							0*root2*sin*Math.cos(Math.toRadians(block.getRotationXZ()) + radians/2)));
@@ -335,26 +362,37 @@ public class DexterityDisplay {
 							
 							switch(plane) {
 							case XY:
-								block.move(vx, -vy, 0);
+								block.getTransformation().setDisplacement(block.getTransformation().getDisplacement()
+										.add(new Vector3f((float) vx, (float) -vy, 0f)));
+								block.getEntity().setRotation((float) degrees + 90, 0);
+								block.updateTransformation();
+								//block.move(vx, -vy, 0);
 								break;
 							case ZY:
-								block.move(0, vx, vy);
+								//block.move(0, vx, vy);
+								block.getTransformation().setDisplacement(block.getTransformation().getDisplacement()
+										.add(new Vector3f((float) vx, 0f, (float) vy)));
+								block.getEntity().setRotation((float) degrees + 90, 0);
+								block.updateTransformation();
 								break;
 							default:
+								//block.getTransformation().setDisplacement(new Vector3f((float) vx, 0, (float) vy).add(Dexterity.DEFAULT_DISP));
+								block.getEntity().setRotation((float) degrees, 0);
+								//block.updateTransformation();
 								block.move(vx, 0, vy);
 								break;
 							}
 						}
 						
-						if (a != null) {
+						/*if (a != null) {
 							a.recalculateAngleSteps();
 							a.setPaused(false);
-						}
+						}*/
 						
 					}
 				}.runTask(plugin);
 			}
-		}.runTaskAsynchronously(plugin);*/
+		}.runTaskAsynchronously(plugin);
 	}
 
 }

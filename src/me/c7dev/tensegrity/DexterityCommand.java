@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -16,8 +15,15 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.displays.animation.Animation;
+import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
+import me.c7dev.tensegrity.util.ColorEnum;
+import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
@@ -29,13 +35,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm;
 	
 	public String[] commands = {
-		"convert", "deconvert", "deselect", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
+		"animation", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
 		"scale", "select", "unmerge", "wand"
 	};
 	public String[] descriptions = {
+		"Modify the display's animations", //animation
 		"Create a display from selected region", //convert
 		"Revert display back into block form", //deconvert
 		"Clear selected region", //deselect
+		"Make the display glow", //glow
 		"List all displays", //list
 		"Combine two displays", //merge
 		"Teleport a display", //move
@@ -85,7 +93,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		strs[i] = line;
 		
 		for (int j = 1; j <= disp.getSubdisplays().size(); j++) {
-			count += constructList(strs, disp.getSubdisplays().get(j-1), selected, i+j, level+1);
+			count += constructList(strs, disp.getSubdisplays().get(j-1), selected, i+count, level+1);
 		}
 		
 		return count;
@@ -146,6 +154,56 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				if (e instanceof BlockDisplay) e.remove();
 			}
 		}
+		else if (args[0].equalsIgnoreCase("test2")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			float f = Float.parseFloat(args[1]);
+			for (DexBlock db : d.getBlocks()) {
+				db.setRotation(f, 0f);
+			}
+		}
+		else if (args[0].equalsIgnoreCase("test3")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			DexBlock db = d.getBlocks().get(0);
+			Quaternionf zero = new Quaternionf(0f, 0f, 0f, 1f);
+			db.getTransformation().setDisplacement(new Vector3f(-0.5f, -0.5f, -0.5f))
+				.setLeftRotation(zero).setRightRotation(zero);
+			db.updateTransformation();
+			db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
+			float deg = Float.parseFloat(args[1]);
+			
+			/*Bukkit.broadcastMessage("A");
+			new BukkitRunnable() {
+				float deg = 0;
+				public void run() {
+					double rad = Math.toRadians(deg) / 4;
+					double a = Math.cos(rad);
+					Vector v = new Vector(1, 0, 0).normalize();
+					v.multiply(Math.sin(rad));
+					
+					Quaternionf ql = new Quaternionf(v.getX(), v.getY(), v.getZ(), a);
+					Quaternionf qr = new Quaternionf(-v.getX(), -v.getY(), -v.getZ(), a);
+					db.getTransformation().setLeftRotation(ql).setRightRotation(ql);
+					
+					db.updateTransformation();
+					deg++;
+					//if (deg > 360) this.cancel();
+				}
+			}.runTaskTimer(plugin, 0, 1l);*/
+		}
+		else if (args[0].equalsIgnoreCase("animtest")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			d.getAnimations().clear();
+			Vector delta = new Vector(0, 0, 20);
+			Animation a1 = new LinearTranslationAnimation(d, plugin, 30, delta);
+			Animation a2 = new LinearTranslationAnimation(d, plugin, 30, delta.clone().multiply(-1));
+			a1.getSubsequentAnimations().add(a2);
+			a2.getSubsequentAnimations().add(a1);
+			d.getAnimations().add(a1);
+			a1.start();
+		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			int index = -1;
@@ -191,6 +249,47 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (session.getSelected() != null) {
 				session.setSelected(null);
 				p.sendMessage(cc + "Cleared selection!");
+			}
+		}
+		
+		else if (args[0].equalsIgnoreCase("glow")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
+				d.setGlow(null);
+				p.sendMessage(cc + "Disabled glow for " + cc2 + d.getLabel() + cc + "!");
+				return true;
+			}
+			ColorEnum c;
+			try {
+				c = ColorEnum.valueOf(args[1].toUpperCase());
+			} catch (Exception ex) {
+				p.sendMessage("§4Error: §cUnknown color '" + args[1].toUpperCase() + "'!");
+				return true;
+			}
+			d.setGlow(c.getColor());
+			p.sendMessage(cc + "Set the glow for " + cc2 + d.getLabel() + cc + "!");
+		}
+		
+		else if (args[0].equalsIgnoreCase("animation") || args[0].equalsIgnoreCase("a")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			if (args.length == 1) {
+				//TODO
+			}
+			else if (args[1].equalsIgnoreCase("start") || args[1].equalsIgnoreCase("unpause")) {
+				d.startAnimations();
+				p.sendMessage(cc + "Started animations on " + cc2 + d.getLabel() + cc + "!");
+			}
+			else if (args[1].equalsIgnoreCase("pause") || args[1].equalsIgnoreCase("stop")) {
+				d.stopAnimations(args[1].equalsIgnoreCase("pause"));
+				p.sendMessage(cc + "Stopped animations on " + cc2 + d.getLabel() + cc + "!");
+			}
+			else if (args[1].equalsIgnoreCase("reset")) {
+				
+			}
+			else {
+				p.sendMessage("§cUnknown sub-command!");
 			}
 		}
 		
@@ -269,6 +368,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(cc + "Rotated " + cc2 + d.getLabel() + cc + " by " + degrees + " degrees!");
 			
 		}
+		else if (args[0].equalsIgnoreCase("info")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
+			p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
+		}
 		else if (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("deconvert") || args[0].equalsIgnoreCase("deconv")) {
 			DexterityDisplay d = session.getSelected();
 			if (d == null) {
@@ -286,7 +391,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(cc + (res ? "Restored" : "Removed") + " the display " + label2);
 		}
 		
-		else if (args[0].equalsIgnoreCase("list")) {
+		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
 			if (plugin.getDisplays().size() == 0) {
 				p.sendMessage("§cThere are no displays set up!");
 				return true;
@@ -307,15 +412,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			String[] strs = new String[total];
 			int i = 0;
 			for (DexterityDisplay disp : plugin.getDisplays()) {
-				
-				if (disp == null) {
-					Bukkit.broadcastMessage("null, i=" + i + ", len=" + plugin.getDisplays().size());
-					for (DexterityDisplay d : plugin.getDisplays()) {
-						p.sendMessage(d == null ? "NULL" : d.getLabel());
-					}
-					return true;
-				}
-				
 				i += constructList(strs, disp, session.getSelected() == null ? null : session.getSelected().getLabel(), i, 0);
 			}
 			DexUtils.paginate(p, strs, page, 10);
@@ -440,6 +536,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("new_group=");
 			add_labels = true;
 		}
+		else if (argsr[0].equalsIgnoreCase("glow")) {
+			ret.add("none");
+			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
+		}
 		else if (argsr[0].equalsIgnoreCase("move")) {
 			ret.add("x=");
 			ret.add("y=");
@@ -452,6 +552,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("down=");
 			ret.add("-here");
 			ret.add("-continuous");
+		}
+		else if (argsr[0].equalsIgnoreCase("animation") || argsr[0].equalsIgnoreCase("a")) {
+			ret.add("start");
+			ret.add("stop");
+			ret.add("pause");
+			ret.add("unpause");
+			ret.add("reset");
 		}
 		else if (argsr[0].equalsIgnoreCase("rotate")) {
 			if (!params.contains("plane")) ret.add("plane=");
