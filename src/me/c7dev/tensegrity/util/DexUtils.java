@@ -6,12 +6,27 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 public class DexUtils {
+	
+	public static ItemStack createItem(Material material, int amount, String name, String... lore) {
+		ItemStack item = new ItemStack(material, amount);
+		ItemMeta meta = item.getItemMeta();
+		meta.setDisplayName(name);
+		List<String> lore2 = new ArrayList<String>();
+		for (String s : lore) lore2.add(s);
+		meta.setLore(lore2);
+		item.setItemMeta(meta);
+		return item;
+	}
 	
 	public static double round(double d, int decimals) {
 		int a = (int) (d * Math.pow(10, decimals));
@@ -167,6 +182,9 @@ public class DexUtils {
 	
 	public static Vector3f vector(Vector v) {
 		return new Vector3f((float) v.getX(), (float) v.getY(), (float) v.getZ());
+	}
+	public static Location location(World w, Vector v) {
+		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
 	}
 	
 	public static int maxPage(int size, int pagelen) {

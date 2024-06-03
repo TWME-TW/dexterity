@@ -17,12 +17,14 @@ public class Animation {
 	private List<Animation> subseq = new ArrayList<>();
 	private Dexterity plugin;
 	private int ticks, delay = 0, tick_count = 0;
+	private int freq = 1;
 		
 	public Animation(DexterityDisplay display, Dexterity plugin, int ticks) {
 		this.display = display;
 		this.plugin = plugin;
 		if (ticks < 1) ticks = 1;
 		this.ticks = ticks;
+		if (!display.getAnimations().contains(this)) display.getAnimations().add(this);
 	}
 	
 	public boolean tick() {
@@ -65,13 +67,22 @@ public class Animation {
 		return subseq;
 	}
 	
+	public void setFrameRate(int l) {
+		freq = l;
+	}
+	
+	public int getFrameRate() {
+		return freq;
+	}
+	
 	public void setRunnable(BukkitRunnable r) {
 		runnable = r;
-		runnable.runTaskTimer(plugin, 0, 1l);
+		if (r == null) return;
+		runnable.runTaskTimer(plugin, 0, freq);
 	}
 	
 	public void start() {
-		if (isStarted() || stop_req) return;
+		if (isStarted() || stop_req || runnable == null) return;
 		start_delay = new BukkitRunnable() {
 			@Override
 			public void run() {
@@ -102,6 +113,10 @@ public class Animation {
 		start_delay = null;
 		if (stop_subseq) for (Animation a : subseq) 
 			if (a != this) a.kill();
+	}
+	
+	public void reset() {
+		
 	}
 	
 	public void finish() {

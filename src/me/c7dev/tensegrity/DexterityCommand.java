@@ -22,6 +22,7 @@ import org.joml.Vector3f;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
+import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -204,6 +205,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			d.getAnimations().add(a1);
 			a1.start();
 		}
+		else if (args[0].equalsIgnoreCase("animtest2")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			d.getAnimations().clear();
+			RideAnimation r = new RideAnimation(d, plugin);
+			r.setSeatOffset(new Vector(0, -4.5, -0.5));
+			r.setSpeed(5);
+			r.mount(p);
+			r.start();
+		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			int index = -1;
@@ -288,6 +299,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else if (args[1].equalsIgnoreCase("reset")) {
 				
 			}
+			else if (args[1].equalsIgnoreCase("edit")) {
+				session.openAnimationEditor();
+			}
 			else {
 				p.sendMessage("§cUnknown sub-command!");
 			}
@@ -295,7 +309,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (session.getLocation1() != null && session.getLocation2() != null) {
-				DexterityDisplay d = plugin.createDisplay(session.getLocation1(), session.getLocation2());
+				DexterityDisplay d = plugin.getAPI().createDisplay(session.getLocation1(), session.getLocation2());
 				
 				session.setSelected(d);
 				
@@ -335,8 +349,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage("§4Usage: §c/dex rename <name>");
 				return true;
 			}
-			d.setLabel(args[1]);
-			p.sendMessage(cc + "Renamed this display to " + cc2 + args[1]);
+			if (d.setLabel(args[1])) p.sendMessage(cc + "Renamed this display to " + cc2 + args[1]);
+			else p.sendMessage("§4Error: §cThis name is already in use!");
 		}
 		
 		else if (args[0].equalsIgnoreCase("rotate")){
@@ -559,6 +573,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("pause");
 			ret.add("unpause");
 			ret.add("reset");
+			ret.add("edit");
 		}
 		else if (argsr[0].equalsIgnoreCase("rotate")) {
 			if (!params.contains("plane")) ret.add("plane=");

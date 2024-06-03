@@ -21,6 +21,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.joml.Vector3f;
 
+import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -35,8 +36,10 @@ public class Dexterity extends JavaPlugin {
 	
 	public final ChatColor chat_color = ChatColor.of("#49eb9a"); //#ffa217
 	public final ChatColor chat_color2 = ChatColor.of("#42f5ef"); //ffd417
+	public DexterityAPI api;
 	
 	public static final Vector3f DEFAULT_DISP = new Vector3f(-0.5f, -0.5f, -0.5f);
+	
 	
 	@Override
 	public void onEnable() {
@@ -45,11 +48,17 @@ public class Dexterity extends JavaPlugin {
 		new EventListeners(this);
 		
 		loadDisplays();
+		
+		api = new DexterityAPI(this);
 	}
 	
 	@Override
 	public void onDisable() {
 		saveDisplays();
+	}
+	
+	public DexterityAPI getAPI() {
+		return api;
 	}
 	
 	public ChatColor getChatColor() {
@@ -212,47 +221,6 @@ public class Dexterity extends JavaPlugin {
 	public void setEditSession(UUID u, DexSession s) {
 		sessions.put(u, s);
 	}
-	
-	public DexterityDisplay createDisplay(Location l1, Location l2) { //l1 and l2 bounding box, all blocks inside converted
-		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
-		
-		
-		int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());
-		int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
-		int zmin = Math.min(l1.getBlockZ(), l2.getBlockZ()), zmax = Math.max(l1.getBlockZ(), l2.getBlockZ());
-		
-		Location center = new Location(l1.getWorld(), Math.min(l1.getX(), l2.getX()) + Math.abs((l1.getX()-l2.getX())/2),
-				Math.min(l1.getY(), l2.getY()) + Math.abs(((l1.getY() - l2.getY()) / 2)),
-				Math.min(l1.getZ(), l2.getZ()) + Math.abs((l1.getZ() - l2.getZ()) / 2));
-		center.add(0.5, 0.5, 0.5);
-		
-		DexterityDisplay d = new DexterityDisplay(this, center, null);
-
-		for (int x = xmin; x <= xmax; x++) {
-			for (int y = ymin; y <= ymax; y++) {
-				for (int z = zmin; z <= zmax; z++) {
-					Block b = new Location(l1.getWorld(), x, y, z).getBlock();
-					if (b.getType() != Material.BARRIER && b.getType() != Material.AIR) {
-						DexBlock db = new DexBlock(b, d);
-						d.getBlocks().add(db);
-						b.setType(Material.AIR);
-						//db.setBrightness(b2.getLightFromBlocks(), b2.getLightFromSky());
-					}
-				}
-			}
-		}
-		
-		//RotationAnimation rotation = new RotationAnimation(d, Plane.XZ);
-		//rotation.start();
-		
-		displays.put(d.getLabel(), d);
-		all_displays.put(d.getLabel(), d);
-		
-		saveDisplays();
-		
-		return d;
-	}
-		
 	
 
 }

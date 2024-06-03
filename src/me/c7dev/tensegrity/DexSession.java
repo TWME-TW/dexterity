@@ -3,11 +3,15 @@ package me.c7dev.tensegrity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.util.DexUtils;
 import net.md_5.bungee.api.ChatColor;
 
@@ -80,6 +84,26 @@ public class DexSession {
 	public void clearLocationSelection() {
 		l1 = null;
 		l2 = null;
+	}
+	
+	public void openAnimationEditor() {
+		if (selected == null) return;
+		
+		int rows = Math.max(Math.min(selected.getAnimations().size(), 9), 3);
+		Inventory inv = Bukkit.createInventory(null, 9*rows, plugin.getConfigString("animation-editor-title", "Animation Editor"));
+		
+		for (int i = 0; i < rows; i++) {
+			inv.setItem(9*i, DexUtils.createItem(Material.GRAY_STAINED_GLASS_PANE, 1, "Animation " + (i+1)));
+		}
+		
+		int j = 0;
+		for (; j < selected.getAnimations().size(); j++) {
+			
+			if (j >= rows) break;
+		}
+		if (j < rows - 1) inv.setItem(j, DexUtils.createItem(Material.LIME_WOOL, 1, "§aAdd Next Animation"));
+		
+		p.openInventory(inv);
 	}
 
 }
