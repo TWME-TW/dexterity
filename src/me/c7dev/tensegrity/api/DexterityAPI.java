@@ -25,9 +25,24 @@ public class DexterityAPI {
 		return Dexterity.getPlugin(Dexterity.class).getAPI();
 	}
 	
+	public Set<String> getDisplayLabels() {
+		return plugin.getDisplayLabels();
+	}
+	
+	public Collection<DexterityDisplay> getDisplays() {
+		return plugin.getDisplays();
+	}
+	
+	public DexterityDisplay getDisplay(String label) {
+		return plugin.getDisplay(label);
+	}
+	
+	public DexSession getEditSession(UUID u) {
+		return plugin.getEditSession(u);
+	}
+	
 	public DexterityDisplay createDisplay(Location l1, Location l2) { //l1 and l2 bounding box, all blocks inside converted
 		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
-		
 		
 		int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());
 		int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
@@ -53,9 +68,6 @@ public class DexterityAPI {
 				}
 			}
 		}
-		
-		//RotationAnimation rotation = new RotationAnimation(d, Plane.XZ);
-		//rotation.start();
 		
 		plugin.registerDisplay(d.getLabel(), d);
 		

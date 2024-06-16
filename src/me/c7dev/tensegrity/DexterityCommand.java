@@ -210,8 +210,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			d.getAnimations().clear();
 			RideAnimation r = new RideAnimation(d, plugin);
-			r.setSeatOffset(new Vector(0, -4.5, -0.5));
-			r.setSpeed(5);
+			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
+			r.setSeatOffset(new Vector(0, -0.7, 0));
+			r.setSpeed(10);
 			r.mount(p);
 			r.start();
 		}

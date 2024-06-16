@@ -1,7 +1,8 @@
 package me.c7dev.tensegrity.displays.animation;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -33,7 +34,7 @@ public class RideAnimation extends Animation {
 			public void run() {
 				if (p == null || isPaused()) return;
 				if (!p.isOnline() || mount.getPassengers().size() == 0) {
-					if (mount.isDead()) getDisplay().teleport(new Vector(0, 1, 0));
+					if (mount.isDead()) getDisplay().teleport(new Vector(0, 0.5, 0));
 					stop();
 					return;
 				}
@@ -42,7 +43,15 @@ public class RideAnimation extends Animation {
 				if (!x_enabled) dir.setX(0);
 				if (!y_enabled) dir.setY(0);
 				if (!z_enabled) dir.setZ(0);
-				dir.normalize().multiply(speed);
+				dir.normalize();
+				
+				Block crash = mount.getLocation().add(dir.clone().multiply(1.5*speed)).getBlock();
+				if (crash.getType() != Material.AIR && crash.getType().isSolid()) {
+					mount.setVelocity(new Vector(0, 0, 0));
+					return;
+				}
+				
+				dir.multiply(speed);
 				
 				display.teleport(dir);
 				
