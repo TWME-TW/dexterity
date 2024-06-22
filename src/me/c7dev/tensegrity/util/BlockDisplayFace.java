@@ -10,13 +10,14 @@ public class BlockDisplayFace {
 	private BlockDisplay b;
 	private BlockFace bf_;
 	private Vector offset_;
-	private Location loc_;
+	private Location loc_, center_;
 	
-	public BlockDisplayFace(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc) {
+	public BlockDisplayFace(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc) {
 		b = block;
 		bf_ = blockFace;
 		offset_ = offset;
 		loc_ = loc;
+		center_ = centerLoc;
 	}
 	
 	public BlockDisplay getBlockDisplay() {
@@ -28,11 +29,15 @@ public class BlockDisplayFace {
 	}
 	
 	public Vector getOffsetFromFaceCenter() {
-		return offset_;
+		return offset_.clone();
 	}
 	
 	public Location getLocation() {
-		return loc_;
+		return loc_.clone();
+	}
+	
+	public Location getDisplayCenterLocation() {
+		return center_.clone();
 	}
 
 }

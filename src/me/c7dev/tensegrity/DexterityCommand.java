@@ -239,7 +239,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				DexterityDisplay disp = plugin.getDisplay(def);
 				if (disp != null) {
 					session.setSelected(disp);
-					p.sendMessage(cc + "Selected " + cc2 + def + cc + "!");
 					return true;
 				} else if (index < 0) {
 					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
@@ -274,8 +273,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("glow")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
+			boolean propegate = flags.contains("propegate");
 			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
-				d.setGlow(null);
+				d.setGlow(null, propegate);
 				p.sendMessage(cc + "Disabled glow for " + cc2 + d.getLabel() + cc + "!");
 				return true;
 			}
@@ -286,7 +286,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage("§4Error: §cUnknown color '" + args[1].toUpperCase() + "'!");
 				return true;
 			}
-			d.setGlow(c.getColor());
+			d.setGlow(c.getColor(), propegate);
 			p.sendMessage(cc + "Set the glow for " + cc2 + d.getLabel() + cc + "!");
 		}
 		
@@ -560,6 +560,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equalsIgnoreCase("glow")) {
 			ret.add("none");
+			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
 		}
 		else if (argsr[0].equalsIgnoreCase("move")) {

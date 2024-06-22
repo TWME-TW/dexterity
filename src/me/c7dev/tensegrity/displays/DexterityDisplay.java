@@ -248,7 +248,7 @@ public class DexterityDisplay {
 		//}
 	}
 	
-	public void setGlow(Color c) {
+	public void setGlow(Color c, boolean propegate) {
 		if (c == null) {
 			for (DexBlock b : blocks) b.getEntity().setGlowing(false);
 		} else {
@@ -257,7 +257,9 @@ public class DexterityDisplay {
 				b.getEntity().setGlowing(true);
 			}
 		}
-		for (DexterityDisplay d : subdisplays) d.setGlow(c);
+		if (propegate) {
+			for (DexterityDisplay d : subdisplays) d.setGlow(c, true);
+		}
 	}
 	
 	public void setScale(float s) {

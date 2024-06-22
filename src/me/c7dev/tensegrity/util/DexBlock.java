@@ -17,26 +17,27 @@ public class DexBlock {
 	private int angle_step = 0;
 	private BlockDisplay entity;
 	private DexTransformation trans;
+	private DexterityDisplay disp;
 	//private boolean armor_stand;
 	
 	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
 	
 	public DexBlock(Block display, DexterityDisplay d) {
-		trans = new DexTransformation(new Transformation(
-				new Vector3f(-0.5f, -0.5f, -0.5f),
-				new AxisAngle4f(0f, 0f, 0f, 0f),
-				new Vector3f(1, 1, 1),
-				new AxisAngle4f(0f, 0f, 0f, 0f)));
+		disp = d;
+		trans = newDefaultTransformation();
 		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
 			spawned.setBlock(display.getBlockData());
 			spawned.setTransformation(trans.build());
 			spawned.setTeleportDuration(1);
 		});
+		d.getPlugin().setMappedDisplay(this);
 		recalculateRadius(d.getCenter());
 	}
 	public DexBlock(BlockDisplay bd, DexterityDisplay d) {
-		this.entity = bd;
+		entity = bd;
+		disp = d;
 		trans = new DexTransformation(bd.getTransformation());
+		d.getPlugin().setMappedDisplay(this);
 		recalculateRadius(d.getCenter());
 	}
 	
@@ -44,6 +45,17 @@ public class DexBlock {
 		return this.entity;
 	}
 	
+	public DexterityDisplay getDexterityDisplay() {
+		return disp;
+	}
+	
+	public static DexTransformation newDefaultTransformation() {
+		return new DexTransformation(new Transformation(
+				new Vector3f(-0.5f, -0.5f, -0.5f),
+				new AxisAngle4f(0f, 0f, 0f, 0f),
+				new Vector3f(1, 1, 1),
+				new AxisAngle4f(0f, 0f, 0f, 0f)));
+	}
 	
 	public DexTransformation getTransformation() {
 		return trans;
@@ -70,6 +82,15 @@ public class DexBlock {
 	}
 	public void setBrightness(int blockLight, int skyLight) {
 		//entity.setBrightness(new Brightness(blockLight, skyLight));
+	}
+	
+	public void remove() {
+		disp.getBlocks().remove(this);
+		disp.getPlugin().clearMappedDisplay(entity.getUniqueId());
+		entity.remove();
+		if (disp.getBlocks().size() == 0 && disp.getSubdisplays().size() == 0) {
+			disp.remove(false);
+		}
 	}
 	
 	public double getRadius(Plane plane) {

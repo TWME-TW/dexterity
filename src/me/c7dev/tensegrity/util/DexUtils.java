@@ -8,13 +8,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -189,6 +187,9 @@ public class DexUtils {
 	
 	public static Vector3f vector(Vector v) {
 		return new Vector3f((float) v.getX(), (float) v.getY(), (float) v.getZ());
+	}
+	public static Vector vector(Vector3f v) {
+		return new Vector(v.x, v.y, v.z);
 	}
 	public static Location location(World w, Vector v) {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);

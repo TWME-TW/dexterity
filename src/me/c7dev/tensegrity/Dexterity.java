@@ -33,6 +33,7 @@ public class Dexterity extends JavaPlugin {
 	private HashMap<String,DexterityDisplay> displays = new HashMap<>();
 	private HashMap<String,DexterityDisplay> all_displays = new HashMap<>();
 	private HashMap<UUID,DexSession> sessions = new HashMap<>();
+	private HashMap<UUID,DexBlock> display_map = new HashMap<>();
 	
 	public final ChatColor chat_color = ChatColor.of("#49eb9a"); //#ffa217
 	public final ChatColor chat_color2 = ChatColor.of("#42f5ef"); //ffd417
@@ -62,11 +63,27 @@ public class Dexterity extends JavaPlugin {
 		return api;
 	}
 	
+	public String getAuthor() {
+		return api.getAuthor();
+	}
+	
 	public ChatColor getChatColor() {
 		return chat_color;
 	}
 	public ChatColor getChatColor2() {
 		return chat_color2;
+	}
+	
+	@Deprecated
+	public void setMappedDisplay(DexBlock b) {
+		display_map.put(b.getEntity().getUniqueId(), b);
+	}
+	public DexBlock getMappedDisplay(UUID block) {
+		return display_map.get(block);
+	}
+	@Deprecated
+	public void clearMappedDisplay(UUID block) {
+		display_map.remove(block);
 	}
 	
 	public String getConfigString(String dir, String def) {

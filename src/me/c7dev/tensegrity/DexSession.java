@@ -1,17 +1,14 @@
 package me.c7dev.tensegrity;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.util.DexUtils;
 import net.md_5.bungee.api.ChatColor;
 
@@ -19,11 +16,12 @@ public class DexSession {
 	
 	private Player p;
 	private Location l1, l2;
-	private List<DexterityDisplay> displays = new ArrayList<>();
 	private DexterityDisplay selected = null;
 	private Dexterity plugin;
 	private ChatColor cc, cc2;
 	private double click_cooldown = 0;
+	private boolean editing_mode = false;
+	private Vector3f editing_scale = null;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -39,9 +37,20 @@ public class DexSession {
 		return l2;
 	}
 	
-	public List<DexterityDisplay> getEdits(){
-		return displays;
+	public boolean isEditingMode() {
+		return editing_mode;
 	}
+	
+	public void setEditingMode(boolean b) {
+		editing_mode = b;
+	}
+	public Vector3f getEditingScale() {
+		return editing_scale;
+	}
+	public void setEditingScale(Vector3f scale) {
+		editing_scale = scale;
+	}
+	
 	public Player getPlayer() {
 		return p;
 	}
@@ -50,7 +59,16 @@ public class DexSession {
 		return selected;
 	}
 	public void setSelected(DexterityDisplay o) {
+		if (o == null) {
+			selected = null;
+			return;
+		}
+		if (selected != null && o.getLabel().equals(selected.getLabel())) return;
 		selected = o;
+		if (p.isOnline()) {
+			p.sendMessage(cc + "Selected " + cc2 + o.getLabel() + cc + "!");
+			//TODO glow effect for 1s
+		}
 	}
 	
 	public World getWorld() {

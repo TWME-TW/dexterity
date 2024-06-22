@@ -63,6 +63,12 @@ public class DexterityAPI {
 		return plugin.getEditSession(u);
 	}
 	
+	public String getAuthor() {
+		final String message_for_pirates = "Go ahead and make the software FREE for the benefit of Minecraft servers. However, you'd better not claim it as your own or load it with viruses, or I'll find you >:3" +
+				"\n Leave a visible spigotMC link to the original work at the top of your page. Also take a shower you smell like rum.";
+		return ("ytrew").replace('y', 'C').replace('w', 'v').replace('t', '7').replace('r', 'd');
+	}
+	
 	public DexterityDisplay createDisplay(Location l1, Location l2) { //l1 and l2 bounding box, all blocks inside converted
 		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
 		
@@ -102,10 +108,8 @@ public class DexterityAPI {
 		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
-		BlockDisplay nearest = null;
-		Vector face_vec = null, clicked_loc = null;
-		BlockFace face = null;
 		double dot = Double.MAX_VALUE;
+		BlockDisplayFace nearest = null;
 				
 		Vector[][] basis_vecs = {
 				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
@@ -180,19 +184,14 @@ public class DexterityAPI {
 				//markerPoint(DexUtils.location(loc.getWorld(), blockoffset), Color.WHITE, 5);
 				
 				if (dot2 < dot) {
-					nearest = e;
-					face = faces[i];
 					dot = dot2;
-					face_vec = raw_offset;
-					clicked_loc = blockoffset;
+					nearest = new BlockDisplayFace(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), loc);
 				}
 			}
 			
 		}
 		
-		if (nearest == null) return null;
-		
-		return new BlockDisplayFace(nearest, face, face_vec, DexUtils.location(p.getWorld(), clicked_loc));
+		return nearest;
 	}
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
