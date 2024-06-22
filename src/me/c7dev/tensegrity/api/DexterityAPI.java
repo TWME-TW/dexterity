@@ -1,21 +1,43 @@
 package me.c7dev.tensegrity.api;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.DexSession;
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.Matrix3;
 
 public class DexterityAPI {
 	
 	Dexterity plugin;
+	private BlockFace[] faces = {
+			BlockFace.UP,
+			BlockFace.DOWN,
+			BlockFace.NORTH,
+			BlockFace.SOUTH,
+			BlockFace.EAST,
+			BlockFace.WEST
+	};
 	
 	public DexterityAPI(Dexterity plugin) {
 		this.plugin = plugin;
@@ -75,6 +97,125 @@ public class DexterityAPI {
 		
 		return d;
 	}
+	
+	public BlockDisplayFace getLookingAt(Player p) {
+		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
+		Vector dir = p.getLocation().getDirection();
+		Vector eye_loc = p.getEyeLocation().toVector();
+		BlockDisplay nearest = null;
+		Vector face_vec = null, clicked_loc = null;
+		BlockFace face = null;
+		double dot = Double.MAX_VALUE;
+				
+		Vector[][] basis_vecs = {
+				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
+				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
+				{new Vector(-1, 0, 0), new Vector(0, 1, 0)},
+				{new Vector(1, 0, 0), new Vector(0, 1, 0)},
+				{new Vector(0, 0, -1), new Vector(0, 1, 0)},
+				{new Vector(0, 0, 1), new Vector(0, 1, 0)}
+		};
+					
+		for (Entity entity : near) {
+			if (!(entity instanceof BlockDisplay)) continue;
+			BlockDisplay e = (BlockDisplay) entity;
+			Vector3f transl = e.getTransformation().getTranslation();
+			Location loc = e.getLocation().add(0.5, 0.5, 0.5);
+			Vector3f scale = e.getTransformation().getScale();
+			if (scale.x < 0 || scale.y < 0 || scale.z < 0) continue; //TODO figure out
+			scale.mul(0.5f).absolute();
+			loc.add(scale.x-0.5, scale.y-0.5, scale.z-0.5);
+			if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
+			
+			Vector diff = loc.toVector().subtract(eye_loc).normalize();
+			double dot1 = diff.dot(dir);
+			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
+			
+			Vector up = loc.clone().add(0, (scale.y), 0).toVector();
+			Vector down = loc.clone().add(0, -scale.y, 0).toVector();
+			Vector north = loc.clone().add(0, 0, -scale.z).toVector();
+			Vector south = loc.clone().add(0, 0, scale.z).toVector();
+			Vector east = loc.clone().add(scale.x, 0, 0).toVector();
+			Vector west = loc.clone().add(-scale.x, 0, 0).toVector();
+			
+			Vector[] locs = {up, down, north, south, east, west};
+						
+			for (int i = 0; i < locs.length; i++) {
+								
+				Vector basis1 = basis_vecs[i][0];
+				Vector basis2 = basis_vecs[i][1];
+				
+				Vector L = eye_loc.clone().subtract(locs[i]);
+				Matrix3 matrix = new Matrix3(new double[][] {
+					{basis1.getX(), basis2.getX(), dir.getX()},
+					{basis1.getY(), basis2.getY(), dir.getY()},
+					{basis1.getZ(), basis2.getZ(), dir.getZ()}
+				});
+				Matrix3 m_inv = matrix.inverse();
+				if (m_inv == null) continue;
+				Vector c = m_inv.mult(L);
+				double dot2 = -c.getZ();
+				if (dot2 < 0) continue;
+				
+				switch(i) {
+				case 0:
+				case 1:
+					if (Math.abs(c.getX()) > scale.x) continue;
+					if (Math.abs(c.getY()) > scale.z) continue;
+					break;
+				case 2:
+				case 3:
+					if (Math.abs(c.getX()) > scale.x) continue;
+					if (Math.abs(c.getY()) > scale.y) continue;
+					break;
+				default:
+					if (Math.abs(c.getX()) > scale.z) continue;
+					if (Math.abs(c.getY()) > scale.y) continue;
+				}
+				
+				Vector raw_offset = basis1.clone().multiply(c.getX())
+						.add(basis2.clone().multiply(c.getY()));
+				Vector blockoffset = locs[i].clone().add(raw_offset);
+				
+				//markerPoint(DexUtils.location(loc.getWorld(), blockoffset), Color.WHITE, 5);
+				
+				if (dot2 < dot) {
+					nearest = e;
+					face = faces[i];
+					dot = dot2;
+					face_vec = raw_offset;
+					clicked_loc = blockoffset;
+				}
+			}
+			
+		}
 		
+		if (nearest == null) return null;
+		
+		return new BlockDisplayFace(nearest, face, face_vec, DexUtils.location(p.getWorld(), clicked_loc));
+	}
+	
+	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
+		float size = 0.05f;
+		BlockDisplay disp = loc.getWorld().spawn(loc, BlockDisplay.class, a -> {
+			a.setBlock(Bukkit.createBlockData(Material.RED_WOOL));
+			if (glow != null) {
+				a.setGlowColorOverride(glow);
+				a.setGlowing(true);
+			}
+			Transformation t = a.getTransformation();
+			Transformation t2 = new Transformation(new Vector3f(-size/2, -size/2, -size/2), t.getLeftRotation(), 
+					new Vector3f(size, size, size), t.getRightRotation());
+			a.setTransformation(t2);
+		});
+		if (seconds > 0) {
+			new BukkitRunnable() {
+				public void run() {
+					disp.remove();
+				}
+			}.runTaskLater(plugin, seconds*20l);
+		}
+		return disp;
+	}
 	
 }

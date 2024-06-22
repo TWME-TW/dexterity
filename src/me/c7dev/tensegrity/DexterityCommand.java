@@ -19,10 +19,12 @@ import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
+import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -32,6 +34,7 @@ import net.md_5.bungee.api.ChatColor;
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
+	private DexterityAPI api;
 	ChatColor cc, cc2;
 	String noperm;
 	
@@ -63,6 +66,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		this.plugin= plugin;
 		cc = plugin.getChatColor();
 		cc2 = plugin.getChatColor2();
+		api = plugin.getAPI();
 		plugin.getCommand("dex").setExecutor(this);
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission", "§cYou don't have permission!");
@@ -216,6 +220,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			r.mount(p);
 			r.start();
 		}
+		else if (args[0].equalsIgnoreCase("testnear")) {
+			BlockDisplayFace b = api.getLookingAt(p);
+		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			int index = -1;
@@ -310,7 +317,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (session.getLocation1() != null && session.getLocation2() != null) {
-				DexterityDisplay d = plugin.getAPI().createDisplay(session.getLocation1(), session.getLocation2());
+				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2());
 				
 				session.setSelected(d);
 				

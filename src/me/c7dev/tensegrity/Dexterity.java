@@ -11,20 +11,20 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.Matrix3;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
 
@@ -44,12 +44,13 @@ public class Dexterity extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		saveDefaultConfig();
+		api = new DexterityAPI(this);
+		
 		new DexterityCommand(this);
 		new EventListeners(this);
 		
 		loadDisplays();
 		
-		api = new DexterityAPI(this);
 	}
 	
 	@Override

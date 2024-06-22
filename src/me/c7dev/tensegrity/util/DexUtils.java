@@ -9,9 +9,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -35,6 +38,10 @@ public class DexUtils {
 	}
 	
 	public static String locationString(Location loc, int decimals) {
+		return vectorString(loc.toVector(), decimals);
+	}
+	
+	public static String vectorString(Vector loc, int decimals) {
 		if (decimals == 0) {
 			return "X:" + (int) loc.getX() + 
 					" Y:" + (int) loc.getY() +
@@ -212,6 +219,12 @@ public class DexUtils {
 		double pitch = config.getDouble(dir + ".pitch");
 		String world = config.getString(dir + ".world");
 		return new Location(Bukkit.getWorld(world), x, y, z, (float) yaw, (float) pitch);
+	}
+	
+	public static Vector nearestPoint(Vector a, Vector b, Vector x) {
+		Vector b_a = b.clone().subtract(a);
+		double theta = b_a.dot(x.clone().subtract(a)) / b_a.lengthSquared();
+		return a.clone().multiply(1-theta).add(b.clone().multiply(theta));
 	}
 
 }
