@@ -81,7 +81,7 @@ public class DexterityAPI {
 				Math.min(l1.getZ(), l2.getZ()) + Math.abs((l1.getZ() - l2.getZ()) / 2));
 		center.add(0.5, 0.5, 0.5);
 		
-		DexterityDisplay d = new DexterityDisplay(plugin, center, null);
+		DexterityDisplay d = new DexterityDisplay(plugin, center);
 
 		for (int x = xmin; x <= xmax; x++) {
 			for (int y = ymin; y <= ymax; y++) {
@@ -90,7 +90,6 @@ public class DexterityAPI {
 					if (b.getType() != Material.BARRIER && b.getType() != Material.AIR) {
 						DexBlock db = new DexBlock(b, d);
 						d.getBlocks().add(db);
-						b.setType(Material.AIR);
 						//db.setBrightness(b2.getLightFromBlocks(), b2.getLightFromSky());
 					}
 				}
@@ -123,24 +122,31 @@ public class DexterityAPI {
 		for (Entity entity : near) {
 			if (!(entity instanceof BlockDisplay)) continue;
 			BlockDisplay e = (BlockDisplay) entity;
-			Vector3f transl = e.getTransformation().getTranslation();
-			Location loc = e.getLocation().add(0.5, 0.5, 0.5);
-			Vector3f scale = e.getTransformation().getScale();
-			if (scale.x < 0 || scale.y < 0 || scale.z < 0) continue; //TODO figure out
-			scale.mul(0.5f).absolute();
-			loc.add(scale.x-0.5, scale.y-0.5, scale.z-0.5);
-			if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
+			Vector scale_raw = DexUtils.vector(e.getTransformation().getScale());
+			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out
+			scale_raw.multiply(0.5);
+			//Location loc = e.getLocation().add(scale);
+			Location loc = e.getLocation();
+			
+			Vector scale = DexUtils.hadimard(DexUtils.getBlockSize(e.getBlock()), scale_raw);
+			loc.add(scale.clone().subtract(scale_raw));
+			
+			
+			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
+			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
+
+			if (!e.isGlowing()) markerPoint(loc, Color.LIME, 4);
 			
 			Vector diff = loc.toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
 			
-			Vector up = loc.clone().add(0, (scale.y), 0).toVector();
-			Vector down = loc.clone().add(0, -scale.y, 0).toVector();
-			Vector north = loc.clone().add(0, 0, -scale.z).toVector();
-			Vector south = loc.clone().add(0, 0, scale.z).toVector();
-			Vector east = loc.clone().add(scale.x, 0, 0).toVector();
-			Vector west = loc.clone().add(-scale.x, 0, 0).toVector();
+			Vector up = loc.clone().add(0, (scale.getY()), 0).toVector();
+			Vector down = loc.clone().add(0, -scale.getY(), 0).toVector();
+			Vector north = loc.clone().add(0, 0, -scale.getZ()).toVector();
+			Vector south = loc.clone().add(0, 0, scale.getZ()).toVector();
+			Vector east = loc.clone().add(scale.getX(), 0, 0).toVector();
+			Vector west = loc.clone().add(-scale.getX(), 0, 0).toVector();
 			
 			Vector[] locs = {up, down, north, south, east, west};
 						
@@ -164,17 +170,17 @@ public class DexterityAPI {
 				switch(i) {
 				case 0:
 				case 1:
-					if (Math.abs(c.getX()) > scale.x) continue;
-					if (Math.abs(c.getY()) > scale.z) continue;
+					if (Math.abs(c.getX()) > scale.getX()) continue;
+					if (Math.abs(c.getY()) > scale.getZ()) continue;
 					break;
 				case 2:
 				case 3:
-					if (Math.abs(c.getX()) > scale.x) continue;
-					if (Math.abs(c.getY()) > scale.y) continue;
+					if (Math.abs(c.getX()) > scale.getX()) continue;
+					if (Math.abs(c.getY()) > scale.getY()) continue;
 					break;
 				default:
-					if (Math.abs(c.getX()) > scale.z) continue;
-					if (Math.abs(c.getY()) > scale.y) continue;
+					if (Math.abs(c.getX()) > scale.getZ()) continue;
+					if (Math.abs(c.getY()) > scale.getY()) continue;
 				}
 				
 				Vector raw_offset = basis1.clone().multiply(c.getX())

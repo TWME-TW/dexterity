@@ -41,7 +41,6 @@ public class Dexterity extends JavaPlugin {
 	
 	public static final Vector3f DEFAULT_DISP = new Vector3f(-0.5f, -0.5f, -0.5f);
 	
-	
 	@Override
 	public void onEnable() {
 		saveDefaultConfig();
@@ -141,7 +140,8 @@ public class Dexterity extends JavaPlugin {
 				}
 				
 				Location center = DexUtils.deserializeLocation(afile, label + ".center");
-				DexterityDisplay disp = new DexterityDisplay(this, center, label);
+				DexterityDisplay disp = new DexterityDisplay(this, center);
+				disp.setLabel(label);
 				disp.setRotationPlane(Plane.valueOf(afile.getString(label + ".rotation-plane")));
 				
 				for (BlockDisplay bd : blocks) {
@@ -211,9 +211,15 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void registerDisplay(String label, DexterityDisplay d) {
+		if (label == null || d == null) return;
 		if (all_displays.containsKey(label) && all_displays.get(label) != d) return;
 		if (d.getParent() == null) displays.put(label, d);
 		all_displays.put(label, d);
+	}
+	
+	public void unregisterDisplay(DexterityDisplay d) {
+		all_displays.remove(d.getLabel());
+		displays.remove(d.getLabel());
 	}
 	
 	//////////////////////////////////////////////////////////

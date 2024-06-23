@@ -1,6 +1,7 @@
 package me.c7dev.tensegrity.util;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Transformation;
@@ -31,6 +32,7 @@ public class DexBlock {
 			spawned.setTeleportDuration(1);
 		});
 		d.getPlugin().setMappedDisplay(this);
+		display.setType(Material.AIR);
 		recalculateRadius(d.getCenter());
 	}
 	public DexBlock(BlockDisplay bd, DexterityDisplay d) {
@@ -129,8 +131,7 @@ public class DexBlock {
 	}
 	
 	public Location getLocation() {
-		//if (armor_stand) return entity.getLocation().add(AS_OFFSET);
-		return entity.getLocation().add(0.5, 0.5, 0.5);
+		return entity.getLocation();
 	}
 	
 	public double calculateAngle(Location center, Plane plane) {

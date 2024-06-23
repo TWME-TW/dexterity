@@ -63,9 +63,8 @@ public class DexSession {
 			selected = null;
 			return;
 		}
-		if (selected != null && o.getLabel().equals(selected.getLabel())) return;
 		selected = o;
-		if (p.isOnline()) {
+		if (o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(cc + "Selected " + cc2 + o.getLabel() + cc + "!");
 			//TODO glow effect for 1s
 		}

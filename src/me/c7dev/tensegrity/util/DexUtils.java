@@ -8,7 +8,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.Snow;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -191,6 +192,9 @@ public class DexUtils {
 	public static Vector vector(Vector3f v) {
 		return new Vector(v.x, v.y, v.z);
 	}
+	public static Vector hadimard(Vector a, Vector b) {
+		return new Vector(a.getX()*b.getX(), a.getY()*b.getY(), a.getZ()*b.getZ());
+	}
 	public static Location location(World w, Vector v) {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
 	}
@@ -220,6 +224,25 @@ public class DexUtils {
 		double pitch = config.getDouble(dir + ".pitch");
 		String world = config.getString(dir + ".world");
 		return new Location(Bukkit.getWorld(world), x, y, z, (float) yaw, (float) pitch);
+	}
+	
+	public static Vector getBlockSize(BlockData b) {
+		Material mat = b.getMaterial();
+		String m = mat.toString();
+		if (m.endsWith("_SLAB") || m.endsWith("_CARPET")) return new Vector(1, 0.5, 1);
+		if (m.endsWith("_TRAPDOOR")) return new Vector(1, 1.0/16, 1);
+		if (m.endsWith("_BED")) return new Vector(1, 9.0/16, 1);
+		
+		//TODO doors, fences, gates
+		
+		switch(mat) {
+		case SNOW:
+			Snow sd = (Snow) b;
+			return new Vector(1, sd.getLayers() / 8.0, 1);
+		case CHAIN: return new Vector(0.2, 1, 0.2);
+		default:
+		}
+		return new Vector(1, 1, 1);
 	}
 	
 	public static Vector nearestPoint(Vector a, Vector b, Vector x) {

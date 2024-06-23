@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
@@ -27,33 +26,54 @@ public class DexterityDisplay {
 	private Location center;
 	private Plane rot_plane = Plane.XZ;
 	private String label;
-	private double scale_x = 1, scale_y = 1, scale_z = 1;
+	private Vector scale;
 	private DexterityDisplay parent;
 	private boolean started_animations = false;
+	private boolean isListed = false;
+	private UUID uuid = UUID.randomUUID();
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
+	
+	public DexterityDisplay(Dexterity plugin, Location center) {
+		this(plugin, center, new Vector(1, 1, 1));
+	}
 		
-	public DexterityDisplay(Dexterity plugin, Location center, String label) {
+	public DexterityDisplay(Dexterity plugin, Location center, Vector scale) {
 		this.plugin = plugin;
 		this.center = center;
-		
-		if (label == null) {
-			int i =1;
-			while (plugin.getDisplayLabels().contains("display-" + i)) i++;
-			this.label = "display-" + i;
-		} else this.label = label;
+		this.scale = scale;
+	}
+	
+	public UUID getUniqueId() {
+		return uuid;
+	}
+	
+	public boolean equals(DexterityDisplay d) {
+		return uuid.equals(d.getUniqueId());
 	}
 	
 	public String getLabel() {
 		return label;
 	}
+	
+	public void setDefaultLabel() {
+		int i =1;
+		while (plugin.getDisplayLabels().contains("display-" + i)) i++;
+		setLabel("display-" + i);
+	}
 	public boolean setLabel(String s) {
 		if (plugin.getDisplayLabels().contains(s)) return false;
+		isListed = true;
 		label = s;
+		plugin.registerDisplay(s, this);
 		plugin.saveDisplays();
 		return true;
+	}
+	
+	public boolean isListed() {
+		return isListed;
 	}
 	
 	public List<DexBlock> getBlocks(){
@@ -64,22 +84,13 @@ public class DexterityDisplay {
 		return animations;
 	}
 	
-	public double getScale() {
-		return Math.pow(scale_x*scale_y*scale_z, 1/3.0); // M0
-	}
-	public double getScaleX() {
-		return scale_x;
-	}
-	public double getScaleZ() {
-		return scale_z;
-	}
-	public double getScaleY() {
-		return scale_y;
+	public Vector getScale() {
+		return scale;
 	}
 
 	public void setEntities(List<DexBlock> entities_){
 		this.blocks = entities_;
-		plugin.getDisplays().add(this);
+		plugin.unregisterDisplay(this);
 	}
 	
 	public List<DexterityDisplay> getSubdisplays() {
@@ -121,7 +132,7 @@ public class DexterityDisplay {
 		if (!m.getCenter().getWorld().getName().equals(center.getWorld().getName())) return null;
 		if (new_group != null && plugin.getDisplayLabels().contains(new_group)) return null;
 		
-		plugin.getDisplays().remove(this);
+		plugin.unregisterDisplay(this);
 		stopAnimations(true);
 		m.stopAnimations(true);
 		Vector c2v = center.toVector().add(m.getCenter().toVector()).multiply(0.5); //midpoint
@@ -135,14 +146,14 @@ public class DexterityDisplay {
 			setParent(m);
 			r = m;
 		} else {
-			plugin.getDisplays().remove(m);
-			DexterityDisplay p = new DexterityDisplay(plugin, c2, new_group);
+			plugin.unregisterDisplay(m);
+			DexterityDisplay p = new DexterityDisplay(plugin, c2);
+			p.setLabel(new_group);
 			
 			setParent(p);
 			m.setParent(p);
 			p.getSubdisplays().add(this);
 			p.getSubdisplays().add(m);
-			plugin.registerDisplay(new_group, p);
 			r = p;
 		}
 		
@@ -173,12 +184,13 @@ public class DexterityDisplay {
 			b.getEntity().remove();
 		}
 		
-		plugin.getDisplays().remove(this);
+		plugin.unregisterDisplay(this);
 		
 		for (DexterityDisplay subdisplay : subdisplays.toArray(new DexterityDisplay[subdisplays.size()])) subdisplay.remove(restore);
 	}
 	
 	public int getGroupSize() {
+		if (label == null) return 1;
 		return getGroupSize(this);
 	}
 	public int getGroupSize(DexterityDisplay s) {
@@ -263,23 +275,31 @@ public class DexterityDisplay {
 	}
 	
 	public void setScale(float s) {
-		setScale(s, s, s);
+		setScale(new Vector(s, s, s));
 	}
 		
-	public void setScale(float x, float y, float z) {
+	public void setScale(Vector s) {
+		Vector v = new Vector(s.getX() / scale.getX(), s.getY() / scale.getY(), s.getZ() / scale.getZ());
+		Vector sd = v.clone().add(new Vector(-1, -1, -1));
+		Vector3f trans_disp = DexUtils.vector(s.clone().multiply(-0.5)); //DexUtils.vector(v.clone().add(scale.clone().multiply(-0.5))).mul(0.5f);
 		for (DexBlock db : blocks) {
-			Vector displacement = db.getEntity().getLocation().toVector().subtract(center.toVector());
-			displacement.setX((displacement.getX() * (x - 1)) + (x >= 0 ? -0.5 : Math.abs(x) - 0.5));
-			displacement.setY((displacement.getY() * (y - 1)) + (y >= 0 ? -0.5 : Math.abs(y) - 0.5));
-			displacement.setZ((displacement.getZ() * (z - 1)) + (z >= 0 ? -0.5 : Math.abs(z) - 0.5));
-			Vector3f dispv = new Vector3f((float) displacement.getX(), (float) displacement.getY(), (float) displacement.getZ());
+			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
+//			displacement.setX((displacement.getX() * (x - 1)) + (x >= 0 ? -0.5 : Math.abs(x) - 0.5));
+//			displacement.setY((displacement.getY() * (y - 1)) + (y >= 0 ? -0.5 : Math.abs(y) - 0.5));
+//			displacement.setZ((displacement.getZ() * (z - 1)) + (z >= 0 ? -0.5 : Math.abs(z) - 0.5));
+			
+			//Vector diff = new Vector(disp.getX()*(sd.getX()-1), disp.getY()*(sd.getY()-1), disp.getZ()*(sd.getZ()-1));
+			Vector diff = DexUtils.hadimard(disp, sd);
+						
+			db.move(diff);
+			
 			db.getTransformation()
-					.setDisplacement(dispv)
-					.setScale(x, y, z);
+					.setDisplacement(trans_disp)
+					.setScale(DexUtils.vector(s));
 			db.updateTransformation();
 		}
-		scale_x = x; scale_y = y; scale_z = z;
-		for (DexterityDisplay sub : subdisplays) sub.setScale(x, y, z);
+		scale = s;
+		for (DexterityDisplay sub : subdisplays) sub.setScale(v);
 	}
 	
 	public void rotate(double degrees, Plane plane) {

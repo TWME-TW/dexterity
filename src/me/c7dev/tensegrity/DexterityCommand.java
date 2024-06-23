@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -15,6 +17,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -27,6 +30,7 @@ import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
@@ -86,12 +90,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	}
 	
 	public int constructList(String[] strs, DexterityDisplay disp, String selected, int i, int level) {
+		if (disp.getLabel() == null) return 0;
 		int count = 1;
 		
 		String line = "";
 		for (int j = 0; j < level; j++) line += "  ";
 		
-		line += disp.getLabel() == null ? "§oUnnamed" : disp.getLabel();
+		line += disp.getLabel();
 		if (disp.getBlocks().size() > 0) line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + line + "§7: " + cc + DexUtils.locationString(disp.getCenter(), 0) + " (" + disp.getCenter().getWorld().getName() + ")";
 		else line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + "§l" + line + cc + ":";
 		
@@ -222,6 +227,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (args[0].equalsIgnoreCase("testnear")) {
 			BlockDisplayFace b = api.getLookingAt(p);
+			if (b == null) Bukkit.broadcastMessage("none in range");
+			else Bukkit.broadcastMessage("clicked " + b.getBlockFace() + ", disp = " + DexUtils.vectorString(b.getOffsetFromFaceCenter(), 3));
+		}
+		else if (args[0].equalsIgnoreCase("testloc")) {
+			Location loc = DexUtils.blockLoc(p.getLocation());
+			loc.add(0, 0, 2).getBlock().setType(Material.STONE);
+			DexBlock db = new DexBlock(loc.getBlock(), session.getSelected());
+			plugin.getAPI().markerPoint(db.getEntity().getLocation(), Color.LIME, 3);
 		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
@@ -276,7 +289,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			boolean propegate = flags.contains("propegate");
 			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
 				d.setGlow(null, propegate);
-				p.sendMessage(cc + "Disabled glow for " + cc2 + d.getLabel() + cc + "!");
+				p.sendMessage(cc + "Disabled glow" + (d.getLabel() == null ? "" : " for " + cc2 + d.getLabel() + cc) + "!");
 				return true;
 			}
 			ColorEnum c;
@@ -287,12 +300,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			d.setGlow(c.getColor(), propegate);
-			p.sendMessage(cc + "Set the glow for " + cc2 + d.getLabel() + cc + "!");
+			if (d.getLabel() != null) p.sendMessage(cc + "Set the glow for " + cc2 + d.getLabel() + cc + "!");
 		}
 		
 		else if (args[0].equalsIgnoreCase("animation") || args[0].equalsIgnoreCase("a")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
+			if (d.getLabel() == null) {
+				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				return true;
+			}
 			if (args.length == 1) {
 				//TODO
 			}
@@ -323,7 +340,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				
 				session.clearLocationSelection();
 				
-				p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
+				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
+				p.sendMessage(cc + "Successfully converted block selection!");
 				
 			} else p.sendMessage("§4Error: §cBoth locations must be set!");
 		}
@@ -427,13 +445,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (page >= maxpage) page = maxpage - 1;
 			
 			int total = 0;
-			for (DexterityDisplay d : plugin.getDisplays()) total += d.getGroupSize();
+			for (DexterityDisplay d : plugin.getDisplays()) {
+				if (d.getLabel() == null) continue;
+				total += d.getGroupSize();
+			}
 			
 			p.sendMessage("§b");
 			p.sendMessage(cc + "§lDisplay list: §6Page §6§l" + (page+1) + "§6/" + maxpage);
 			String[] strs = new String[total];
 			int i = 0;
 			for (DexterityDisplay disp : plugin.getDisplays()) {
+				if (disp.getLabel() == null) continue;
 				i += constructList(strs, disp, session.getSelected() == null ? null : session.getSelected().getLabel(), i, 0);
 			}
 			DexUtils.paginate(p, strs, page, 10);
@@ -446,12 +468,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
-				float sx = attrsd.getOrDefault("x", d.getScaleX()).floatValue();
-				float sy = attrsd.getOrDefault("y", d.getScaleY()).floatValue();
-				float sz = attrsd.getOrDefault("z", d.getScaleZ()).floatValue();
+				float sx = attrsd.getOrDefault("x", d.getScale().getX()).floatValue();
+				float sy = attrsd.getOrDefault("y", d.getScale().getY()).floatValue();
+				float sz = attrsd.getOrDefault("z", d.getScale().getZ()).floatValue();
 				
-				d.setScale(sx, sy, sz);
-				p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + sx + ", " + sy + ", " + sz + cc + "!");
+				d.setScale(new Vector(sx, sy, sz));
+				p.sendMessage(cc + "Set " + (d.getLabel() != null ? cc2 + d.getLabel() + cc + " " : "") + "scale to " + cc2 + sx + ", " + sy + ", " + sz + cc + "!");
 			} else {
 				float scale = 1;
 				try {
@@ -463,7 +485,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 
 				d.setScale(scale);
 
-				p.sendMessage(cc + "Set " + cc2 + d.getLabel() + cc + " scale to " + cc2 + scale + cc + "!");
+				p.sendMessage(cc + "Set " + (d.getLabel() != null ? cc2 + d.getLabel() + cc + " " : "") + "scale to " + cc2 + scale + cc + "!");
 			}
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
@@ -479,7 +501,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			String new_group = attr_str.get("new_group");
-			if (d == parent || d.getLabel().equals(parent.getLabel())) {
+			if (d.getLabel() == null) {
+				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				return true;
+			}
+			if (d == parent || d.equals(parent)) {
 				p.sendMessage("§4Error: §cMust be a different display than selected!");
 				return true;
 			}
@@ -510,6 +536,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("unmerge")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
+			if (d.getLabel() == null) {
+				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				return true;
+			}
 			if (d.getParent() == null) {
 				p.sendMessage(cc + "Nothing to un-merge, " + cc2 + d.getLabel() + cc + " has no parent display!");
 				return true;
