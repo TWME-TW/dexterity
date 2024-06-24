@@ -168,8 +168,9 @@ public class DexUtils {
 	public static String getDefaultAttribute(String[] args) {
 		String firstarg = null;
 		int i =0;
-		for (String arg : args) {
-			if (!arg.contains("=") && !arg.contains(":")) {
+		for (int j = 1; j < args.length; j++) {
+			String arg = args[j];
+			if (!arg.contains("=") && !arg.contains(":") && !arg.startsWith("-")) {
 				if (i == 0) firstarg = arg.toLowerCase();
 				else return arg.toLowerCase();
 			}

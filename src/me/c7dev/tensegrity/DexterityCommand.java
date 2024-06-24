@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,7 +18,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -30,7 +30,6 @@ import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
-import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
@@ -43,24 +42,26 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm;
 	
 	public String[] commands = {
-		"animation", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
-		"scale", "select", "unmerge", "wand"
+		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
+		"save", "scale", "select", "unmerge", "wand"
 	};
 	public String[] descriptions = {
 		"Modify the display's animations", //animation
-		"Create a display from selected region", //convert
-		"Revert display back into block form", //deconvert
+		"Clone the selection", //clone
+		"Convert the selected region to display blocks", //convert
+		"Revert selection back into block form", //deconvert
 		"Clear selected region", //deselect
-		"Make the display glow", //glow
+		"Make the selection glow", //glow
 		"List all displays", //list
 		"Combine two displays", //merge
 		"Teleport a display", //move
 		"Set the first position", //pos1
-		"Delete a display", //remove
+		"Delete a selection", //remove
 		"Change a display's name", //rename
-		"Rotate a display", //rotate
-		"Resize a display", //scale
-		"Select a display", //sel
+		"Rotate a selection", //rotate
+		"Make selection into a display", //save
+		"Resize a selection", //scale
+		"Select a display or region", //sel
 		"Separate a display group", //unmerge
 		"Get a wand to select block locations" //wand
 	};
@@ -76,7 +77,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		noperm = plugin.getConfigString("no-permission", "§cYou don't have permission!");
 		
 		for (int i = 0; i < commands.length; i++) {
-			command_strs[i] = cc2 + "- /dex " + commands[i] + " §8- " + cc + descriptions[i];
+			command_strs[i] = cc2 + "- /d " + commands[i] + " §8- " + cc + descriptions[i];
 		}
 	}
 	
@@ -87,6 +88,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return null;
 		}
 		return d;
+	}
+	
+	public boolean testInEdit(DexSession session) {
+		if (session.getSecondary() != null && session.getSelected() != null) {
+			session.getPlayer().sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
+			return true;
+		}
+		return false;
 	}
 	
 	public int constructList(String[] strs, DexterityDisplay disp, String selected, int i, int level) {
@@ -117,7 +126,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		if (args.length == 0) {
 			p.sendMessage(cc + "§lUsing Dexterity " + cc2 + "§lv1.0.0");
 			if (p.hasPermission("dexterity.command")) {
-				p.sendMessage(cc + "Use " + cc2 + "/dex help" + cc + " to get started!");
+				p.sendMessage(cc + "Use " + cc2 + "/d help" + cc + " to get started!");
 			}
 			return true;
 		}
@@ -237,21 +246,31 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			plugin.getAPI().markerPoint(db.getEntity().getLocation(), Color.LIME, 3);
 		}
 		
-		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
+		else if (args[0].equalsIgnoreCase("set")) {
+			if (session.getSecondary() != null && session.getSelected() != null) {
+				//rn just for cloning, will need an enum for more operations
+				session.getSecondary().hardMerge(session.getSelected());
+				session.finishEdit();
+				p.sendMessage(cc + "Successfully cloned " + (session.getSelected().getLabel() == null ? "selected" : cc2 + session.getSelected().getLabel() + cc) + "!");
+			}
+		}
+		
+		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
+			
 			int index = -1;
 			if (args[0].equalsIgnoreCase("pos1")) index = 0;
 			else if (args[0].equalsIgnoreCase("pos2")) index = 1;
 			
 			if (index < 0) {
 				if (args.length == 1) {
-					p.sendMessage("§4Usage: §c/dex sel <name>");
+					p.sendMessage("§4Usage: §c/d sel <name>");
 					return true;
 				}
 			}
 			if (def != null) {
 				DexterityDisplay disp = plugin.getDisplay(def);
-				if (disp != null) {
-					session.setSelected(disp);
+				if (disp != null) {					
+					session.setSelected(disp, true);
 					return true;
 				} else if (index < 0) {
 					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
@@ -278,9 +297,75 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("desel") || args[0].equalsIgnoreCase("deselect") || args[0].equalsIgnoreCase("clear")) {
 			if (session.getSelected() != null) {
-				session.setSelected(null);
+				session.setSelected(null, false);
 				p.sendMessage(cc + "Cleared selection!");
 			}
+		}
+		
+		else if (args[0].equalsIgnoreCase("clone")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			if (session.getSecondary() != null) {
+				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
+				return true;
+			}
+			if (!d.canHardMerge()) {
+				p.sendMessage("§4Error: §cThis display can not be cloned!");
+				return true;
+			}
+			
+			p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish or " + cc2 + "/d cancel" + cc + " to quit!");
+			
+			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
+			
+			//start clone
+			List<DexBlock> blocks = new ArrayList<>();
+			for (DexBlock db : d.getBlocks()) {
+				BlockDisplay block = db.getLocation().getWorld().spawn(db.getLocation(), BlockDisplay.class, a -> {
+					a.setBlock(db.getEntity().getBlock());
+					a.setTransformation(db.getTransformation().build());
+					if (db.getEntity().isGlowing()) {
+						a.setGlowColorOverride(db.getEntity().getGlowColorOverride());
+						a.setGlowing(true);
+					}
+				});
+				blocks.add(new DexBlock(block, clone));
+			}
+			clone.setEntities(blocks);
+			
+			session.startEdit(clone);
+			
+		}
+		
+		else if (args[0].equalsIgnoreCase("cancel")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			session.cancelEdit();
+			p.sendMessage(cc + "Cancelled edit!");
+		}
+		
+		else if (args[0].equalsIgnoreCase("save")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null || testInEdit(session)) return true;
+			if (session.getSecondary() != null) {
+				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
+				return true;
+			}
+			if (d.getLabel() != null) {
+				p.sendMessage(cc + "This selection is already saved! Use " + cc2 + "/d rename");
+				return true;
+			}
+			if (args.length < 2) {
+				p.sendMessage("§4Usage: §c/d save <name>");
+				return true;
+			}
+			String displabel = args[1];
+			if (plugin.getDisplay(label) != null) {
+				p.sendMessage("§4Error: §cThis name is already in use by another display!");
+				return true;
+			}
+			d.setLabel(displabel);
+			p.sendMessage(cc + "Successfully saved " + cc2 + displabel + cc + "!");
 		}
 		
 		else if (args[0].equalsIgnoreCase("glow")) {
@@ -307,7 +392,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
 				return true;
 			}
 			if (args.length == 1) {
@@ -333,10 +418,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
+			if (testInEdit(session)) return true;
 			if (session.getLocation1() != null && session.getLocation2() != null) {
 				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2());
 				
-				session.setSelected(d);
+				session.setSelected(d, false);
 				
 				session.clearLocationSelection();
 				
@@ -372,7 +458,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			
 			if (args.length != 2) {
-				p.sendMessage("§4Usage: §c/dex rename <name>");
+				p.sendMessage("§4Usage: §c/d rename <name>");
+				return true;
+			}
+			if (args[1].startsWith("-")) {
+				p.sendMessage("§4Error: §cInvalid name!");
 				return true;
 			}
 			if (d.setLabel(args[1])) p.sendMessage(cc + "Renamed this display to " + cc2 + args[1]);
@@ -384,7 +474,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			
 			if (args.length < 2 || def == null) {
-				p.sendMessage("§4Usage: §c/dex rotate <degrees>");
+				p.sendMessage("§4Usage: §c/d rotate <degrees>");
 				return true;
 			}
 			double degrees;
@@ -411,10 +501,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("info")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
-			p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
-			p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
+			if (d.getLabel() == null) {
+				p.sendMessage(cc + "Selected " + cc2 + d.getBlocks().size() + cc + " ghost block" + (d.getBlocks().size() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld());
+			} else {
+				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
+				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
+			}
 		}
 		else if (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("deconvert") || args[0].equalsIgnoreCase("deconv")) {
+			if (testInEdit(session)) return true;
 			DexterityDisplay d = session.getSelected();
 			if (d == null) {
 				if (def == null) return true;
@@ -426,7 +521,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			boolean res = !args[0].equalsIgnoreCase("remove");
 			d.remove(res);
-			session.setSelected(null);
+			session.setSelected(null, false);
 			String label2 = d.getLabel() == null ? "at " + cc2 + DexUtils.locationString(d.getCenter(), 0) : cc2 + d.getLabel();
 			p.sendMessage(cc + (res ? "Restored" : "Removed") + " the display " + label2);
 		}
@@ -490,11 +585,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
 			if (def == null) {
-				p.sendMessage("§4Usage: §c/dex merge <sub-display>");
+				p.sendMessage("§4Usage: §c/d merge <sub-display>");
 				return true;
 			}
 			DexterityDisplay d = getSelected(session);
-			if (d == null) return true;
+			if (d == null || testInEdit(session)) return true;
 			DexterityDisplay parent = plugin.getDisplay(def);
 			if (parent == null) {
 				p.sendMessage("§4Error: §cCould not find display '" + def + "'");
@@ -502,7 +597,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			String new_group = attr_str.get("new_group");
 			if (d.getLabel() == null) {
-				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
 				return true;
 			}
 			if (d == parent || d.equals(parent)) {
@@ -525,19 +620,33 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage("§4Error: §cA group with this name already exists!");
 				return true;
 			}
-
-			DexterityDisplay g = d.merge(parent, new_group);
-			if (g != null) {
-				session.setSelected(g);
-				if (new_group == null) p.sendMessage(cc + "Successfully merged " + cc2 + parent.getLabel() + cc + "!");
-				else p.sendMessage(cc + "Successfully created new group " + cc2 + new_group + cc + "!");
-			} else p.sendMessage("§cFailed to merge!");
+			
+			boolean hard = flags.contains("hard");
+			if (hard) {
+				if (!d.canHardMerge() || !parent.canHardMerge()) {
+					p.sendMessage("§4Error: §cCan not hard-merge on this display!");
+					return true;
+				}
+				
+				if (parent.hardMerge(d)) {
+					session.setSelected(parent, false);
+					p.sendMessage(cc + "Successfully hard-merged displays!");
+				}
+				else p.sendMessage("§cFailed to merge!");
+			} else {
+				DexterityDisplay g = d.merge(parent, new_group);
+				if (g != null) {
+					session.setSelected(g, false);
+					if (new_group == null) p.sendMessage(cc + "Successfully merged " + cc2 + parent.getLabel() + cc + "!");
+					else p.sendMessage(cc + "Successfully created new group " + cc2 + new_group + cc + "!");
+				} else p.sendMessage("§cFailed to merge!");
+			}
 		}
 		else if (args[0].equalsIgnoreCase("unmerge")) {
 			DexterityDisplay d = getSelected(session);
-			if (d == null) return true;
+			if (d == null || testInEdit(session)) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage("§4Error: §cNo display selected! Use §c§n/d save§c to convert selection into a display.");
+				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
 				return true;
 			}
 			if (d.getParent() == null) {
@@ -569,11 +678,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		if (argsr.length <= 1) {
 			for (String s : commands) ret.add(s);
+			ret.add("cancel");
+			ret.add("set");
 		}
 		else if (argsr[0].equalsIgnoreCase("?") || argsr[0].equalsIgnoreCase("help") || argsr[0].equalsIgnoreCase("list")) {
 			ret.add("page=");
 		}
-		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select") || argsr[0].equalsIgnoreCase("set")) {
+		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select")) {
 			add_labels = true;
 		}
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
@@ -586,6 +697,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equalsIgnoreCase("merge")) {
 			ret.add("new_group=");
+			ret.add("-hard");
 			add_labels = true;
 		}
 		else if (argsr[0].equalsIgnoreCase("glow")) {

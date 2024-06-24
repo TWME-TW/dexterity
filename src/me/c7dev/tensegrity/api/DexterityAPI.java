@@ -17,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
+import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.DexSession;
@@ -25,7 +27,6 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
-import me.c7dev.tensegrity.util.Matrix3;
 
 public class DexterityAPI {
 	
@@ -135,7 +136,7 @@ public class DexterityAPI {
 			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
 			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
 
-			if (!e.isGlowing()) markerPoint(loc, Color.LIME, 4);
+			//if (!e.isGlowing()) markerPoint(loc, Color.LIME, 4);
 			
 			Vector diff = loc.toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
@@ -156,14 +157,14 @@ public class DexterityAPI {
 				Vector basis2 = basis_vecs[i][1];
 				
 				Vector L = eye_loc.clone().subtract(locs[i]);
-				Matrix3 matrix = new Matrix3(new double[][] {
-					{basis1.getX(), basis2.getX(), dir.getX()},
-					{basis1.getY(), basis2.getY(), dir.getY()},
-					{basis1.getZ(), basis2.getZ(), dir.getZ()}
-				});
-				Matrix3 m_inv = matrix.inverse();
-				if (m_inv == null) continue;
-				Vector c = m_inv.mult(L);
+				Matrix3f matrix = new Matrix3f(
+						(float) basis1.getX(), (float) basis1.getY(), (float) basis1.getZ(),
+						(float) basis2.getX(), (float) basis2.getY(), (float) basis2.getZ(),
+						(float) dir.getX(), (float) dir.getY(), (float) dir.getZ()
+						);
+				matrix.invert();
+				Vector3f cf = new Vector3f();
+				Vector c = DexUtils.vector(matrix.transform((float) L.getX(), (float) L.getY(), (float) L.getZ(), cf));
 				double dot2 = -c.getZ();
 				if (dot2 < 0) continue;
 				
@@ -196,7 +197,7 @@ public class DexterityAPI {
 			}
 			
 		}
-		
+				
 		return nearest;
 	}
 	

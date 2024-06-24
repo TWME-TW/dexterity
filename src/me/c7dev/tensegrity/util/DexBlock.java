@@ -47,6 +47,11 @@ public class DexBlock {
 		return this.entity;
 	}
 	
+	@Deprecated
+	public void setDexterityDisplay(DexterityDisplay d) {
+		disp = d;
+	}
+	
 	public DexterityDisplay getDexterityDisplay() {
 		return disp;
 	}

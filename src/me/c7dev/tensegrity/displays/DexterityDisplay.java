@@ -29,8 +29,7 @@ public class DexterityDisplay {
 	private Vector scale;
 	private DexterityDisplay parent;
 	private boolean started_animations = false;
-	private boolean isListed = false;
-	private UUID uuid = UUID.randomUUID();
+	private UUID uuid = UUID.randomUUID(), editing_lock;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
@@ -63,17 +62,24 @@ public class DexterityDisplay {
 		while (plugin.getDisplayLabels().contains("display-" + i)) i++;
 		setLabel("display-" + i);
 	}
-	public boolean setLabel(String s) {
-		if (plugin.getDisplayLabels().contains(s)) return false;
-		isListed = true;
+	
+	@Deprecated
+	public void forceSetLabel(String s) {
+		if (s == null || plugin.getDisplayLabels().contains(s)) return;
 		label = s;
+	}
+	
+	public boolean setLabel(String s) {
+		if (s == null || plugin.getDisplayLabels().contains(s)) return false;
+		if (label != null) plugin.unregisterDisplay(this);
 		plugin.registerDisplay(s, this);
+		label = s;
 		plugin.saveDisplays();
 		return true;
 	}
-	
+		
 	public boolean isListed() {
-		return isListed;
+		return label != null;
 	}
 	
 	public List<DexBlock> getBlocks(){
@@ -126,39 +132,71 @@ public class DexterityDisplay {
 		return false;
 	}
 	
-	public DexterityDisplay merge(DexterityDisplay m, String new_group) { //TODO serialize
-		if (m == this || m.getLabel().equals(label) || subdisplays.contains(m) || parent != null) return null;
-		if (rootDisplay(this).containsSubdisplay(m)) return null;
-		if (!m.getCenter().getWorld().getName().equals(center.getWorld().getName())) return null;
+	public boolean canHardMerge() {
+		return !hasStartedAnimations();
+	}
+	
+	public boolean hasStartedAnimations() {
+		return started_animations;
+	}
+	
+	public boolean hardMerge(DexterityDisplay subdisplay) {
+		if (!subdisplay.getCenter().getWorld().getName().equals(center.getWorld().getName()) ||
+			!subdisplay.canHardMerge() || !canHardMerge()) return false;
+		plugin.unregisterDisplay(subdisplay);
+		for (DexBlock b : subdisplay.getBlocks()) {
+			b.recalculateRadius(center);
+			b.setDexterityDisplay(this);
+			blocks.add(b);
+		}
+		for (DexterityDisplay subdisp : subdisplay.getSubdisplays()) {
+			subdisp.merge(this, null);
+		}
+		return true;
+	}
+	
+	public DexterityDisplay merge(DexterityDisplay newparent, String new_group) {
+		if (newparent == this || newparent.getLabel().equals(label) || subdisplays.contains(newparent) || parent != null) return null;
+		if (rootDisplay(this).containsSubdisplay(newparent)) return null;
+		if (!newparent.getCenter().getWorld().getName().equals(center.getWorld().getName())) return null;
 		if (new_group != null && plugin.getDisplayLabels().contains(new_group)) return null;
+		if (label == null || newparent.getLabel() == null) return null;
 		
-		plugin.unregisterDisplay(this);
+		plugin.unregisterDisplay(this, true);
 		stopAnimations(true);
-		m.stopAnimations(true);
-		Vector c2v = center.toVector().add(m.getCenter().toVector()).multiply(0.5); //midpoint
+		newparent.stopAnimations(true);
+		Vector c2v = center.toVector().add(newparent.getCenter().toVector()).multiply(0.5); //midpoint
 		Location c2 = new Location(center.getWorld(), c2v.getX(), c2v.getY(), c2v.getZ());
 		center = c2;
-		m.setCenter(c2);
+		newparent.setCenter(c2);
 		
 		DexterityDisplay r;
 		if (new_group == null) {
-			m.getSubdisplays().add(this);
-			setParent(m);
-			r = m;
+			newparent.getSubdisplays().add(this);
+			setParent(newparent);
+			r = newparent;
 		} else {
-			plugin.unregisterDisplay(m);
+			plugin.unregisterDisplay(newparent, true);
 			DexterityDisplay p = new DexterityDisplay(plugin, c2);
 			p.setLabel(new_group);
 			
 			setParent(p);
-			m.setParent(p);
+			newparent.setParent(p);
 			p.getSubdisplays().add(this);
-			p.getSubdisplays().add(m);
+			p.getSubdisplays().add(newparent);
 			r = p;
 		}
 		
 		plugin.saveDisplays();
 		return r;
+	}
+	
+	public UUID getEditingLock() {
+		return editing_lock;
+	}
+	
+	public void setEditingLock(UUID u) {
+		editing_lock = u;
 	}
 	
 	public void unmerge() {
@@ -215,7 +253,7 @@ public class DexterityDisplay {
 	}
 	
 	public void startAnimations() {
-		if (started_animations) return;
+		if (hasStartedAnimations()) return;
 		started_animations = true;
 		for (Animation a : animations) {
 			a.start();
@@ -228,10 +266,6 @@ public class DexterityDisplay {
 			if (force) a.kill();
 			else a.stop();
 		}
-	}
-	
-	public boolean hasStartedAnimations() {
-		return started_animations;
 	}
 	
 	public void teleport(Location loc) {

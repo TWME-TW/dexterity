@@ -1,5 +1,7 @@
 package me.c7dev.tensegrity;
 
+import java.util.UUID;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,11 +18,10 @@ public class DexSession {
 	
 	private Player p;
 	private Location l1, l2;
-	private DexterityDisplay selected = null;
+	private DexterityDisplay selected = null, secondary = null;
 	private Dexterity plugin;
 	private ChatColor cc, cc2;
 	private double click_cooldown = 0;
-	private boolean editing_mode = false;
 	private Vector3f editing_scale = null;
 	
 	public DexSession(Player player, Dexterity plugin) {
@@ -37,13 +38,6 @@ public class DexSession {
 		return l2;
 	}
 	
-	public boolean isEditingMode() {
-		return editing_mode;
-	}
-	
-	public void setEditingMode(boolean b) {
-		editing_mode = b;
-	}
 	public Vector3f getEditingScale() {
 		return editing_scale;
 	}
@@ -58,16 +52,54 @@ public class DexSession {
 	public DexterityDisplay getSelected() {
 		return selected;
 	}
-	public void setSelected(DexterityDisplay o) {
+	public DexterityDisplay getSecondary() {
+		return secondary;
+	}
+	public void setSelected(DexterityDisplay o, boolean msg) {
 		if (o == null) {
+			cancelEdit();
 			selected = null;
 			return;
 		}
+		UUID editing_lock = null;
+		if (selected != null) editing_lock = o.getEditingLock();
+		if (editing_lock != null) {
+			Player editor = Bukkit.getPlayer(editing_lock);
+			if (editor == null) o.setEditingLock(null);
+			else {
+				if (editing_lock.equals(p.getUniqueId())) p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
+				else p.sendMessage(cc + "Cannot select until " + cc2 + editor.getName() + cc + " finishes an in-progress edit!");
+				return;
+			}
+		}
+		
 		selected = o;
-		if (o.getLabel() != null && p.isOnline()) {
+		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(cc + "Selected " + cc2 + o.getLabel() + cc + "!");
 			//TODO glow effect for 1s
 		}
+	}
+	
+	public void startEdit(DexterityDisplay d) {
+		if (selected == null) return;
+		secondary = selected;
+		selected = d;
+		secondary.setEditingLock(p.getUniqueId());
+	}
+	
+	public void cancelEdit() {
+		if (selected == null || secondary == null) return;
+		selected.remove(false);
+		selected = secondary;
+		secondary = null;
+		selected.setEditingLock(null);
+	}
+	
+	public void finishEdit() {
+		if (selected == null || secondary == null) return;
+		selected = secondary;
+		secondary = null;
+		selected.setEditingLock(null);
 	}
 	
 	public World getWorld() {
