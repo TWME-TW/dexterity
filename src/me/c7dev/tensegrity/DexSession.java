@@ -7,11 +7,15 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.EditType;
 import net.md_5.bungee.api.ChatColor;
 
 public class DexSession {
@@ -23,6 +27,9 @@ public class DexSession {
 	private ChatColor cc, cc2;
 	private double click_cooldown = 0;
 	private Vector3f editing_scale = null;
+	private Vector following = null;
+	private EditType editType = null;
+	private Location orig_loc = null;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -80,26 +87,56 @@ public class DexSession {
 		}
 	}
 	
-	public void startEdit(DexterityDisplay d) {
+	public boolean isFollowing() {
+		return following != null;
+	}
+	
+	public void startFollowing() {
 		if (selected == null) return;
-		secondary = selected;
-		selected = d;
-		secondary.setEditingLock(p.getUniqueId());
+		following = selected.getCenter().toVector().subtract(DexUtils.blockLoc(p.getLocation()).toVector());
+	}
+	
+	public void stopFollowing() {
+		following = null;
+	}
+	
+	public Vector getFollowingOffset() {
+		return following.clone();
+	}
+	
+	public void startEdit(DexterityDisplay d, EditType type) {
+		if (selected == null) return;
+		editType = type;
+		if (d != selected) {
+			secondary = selected;
+			secondary.setEditingLock(p.getUniqueId());
+			selected = d;
+		} else selected.setEditingLock(p.getUniqueId());
+		orig_loc = d.getCenter();
 	}
 	
 	public void cancelEdit() {
-		if (selected == null || secondary == null) return;
-		selected.remove(false);
-		selected = secondary;
-		secondary = null;
-		selected.setEditingLock(null);
+		if (selected == null) return;
+		if (selected != null && secondary != null) selected.remove(false);
+		if (editType == EditType.TRANSLATE && orig_loc != null) {
+			if (secondary != null) secondary.teleport(orig_loc);
+			else selected.teleport(orig_loc);
+		}
+		finishEdit();
 	}
 	
 	public void finishEdit() {
-		if (selected == null || secondary == null) return;
-		selected = secondary;
+		if (selected == null) return;
+		if (secondary != null) selected = secondary;
+		editType = null;
 		secondary = null;
+		following = null;
 		selected.setEditingLock(null);
+		stopFollowing();
+	}
+	
+	public EditType getEditType() {
+		return editType;
 	}
 	
 	public World getWorld() {

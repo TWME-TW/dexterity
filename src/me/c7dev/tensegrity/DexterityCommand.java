@@ -8,7 +8,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -31,6 +30,7 @@ import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.EditType;
 import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
 
@@ -91,7 +91,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	}
 	
 	public boolean testInEdit(DexSession session) {
-		if (session.getSecondary() != null && session.getSelected() != null) {
+		if (session.getEditType() != null) {
 			session.getPlayer().sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
 			return true;
 		}
@@ -232,6 +232,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			r.setSeatOffset(new Vector(0, -0.7, 0));
 			r.setSpeed(10);
 			r.mount(p);
+			p.addPassenger(d.getBlocks().get(0).getEntity());
 			r.start();
 		}
 		else if (args[0].equalsIgnoreCase("testnear")) {
@@ -247,11 +248,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("set")) {
-			if (session.getSecondary() != null && session.getSelected() != null) {
-				//rn just for cloning, will need an enum for more operations
-				session.getSecondary().hardMerge(session.getSelected());
+			if (session.getEditType() != null) {
+				switch(session.getEditType()) {
+				case CLONE:
+					session.getSecondary().hardMerge(session.getSelected());
+					p.sendMessage(cc + "Successfully cloned " + (session.getSelected().getLabel() == null ? "selected" : cc2 + session.getSelected().getLabel() + cc) + "!");
+					break;
+				default:
+				}
 				session.finishEdit();
-				p.sendMessage(cc + "Successfully cloned " + (session.getSelected().getLabel() == null ? "selected" : cc2 + session.getSelected().getLabel() + cc) + "!");
 			}
 		}
 		
@@ -333,7 +338,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			clone.setEntities(blocks);
 			
-			session.startEdit(clone);
+			session.startEdit(clone, EditType.CLONE);
+			
+			if (!flags.contains("nofollow")) session.startFollowing();
 			
 		}
 		
@@ -437,8 +444,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
+			if (session.getEditType() == EditType.TRANSLATE) {
+				session.getPlayer().sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
+				return true;
+			} else if (args.length == 1) {
+				session.startFollowing();
+				session.startEdit(d, EditType.TRANSLATE);
+				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
+				return true;
+			}
+			
 			Location loc;
-			if (args.length == 1 || flags.contains("continuous") || flags.contains("c") || flags.contains("here")) {
+			if (flags.contains("continuous") || flags.contains("c") || flags.contains("here")) {
 				if (flags.contains("continuous") || flags.contains("c")) loc = p.getLocation();
 				else loc = DexUtils.blockLoc(p.getLocation()).add(0.5, 0.5, 0.5);
 			}
@@ -717,6 +734,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("down=");
 			ret.add("-here");
 			ret.add("-continuous");
+		}
+		else if (argsr[0].equalsIgnoreCase("clone")) {
+			ret.add("-nofollow");
 		}
 		else if (argsr[0].equalsIgnoreCase("animation") || argsr[0].equalsIgnoreCase("a")) {
 			ret.add("start");

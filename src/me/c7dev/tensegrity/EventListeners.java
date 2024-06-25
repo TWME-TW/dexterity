@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
@@ -11,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -114,6 +116,28 @@ public class EventListeners implements Listener {
 				}
 			}
 		}
+	}
+	
+	@EventHandler
+	public void onMove(PlayerMoveEvent e) {
+		DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
+		if (session == null || !session.isFollowing() || session.getSelected() == null) return;
+		if (!session.getSelected().getCenter().getWorld().getName().equals(e.getPlayer().getWorld().getName())) {
+			session.cancelEdit();
+			session.setSelected(null, false);
+			return;
+		}
+		
+		Location loc = e.getPlayer().getLocation();
+		if (!e.getPlayer().isSneaking()) loc = DexUtils.blockLoc(loc);
+		else loc.add(-0.5, 0, -0.5);
+		
+		loc.add(session.getFollowingOffset());
+		
+		Location center = session.getSelected().getCenter();
+		if (loc.getX() == center.getX() && loc.getY() == center.getY() && loc.getZ() == center.getZ()) return;
+		
+		session.getSelected().teleport(loc);
 	}
 
 }
