@@ -129,14 +129,15 @@ public class DexterityAPI {
 			//Location loc = e.getLocation().add(scale);
 			Location loc = e.getLocation();
 			
-			Vector scale = DexUtils.hadimard(DexUtils.getBlockSize(e.getBlock()), scale_raw);
-			loc.add(scale.clone().subtract(scale_raw));
-			
+			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scale_raw);
+			//loc.add(scale).subtract(scale_raw);
+			loc.setY(loc.getY() + scale.getY() - scale_raw.getY());
+						
 			
 			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
 			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
 
-			//if (!e.isGlowing()) markerPoint(loc, Color.LIME, 4);
+			//if (!e.isGlowing()) markerPoint(loc, Color.AQUA, 4);
 			
 			Vector diff = loc.toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);

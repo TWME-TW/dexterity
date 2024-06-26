@@ -227,11 +227,12 @@ public class DexUtils {
 		return new Location(Bukkit.getWorld(world), x, y, z, (float) yaw, (float) pitch);
 	}
 	
-	public static Vector getBlockSize(BlockData b) {
+	public static Vector getBlockDimensions(BlockData b) {
 		Material mat = b.getMaterial();
 		String m = mat.toString();
 		if (m.endsWith("_SLAB") || m.endsWith("_CARPET")) return new Vector(1, 0.5, 1);
-		if (m.endsWith("_TRAPDOOR")) return new Vector(1, 1.0/16, 1);
+		if (m.endsWith("_TRAPDOOR")) return new Vector(1, 3.0/16, 1);
+		if (m.endsWith("_FENCE")) return new Vector(0.25, 1, 0.25);
 		if (m.endsWith("_BED")) return new Vector(1, 9.0/16, 1);
 		
 		//TODO doors, fences, gates
@@ -240,7 +241,7 @@ public class DexUtils {
 		case SNOW:
 			Snow sd = (Snow) b;
 			return new Vector(1, sd.getLayers() / 8.0, 1);
-		case CHAIN: return new Vector(0.2, 1, 0.2);
+		case CHAIN: return new Vector(0.25, 1, 0.25);
 		default:
 		}
 		return new Vector(1, 1, 1);

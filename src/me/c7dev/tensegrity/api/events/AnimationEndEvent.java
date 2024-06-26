@@ -1,12 +1,13 @@
 package me.c7dev.tensegrity.api.events;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 
-public class AnimationEndEvent {
+public class AnimationEndEvent extends Event {
 
 	private Player p;
 	private Animation a;

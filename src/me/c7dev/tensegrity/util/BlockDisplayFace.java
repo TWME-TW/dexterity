@@ -32,7 +32,7 @@ public class BlockDisplayFace {
 		return offset_.clone();
 	}
 	
-	public Location getLocation() {
+	public Location getClickLocation() {
 		return loc_.clone();
 	}
 	
