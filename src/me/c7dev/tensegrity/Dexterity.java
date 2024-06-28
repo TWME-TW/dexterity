@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
@@ -24,7 +25,6 @@ import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
-import me.c7dev.tensegrity.util.Plane;
 import net.md_5.bungee.api.ChatColor;
 
 public class Dexterity extends JavaPlugin {
@@ -70,6 +70,10 @@ public class Dexterity extends JavaPlugin {
 	}
 	public ChatColor getChatColor2() {
 		return chat_color2;
+	}
+	
+	public World getDefaultWorld() {
+		return Bukkit.getServer().getWorlds().size() == 0 ? null : Bukkit.getServer().getWorlds().get(0);
 	}
 	
 	@Deprecated
@@ -143,9 +147,10 @@ public class Dexterity extends JavaPlugin {
 				double sy = afile.getDouble(label + ".scale-y");
 				double sz = afile.getDouble(label + ".scale-z");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
-				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
+				double yaw = afile.getDouble(label + ".yaw");
+				double pitch = afile.getDouble(label + ".pitch");
+				DexterityDisplay disp = new DexterityDisplay(this, center, scale, yaw, pitch);
 				disp.forceSetLabel(label);
-				disp.setRotationPlane(Plane.valueOf(afile.getString(label + ".rotation-plane")));
 				
 				for (BlockDisplay bd : blocks) {
 					disp.getBlocks().add(new DexBlock(bd, disp));
@@ -202,11 +207,12 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	private void saveDisplay(DexterityDisplay disp, FileConfiguration afile) {
-		afile.set(disp.getLabel() + ".rotation-plane", disp.getRotationPlane().toString());
 		afile.set(disp.getLabel() + ".center", disp.getCenter().serialize());
 		if (disp.getScale().getX() != 1) afile.set(disp.getLabel() + ".scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set(disp.getLabel() + ".scale-y", disp.getScale().getY());
 		if (disp.getScale().getZ() != 1) afile.set(disp.getLabel() + ".scale-z", disp.getScale().getZ());
+		if (disp.getYaw() != 0) afile.set(disp.getLabel() + ".yaw", disp.getYaw());
+		if (disp.getPitch() != 0) afile.set(disp.getLabel() + ".pitch", disp.getPitch());;
 		List<String> uuids = new ArrayList<>();
 		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
 		afile.set(disp.getLabel() + ".uuids", uuids);

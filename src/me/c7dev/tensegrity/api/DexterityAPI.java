@@ -82,7 +82,7 @@ public class DexterityAPI {
 				Math.min(l1.getZ(), l2.getZ()) + Math.abs((l1.getZ() - l2.getZ()) / 2));
 		center.add(0.5, 0.5, 0.5);
 		
-		DexterityDisplay d = new DexterityDisplay(plugin, center);
+		DexterityDisplay d = new DexterityDisplay(plugin);
 
 		for (int x = xmin; x <= xmax; x++) {
 			for (int y = ymin; y <= ymax; y++) {
@@ -96,6 +96,8 @@ public class DexterityAPI {
 				}
 			}
 		}
+		
+		d.recalculateCenter();
 		
 		plugin.registerDisplay(d.getLabel(), d);
 		

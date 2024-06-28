@@ -15,7 +15,7 @@ public class RideAnimation extends Animation {
 	
 	private Location start_loc;
 	private double speed = 2.0/20;
-	private boolean x_enabled = true, y_enabled = true, z_enabled = true, teleport_when_done = false;
+	private boolean x_enabled = true, y_enabled = true, z_enabled = true, teleport_when_done = false, looking_direction = true;
 	private Snowball mount;
 	private Player p;
 	private Vector seat_offset = new Vector(0, 0, 0);
@@ -54,6 +54,7 @@ public class RideAnimation extends Animation {
 				dir.multiply(speed);
 				
 				display.teleport(dir);
+				if (looking_direction) display.setRotation(p.getLocation().getYaw(), 0);
 				
 				mount.setVelocity(dir);
 			}

@@ -8,8 +8,10 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.Dexterity;
@@ -24,25 +26,28 @@ public class DexterityDisplay {
 	
 	private Dexterity plugin;
 	private Location center;
-	private Plane rot_plane = Plane.XZ;
 	private String label;
 	private Vector scale;
 	private DexterityDisplay parent;
 	private boolean started_animations = false;
 	private UUID uuid = UUID.randomUUID(), editing_lock;
+	private double pitch = 0, yaw = 0;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
 	
-	public DexterityDisplay(Dexterity plugin, Location center) {
-		this(plugin, center, new Vector(1, 1, 1));
+	public DexterityDisplay(Dexterity plugin) {
+		this(plugin, null, new Vector(1, 1, 1), 0, 0);
 	}
 		
-	public DexterityDisplay(Dexterity plugin, Location center, Vector scale) {
+	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, double yaw, double pitch) {
 		this.plugin = plugin;
-		this.center = center;
 		this.scale = scale;
+		this.yaw = yaw;
+		this.pitch = pitch;
+		if (center == null) recalculateCenter();
+		else this.center = center;
 	}
 	
 	public UUID getUniqueId() {
@@ -55,6 +60,25 @@ public class DexterityDisplay {
 	
 	public String getLabel() {
 		return label;
+	}
+	
+	public void recalculateCenter() {
+		Vector cvec = new Vector(0, 0, 0);
+		World w;
+		int n = 0;
+		if (blocks.size() == 0) {
+			w = plugin.getDefaultWorld();
+			n = 1;
+		}
+		else {
+			w = blocks.get(0).getLocation().getWorld();
+			n = blocks.size();
+			for (DexBlock db : blocks) {
+				cvec.add(db.getLocation().toVector());
+			}
+		}
+		center = DexUtils.location(w, cvec.multiply(1.0/n));
+		for (DexBlock b : blocks) b.recalculateRadius(center);
 	}
 	
 	public void setDefaultLabel() {
@@ -94,9 +118,10 @@ public class DexterityDisplay {
 		return scale;
 	}
 
-	public void setEntities(List<DexBlock> entities_){
+	public void setEntities(List<DexBlock> entities_, boolean recalc_center){
 		this.blocks = entities_;
 		plugin.unregisterDisplay(this);
+		recalculateCenter();
 	}
 	
 	public List<DexterityDisplay> getSubdisplays() {
@@ -167,7 +192,6 @@ public class DexterityDisplay {
 		newparent.stopAnimations(true);
 		Vector c2v = center.toVector().add(newparent.getCenter().toVector()).multiply(0.5); //midpoint
 		Location c2 = new Location(center.getWorld(), c2v.getX(), c2v.getY(), c2v.getZ());
-		center = c2;
 		newparent.setCenter(c2);
 		
 		DexterityDisplay r;
@@ -177,7 +201,7 @@ public class DexterityDisplay {
 			r = newparent;
 		} else {
 			plugin.unregisterDisplay(newparent, true);
-			DexterityDisplay p = new DexterityDisplay(plugin, c2);
+			DexterityDisplay p = new DexterityDisplay(plugin);
 			p.setLabel(new_group);
 			
 			setParent(p);
@@ -247,9 +271,7 @@ public class DexterityDisplay {
 	
 	public void setCenter(Location loc) {
 		center = loc;
-		for (DexBlock b : blocks) {
-			b.recalculateRadius(center);
-		}
+		for (DexBlock b : blocks) b.recalculateRadius(center);
 	}
 	
 	public void startAnimations() {
@@ -280,18 +302,6 @@ public class DexterityDisplay {
 			b.move(diff);
 		}
 		for (DexterityDisplay subd : subdisplays) subd.teleport(diff);
-	}
-	
-	public Plane getRotationPlane() {
-		return rot_plane;
-	}
-	
-	public void setRotationPlane(Plane plane) {
-		//if (this.rot_plane == plane) return;
-		this.rot_plane = plane;
-		//for (DexBlock b : blocks) {
-		//	b.recalculateRadius(center);
-		//}
 	}
 	
 	public void setGlow(Color c, boolean propegate) {
@@ -336,7 +346,57 @@ public class DexterityDisplay {
 		for (DexterityDisplay sub : subdisplays) sub.setScale(v);
 	}
 	
-	public void rotate(double degrees, Plane plane) {
+	public double getYaw() {
+		return yaw;
+	}
+	
+	public double getPitch() {
+		return pitch;
+	}
+	
+	public void rotate(float yaw_deg, float pitch_deg) {
+		if (yaw_deg == 0 && pitch_deg == 0) return;
+		setRotation((float) yaw + yaw_deg, (float) pitch + pitch_deg);
+	}
+	
+	public void setRotation(float yaw_deg, float pitch_deg) {
+		float oldPitchDeg = (float) this.pitch, oldYawDeg = (float) this.yaw;
+		float oldYaw = (float) Math.toRadians(oldYawDeg);
+		double yaw = Math.toRadians(yaw_deg), pitch = Math.toRadians(pitch_deg - oldPitchDeg);
+		
+		if (pitch == 0 && Math.abs(yaw - oldYaw) < 0.0001) return;
+		
+		Matrix3d undoYawMat = new Matrix3d(
+				Math.cos(oldYaw), 0f, Math.sin(oldYaw),
+				0f, 1f, 0f,
+				-Math.sin(oldYaw), 0f, Math.cos(oldYaw)).transpose();
+		Matrix3d pitchMat = new Matrix3d(1f, 0f, 0f,
+				0f, Math.cos(pitch), Math.sin(pitch),
+				0f, -Math.sin(pitch), Math.cos(pitch)).transpose();	
+		Matrix3d yawMat = new Matrix3d(
+				(float) Math.cos(yaw), 0f, -Math.sin(yaw),
+				0f, 1f, 0f,
+				Math.sin(yaw), 0f, Math.cos(yaw)).transpose();
+		
+		//Matrix3f rotmat = undoyawmat.mul(pitchmat).mul(yawmat);
+		Matrix3d rotmat = yawMat.mul(pitchMat).mul(undoYawMat);
+		
+		Vector centerv = center.toVector();
+		for (DexBlock b : blocks) {
+			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv).setY(0));
+			Vector3f newOffset = new Vector3f();
+			rotmat.transform(oldOffset, newOffset);
+			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
+			loc.setYaw(loc.getYaw() + yaw_deg - oldYawDeg);
+			loc.setPitch(loc.getPitch() + pitch_deg - oldPitchDeg);
+			b.teleport(loc);
+		}
+		
+		this.yaw = yaw_deg;
+		this.pitch = pitch_deg;
+	}
+	
+	private void rotatePlane(double degrees, Plane plane) {
 		double radians_m = Math.toRadians(degrees % 360);
 		if (radians_m < 0) radians_m += 2*Math.PI;
 		final double radians = radians_m;

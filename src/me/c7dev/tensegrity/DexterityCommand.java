@@ -232,7 +232,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			r.setSeatOffset(new Vector(0, -0.7, 0));
 			r.setSpeed(10);
 			r.mount(p);
-			p.addPassenger(d.getBlocks().get(0).getEntity());
 			r.start();
 		}
 		else if (args[0].equalsIgnoreCase("testnear")) {
@@ -321,7 +320,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish or " + cc2 + "/d cancel" + cc + " to quit!");
 			
-			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
+			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone(), d.getYaw(), d.getPitch());
 			
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
@@ -336,7 +335,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				});
 				blocks.add(new DexBlock(block, clone));
 			}
-			clone.setEntities(blocks);
+			clone.setEntities(blocks, false);
 			
 			session.startEdit(clone, EditType.CLONE);
 			
@@ -344,7 +343,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equalsIgnoreCase("cancel")) {
+		else if (args[0].equalsIgnoreCase("cancel") || args[0].equalsIgnoreCase("quit")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			session.cancelEdit();
@@ -439,7 +438,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			} else p.sendMessage("§4Error: §cBoth locations must be set!");
 		}
 		
-		else if (args[0].equalsIgnoreCase("move")) {
+		else if (args[0].equalsIgnoreCase("move")) { //TODO check if in edit session, change displacement vector
 			
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
@@ -490,30 +489,39 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
-			if (args.length < 2 || def == null) {
-				p.sendMessage("§4Usage: §c/d rotate <degrees>");
-				return true;
-			}
-			double degrees;
-			try {
-				degrees = Double.parseDouble(def);
-			} catch (Exception ex) {
-				p.sendMessage("§4Error: §cYou must send an angle!");
+			if (args.length < 2) {
+				p.sendMessage("§4Usage: §c/d rotate <yaw|pitch>");
 				return true;
 			}
 			
-			Plane plane = Plane.XZ;
-			if (attrs.containsKey("plane")) {
-				plane = Plane.valueOf(attr_str.get("plane").toUpperCase());
-				if (plane == null) {
-					p.sendMessage("§4Error: §cValid planes are XZ, XY, and ZY.");
+			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+			double yaw = attrs_d.getOrDefault("yaw", Double.MAX_VALUE), pitch = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
+			if (yaw == Double.MAX_VALUE && pitch == Double.MAX_VALUE) {
+				try {
+					if (yaw == Double.MAX_VALUE) yaw = Double.parseDouble(args[1]);
+					if (args.length > 2 && pitch == Double.MAX_VALUE) {
+						try {
+							pitch = Double.parseDouble(args[2]);
+						} catch (Exception ex) {
+							pitch = 0;
+						}
+					}
+				} catch (Exception ex) {
+					p.sendMessage("§4Usage: §c/d rotate <yaw> [pitch]");
 					return true;
 				}
 			}
+			if (yaw == Double.MAX_VALUE) yaw = 0;
+			if (pitch == Double.MAX_VALUE) pitch = 0;
 			
-			d.rotate(degrees, plane);
-			p.sendMessage(cc + "Rotated " + cc2 + d.getLabel() + cc + " by " + degrees + " degrees!");
-			
+			//TODO toggle messages in session
+			if (flags.contains("set")) {
+				d.setRotation((float) yaw, (float) pitch);
+				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
+			} else {
+				d.rotate((float) yaw, (float) pitch);
+				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
+			}
 		}
 		else if (args[0].equalsIgnoreCase("info")) {
 			DexterityDisplay d = getSelected(session);
@@ -545,7 +553,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
 			if (plugin.getDisplays().size() == 0) {
-				p.sendMessage("§cThere are no displays set up!");
+				p.sendMessage("§cThere are no saved displays!");
 				return true;
 			}
 			
@@ -747,12 +755,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("edit");
 		}
 		else if (argsr[0].equalsIgnoreCase("rotate")) {
-			if (!params.contains("plane")) ret.add("plane=");
-			else if (params.size() == 2) {
-				ret.add("plane=XY");
-				ret.add("plane=XZ");
-				ret.add("plane=ZY");
-			}
+//			if (!params.contains("plane")) ret.add("plane=");
+//			else if (params.size() == 2) {
+//				ret.add("plane=XY");
+//				ret.add("plane=XZ");
+//				ret.add("plane=ZY");
+//			}
+			ret.add("yaw=");
+			ret.add("pitch=");
+			ret.add("-set");
 		}
 		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
 
