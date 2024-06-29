@@ -16,7 +16,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
@@ -33,9 +32,9 @@ public class Dexterity extends JavaPlugin {
 	private HashMap<String,DexterityDisplay> all_displays = new HashMap<>();
 	private HashMap<UUID,DexSession> sessions = new HashMap<>();
 	private HashMap<UUID,DexBlock> display_map = new HashMap<>();
+	private FileConfiguration lang, defaultLang;
 	
-	public final ChatColor chat_color = ChatColor.of("#49eb9a"); //#ffa217
-	public final ChatColor chat_color2 = ChatColor.of("#42f5ef"); //ffd417
+	public String chat_color, chat_color2;
 	public DexterityAPI api;
 	
 	public static final Vector3f DEFAULT_DISP = new Vector3f(-0.5f, -0.5f, -0.5f);
@@ -45,8 +44,13 @@ public class Dexterity extends JavaPlugin {
 		saveDefaultConfig();
 		api = new DexterityAPI(this);
 		
+		chat_color = parseChatColor(getConfig().getString("primary-color"));
+		chat_color2 = parseChatColor(getConfig().getString("secondary-color"));
+		loadLanguageFile(false);
+		
 		new DexterityCommand(this);
 		new EventListeners(this);
+		
 		
 		loadDisplays();
 		
@@ -65,11 +69,16 @@ public class Dexterity extends JavaPlugin {
 		return api.getAuthor();
 	}
 	
-	public ChatColor getChatColor() {
+	public String getChatColor() {
 		return chat_color;
 	}
-	public ChatColor getChatColor2() {
+	public String getChatColor2() {
 		return chat_color2;
+	}
+	
+	private String parseChatColor(String s) {
+		if (s.startsWith("#")) return ChatColor.of(s).toString();
+		return s.replace('&', ChatColor.COLOR_CHAR);
 	}
 	
 	public World getDefaultWorld() {
@@ -92,26 +101,74 @@ public class Dexterity extends JavaPlugin {
 		String r = getConfigString(dir);
 		return r == null ? def.replaceAll("&", "§").replaceAll("\\Q[newline]\\E", "\n") : r;
 	}
-	
-	public DexterityDisplay getClickedDisplay(Player p) {
-		
-		return null;
-	}
 
 	public String getConfigString(String dir) {
+		
+		FileConfiguration use = lang;
+		if (use == null) {
+			if (defaultLang == null) return "§c§o[No language file loaded]";
+			use = defaultLang;
+		}
 
-		String s = getConfig().getString(dir);
+		String s = use.getString(dir);
 		if (s == null) {
 			Bukkit.getLogger().warning("Could not get value from config: '" + dir + "'");
 			return null;
 		}
 		return s
+				.replaceAll("\\Q&^\\E", chat_color)
+				.replaceAll("\\Q&*\\E", chat_color2)
 				.replace('&', ChatColor.COLOR_CHAR)
 				.replaceAll("\\Q[newline]\\E", "\n")
 				.replaceAll("\\n", "\n");
 	}
 	
-	public int loadDisplays() { //load from displays.yml
+	private void loadLanguageFile(boolean default_lang) {
+		String langName;
+		String defaultName = "en-US.yml";
+		if (default_lang) langName = defaultName;
+		else {
+			langName = getConfig().getString("lang-path");
+			if (langName == null) {
+				langName = defaultName;
+				Bukkit.getLogger().warning("No language file specified in config, loading default.");
+			}
+			if (!langName.contains(".")) langName += ".yml";
+		}
+
+		String dir = this.getDataFolder().getAbsolutePath() + "/" + langName;
+		try {
+			File f = new File(dir);
+			if (f.exists()) lang = YamlConfiguration.loadConfiguration(f);
+			else Bukkit.getLogger().warning("Could not find language file '" + langName + "'!");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			Bukkit.getLogger().severe("Could not load the language file!");
+		}
+		
+		if (!langName.equals(defaultName) || lang == null) {
+			try {
+				String langPath = "";
+				String[] pathSplit = dir.split("/");
+				for (int i = 0; i < pathSplit.length - 1; i++) langPath += pathSplit[i] + "/";
+
+				File df1 = new File(langPath + "/" + defaultName);
+				if (df1.exists()) {
+					defaultLang = YamlConfiguration.loadConfiguration(df1);
+				} else { //from scratch
+					saveResource(defaultName, false);
+					File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + defaultName);
+					defaultLang = YamlConfiguration.loadConfiguration(df2);
+				}
+
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				Bukkit.getLogger().severe("Could not load the default language file!");
+			}
+		}
+	}
+	
+	private int loadDisplays() { //load from displays.yml
 		File f = new File(this.getDataFolder().getAbsolutePath() + "/displays.yml");
 		try {
 			if (f.createNewFile()) return 0;

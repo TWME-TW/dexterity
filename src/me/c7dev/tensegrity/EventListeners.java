@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -17,7 +16,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
-import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
@@ -25,17 +23,14 @@ import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
-import net.md_5.bungee.api.ChatColor;
 
 public class EventListeners implements Listener {
 	
-	private ChatColor cc;
 	private Dexterity plugin;
 	private HashMap<UUID, Long> click_delay = new HashMap<>();
 	
 	public EventListeners(Dexterity plugin) {
 		this.plugin = plugin;
-		cc = plugin.getChatColor();
 		Bukkit.getPluginManager().registerEvents(this, plugin);
 	}
 	

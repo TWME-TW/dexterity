@@ -7,8 +7,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
@@ -16,7 +14,6 @@ import org.joml.Vector3f;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.EditType;
-import net.md_5.bungee.api.ChatColor;
 
 public class DexSession {
 	
@@ -24,7 +21,7 @@ public class DexSession {
 	private Location l1, l2;
 	private DexterityDisplay selected = null, secondary = null;
 	private Dexterity plugin;
-	private ChatColor cc, cc2;
+	private String cc, cc2;
 	private double click_cooldown = 0;
 	private Vector3f editing_scale = null;
 	private Vector following = null;
@@ -74,15 +71,15 @@ public class DexSession {
 			Player editor = Bukkit.getPlayer(editing_lock);
 			if (editor == null) o.setEditingLock(null);
 			else {
-				if (editing_lock.equals(p.getUniqueId())) p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
-				else p.sendMessage(cc + "Cannot select until " + cc2 + editor.getName() + cc + " finishes an in-progress edit!");
+				if (editing_lock.equals(p.getUniqueId())) p.sendMessage(plugin.getConfigString("must-finish-edit"));
+				else p.sendMessage(plugin.getConfigString("cannot-select-with-edit").replaceAll("\\Q%editor%\\E", editor.getName()));
 				return;
 			}
 		}
 		
 		selected = o;
 		if (msg && o.getLabel() != null && p.isOnline()) {
-			p.sendMessage(cc + "Selected " + cc2 + o.getLabel() + cc + "!");
+			p.sendMessage(plugin.getConfigString("selected").replaceAll("\\Q%label%\\E", o.getLabel()));
 			//TODO glow effect for 1s
 		}
 	}
@@ -157,14 +154,14 @@ public class DexSession {
 		
 		World world = getWorld();
 		if (world != null && !loc.getWorld().getName().equals(world.getName())) {
-			p.sendMessage("§4Error: §cPoints must be set in the same world! Use /dex desel");
+			p.sendMessage(plugin.getConfigString("must-same-world-points"));
 			return;
 		}
 		
 		if (is_l1) l1 = loc;
 		else l2 = loc;
-			
-		p.sendMessage(cc + "Set point #" + (is_l1 ? 1 : 2) + " to " + cc2 + DexUtils.locationString(loc, decimals));
+		
+		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, decimals)));
 	}
 	
 	public void clearLocationSelection() {

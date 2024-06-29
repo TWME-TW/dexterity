@@ -31,40 +31,18 @@ import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.EditType;
-import me.c7dev.tensegrity.util.Plane;
-import net.md_5.bungee.api.ChatColor;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
 	private DexterityAPI api;
-	ChatColor cc, cc2;
-	String noperm;
+	String noperm, cc, cc2, usage_format;
 	
 	public String[] commands = {
-		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "pos1", "remove", "rename", "rotate", 
-		"save", "scale", "select", "unmerge", "wand"
+		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "remove", "rotate", 
+		"scale", "select", "unmerge", "wand"
 	};
-	public String[] descriptions = {
-		"Modify the display's animations", //animation
-		"Clone the selection", //clone
-		"Convert the selected region to display blocks", //convert
-		"Revert selection back into block form", //deconvert
-		"Clear selected region", //deselect
-		"Make the selection glow", //glow
-		"List all displays", //list
-		"Combine two displays", //merge
-		"Teleport a display", //move
-		"Set the first position", //pos1
-		"Delete a selection", //remove
-		"Change a display's name", //rename
-		"Rotate a selection", //rotate
-		"Make selection into a display", //save
-		"Resize a selection", //scale
-		"Select a display or region", //sel
-		"Separate a display group", //unmerge
-		"Get a wand to select block locations" //wand
-	};
+	public String[] descriptions = new String[commands.length];
 	public String[] command_strs = new String[commands.length];
 	
 	public DexterityCommand(Dexterity plugin) {
@@ -74,9 +52,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		api = plugin.getAPI();
 		plugin.getCommand("dex").setExecutor(this);
 		plugin.getCommand("dex").setExecutor(this);
-		noperm = plugin.getConfigString("no-permission", "§cYou don't have permission!");
+		noperm = plugin.getConfigString("no-permission");
+		usage_format = plugin.getConfigString("usage-format");
 		
 		for (int i = 0; i < commands.length; i++) {
+			descriptions[i] = plugin.getConfigString(commands[i] + "-description");
 			command_strs[i] = cc2 + "- /d " + commands[i] + " §8- " + cc + descriptions[i];
 		}
 	}
@@ -84,7 +64,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	public DexterityDisplay getSelected(DexSession session) {
 		DexterityDisplay d = session.getSelected();
 		if (d == null) {
-			session.getPlayer().sendMessage("§4Error: §cYou must select a display to do this!");
+			session.getPlayer().sendMessage(plugin.getConfigString("must-select-display"));
 			return null;
 		}
 		return d;
@@ -92,7 +72,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	public boolean testInEdit(DexSession session) {
 		if (session.getEditType() != null) {
-			session.getPlayer().sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
+			session.getPlayer().sendMessage(plugin.getConfigString("must-finish-edit"));
 			return true;
 		}
 		return false;
@@ -118,15 +98,33 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		return count;
 	}
 	
+	public String getUsage(String command) {
+		String usage = plugin.getConfigString(command + "-usage");
+		return usage_format.replaceAll("\\Q%usage%\\E", usage);
+	}
+	
+	public String getConfigString(String dir, DexSession session) {
+		String s = plugin.getConfigString(dir);
+		if (session != null && session.getSelected() != null && session.getSelected().getLabel() != null) {
+			String label = cc2 + session.getSelected().getLabel() + cc;
+			s = s.replaceAll("\\Q%label%\\E", label).replaceAll("\\Q%loclabel%\\E", label); //regex substr selector isn't working, idk
+		} else {
+			s = s.replaceAll("\\Q%label%\\E", "selected");
+			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", "at " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0));
+			else s = s.replaceAll("\\Q%loclabel%\\E", "");
+		}
+		return s;
+	}
+	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if (!(sender instanceof Player)) return true;
 		
 		Player p = (Player) sender;
 		
 		if (args.length == 0) {
-			p.sendMessage(cc + "§lUsing Dexterity " + cc2 + "§lv1.0.0");
+			p.sendMessage(cc + "§lUsing §6§lDexterity");
 			if (p.hasPermission("dexterity.command")) {
-				p.sendMessage(cc + "Use " + cc2 + "/d help" + cc + " to get started!");
+				p.sendMessage(plugin.getConfigString("get-started"));
 			}
 			return true;
 		}
@@ -154,8 +152,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			int maxpage = DexUtils.maxPage(commands.length, 5);
 			if (page >= maxpage) page = maxpage - 1;
 						
-			p.sendMessage("\n\n");
-			p.sendMessage(cc + "§lDexterity Commands: §6Page §6§l" + (page+1) + "§6/" + maxpage);
+			p.sendMessage(plugin.getConfigString("help-page-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
 			DexUtils.paginate(p, command_strs, page, 5);
 		}
 
@@ -251,7 +248,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				switch(session.getEditType()) {
 				case CLONE:
 					session.getSecondary().hardMerge(session.getSelected());
-					p.sendMessage(cc + "Successfully cloned " + (session.getSelected().getLabel() == null ? "selected" : cc2 + session.getSelected().getLabel() + cc) + "!");
+					p.sendMessage(getConfigString("clone-success", session));
 					break;
 				default:
 				}
@@ -267,7 +264,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			if (index < 0) {
 				if (args.length == 1) {
-					p.sendMessage("§4Usage: §c/d sel <name>");
+					p.sendMessage(getUsage("sel"));
 					return true;
 				}
 			}
@@ -277,7 +274,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					session.setSelected(disp, true);
 					return true;
 				} else if (index < 0) {
-					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
+					p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));
 					return true;
 				}
 			}
@@ -292,7 +289,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					loc = new Location(p.getWorld(), x, y, z, 0, 0);
 					index = -1;
 				} catch (Exception ex) {
-					p.sendMessage("§4Error: §cx, y, and z must be numbers!");
+					p.sendMessage(plugin.getConfigString("must-be-numbers-xyz"));
 					return true;
 				}
 			}
@@ -302,7 +299,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("desel") || args[0].equalsIgnoreCase("deselect") || args[0].equalsIgnoreCase("clear")) {
 			if (session.getSelected() != null) {
 				session.setSelected(null, false);
-				p.sendMessage(cc + "Cleared selection!");
+				p.sendMessage(plugin.getConfigString("desel-success"));
 			}
 		}
 		
@@ -310,15 +307,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			if (session.getSecondary() != null) {
-				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
+				p.sendMessage(getConfigString("must-finish-edit", session));
 				return true;
 			}
 			if (!d.canHardMerge()) {
-				p.sendMessage("§4Error: §cThis display can not be cloned!");
+				p.sendMessage(getConfigString("cannot-clone", session));
 				return true;
 			}
 			
-			p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish or " + cc2 + "/d cancel" + cc + " to quit!");
+			p.sendMessage(getConfigString("to-finish-edit", session));
 			
 			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone(), d.getYaw(), d.getPitch());
 			
@@ -347,31 +344,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			session.cancelEdit();
-			p.sendMessage(cc + "Cancelled edit!");
-		}
-		
-		else if (args[0].equalsIgnoreCase("save")) {
-			DexterityDisplay d = getSelected(session);
-			if (d == null || testInEdit(session)) return true;
-			if (session.getSecondary() != null) {
-				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
-				return true;
-			}
-			if (d.getLabel() != null) {
-				p.sendMessage(cc + "This selection is already saved! Use " + cc2 + "/d rename");
-				return true;
-			}
-			if (args.length < 2) {
-				p.sendMessage("§4Usage: §c/d save <name>");
-				return true;
-			}
-			String displabel = args[1];
-			if (plugin.getDisplay(label) != null) {
-				p.sendMessage("§4Error: §cThis name is already in use by another display!");
-				return true;
-			}
-			d.setLabel(displabel);
-			p.sendMessage(cc + "Successfully saved " + cc2 + displabel + cc + "!");
+			p.sendMessage(getConfigString("cancelled-edit", session));
 		}
 		
 		else if (args[0].equalsIgnoreCase("glow")) {
@@ -380,25 +353,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			boolean propegate = flags.contains("propegate");
 			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
 				d.setGlow(null, propegate);
-				p.sendMessage(cc + "Disabled glow" + (d.getLabel() == null ? "" : " for " + cc2 + d.getLabel() + cc) + "!");
+				p.sendMessage(getConfigString("glow-success-disable", session));
 				return true;
 			}
 			ColorEnum c;
 			try {
 				c = ColorEnum.valueOf(args[1].toUpperCase());
 			} catch (Exception ex) {
-				p.sendMessage("§4Error: §cUnknown color '" + args[1].toUpperCase() + "'!");
+				p.sendMessage(getConfigString("unknown-color", session).replaceAll("\\Q%input%\\E", args[1].toUpperCase()));
 				return true;
 			}
 			d.setGlow(c.getColor(), propegate);
-			if (d.getLabel() != null) p.sendMessage(cc + "Set the glow for " + cc2 + d.getLabel() + cc + "!");
+			if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
 		}
 		
 		else if (args[0].equalsIgnoreCase("animation") || args[0].equalsIgnoreCase("a")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
+				p.sendMessage(plugin.getConfigString("must-save-display"));
 				return true;
 			}
 			if (args.length == 1) {
@@ -419,7 +392,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.openAnimationEditor();
 			}
 			else {
-				p.sendMessage("§cUnknown sub-command!");
+				p.sendMessage(plugin.getConfigString("unknown-subcommand"));
 			}
 		}
 		
@@ -433,9 +406,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.clearLocationSelection();
 				
 				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
-				p.sendMessage(cc + "Successfully converted block selection!");
+				p.sendMessage(getConfigString("convert-success", session));
 				
-			} else p.sendMessage("§4Error: §cBoth locations must be set!");
+			} else p.sendMessage(getConfigString("need-locations", session));
 		}
 		
 		else if (args[0].equalsIgnoreCase("move")) { //TODO check if in edit session, change displacement vector
@@ -444,12 +417,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			
 			if (session.getEditType() == EditType.TRANSLATE) {
-				session.getPlayer().sendMessage(cc + "Use " + cc2 + "/d set" + cc + " or " + cc2 + "/d cancel" + cc + " to finish the edit first!");
+				session.getPlayer().sendMessage(getConfigString("must-finish-edit", session));
 				return true;
 			} else if (args.length == 1) {
 				session.startFollowing();
 				session.startEdit(d, EditType.TRANSLATE);
-				p.sendMessage(cc + "Use " + cc2 + "/d set" + cc + " to finish the edit!");
+				p.sendMessage(getConfigString("to-finish-edit", session));
 				return true;
 			}
 			
@@ -469,20 +442,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			d.teleport(loc);
 			
 		}
-		else if (args[0].equalsIgnoreCase("label") || args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("rename")) {
+		else if (args[0].equalsIgnoreCase("label") || args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("rename") || args[0].equalsIgnoreCase("save")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
 			if (args.length != 2) {
-				p.sendMessage("§4Usage: §c/d rename <name>");
+				if (args[0].equalsIgnoreCase("save")) p.sendMessage(getUsage("rename").replaceAll(" name", " save"));
+				else p.sendMessage(getUsage("rename"));
 				return true;
 			}
 			if (args[1].startsWith("-")) {
-				p.sendMessage("§4Error: §cInvalid name!");
+				p.sendMessage(plugin.getConfigString("invalid-name").replaceAll("\\Q%input%\\E", args[1]));
 				return true;
 			}
-			if (d.setLabel(args[1])) p.sendMessage(cc + "Renamed this display to " + cc2 + args[1]);
-			else p.sendMessage("§4Error: §cThis name is already in use!");
+			if (d.setLabel(args[1])) p.sendMessage(getConfigString("rename-success", session));
+			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
 		
 		else if (args[0].equalsIgnoreCase("rotate")){
@@ -490,7 +464,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			
 			if (args.length < 2) {
-				p.sendMessage("§4Usage: §c/d rotate <yaw|pitch>");
+				p.sendMessage(getUsage("rotate"));
 				return true;
 			}
 			
@@ -507,7 +481,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 						}
 					}
 				} catch (Exception ex) {
-					p.sendMessage("§4Usage: §c/d rotate <yaw> [pitch]");
+					p.sendMessage(getUsage("rotate"));
 					return true;
 				}
 			}
@@ -540,20 +514,20 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				if (def == null) return true;
 				d = plugin.getDisplay(def);
 				if (d == null) {
-					p.sendMessage("§4Error: §cCould not find display '" + def + "'");
+					p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));
 					return true;
 				}
 			}
 			boolean res = !args[0].equalsIgnoreCase("remove");
 			d.remove(res);
+			if (res) p.sendMessage(getConfigString("restore-success", session));
+			else p.sendMessage(getConfigString("remove-success", session));
 			session.setSelected(null, false);
-			String label2 = d.getLabel() == null ? "at " + cc2 + DexUtils.locationString(d.getCenter(), 0) : cc2 + d.getLabel();
-			p.sendMessage(cc + (res ? "Restored" : "Removed") + " the display " + label2);
 		}
 		
 		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
 			if (plugin.getDisplays().size() == 0) {
-				p.sendMessage("§cThere are no saved displays!");
+				p.sendMessage(plugin.getConfigString("no-saved-displays"));
 				return true;
 			}
 			
@@ -570,8 +544,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				total += d.getGroupSize();
 			}
 			
-			p.sendMessage("§b");
-			p.sendMessage(cc + "§lDisplay list: §6Page §6§l" + (page+1) + "§6/" + maxpage);
+			p.sendMessage(plugin.getConfigString("list-page-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", ""+maxpage));
 			String[] strs = new String[total];
 			int i = 0;
 			for (DexterityDisplay disp : plugin.getDisplays()) {
@@ -593,97 +566,98 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				float sz = attrsd.getOrDefault("z", d.getScale().getZ()).floatValue();
 				
 				d.setScale(new Vector(sx, sy, sz));
-				p.sendMessage(cc + "Set " + (d.getLabel() != null ? cc2 + d.getLabel() + cc + " " : "") + "scale to " + cc2 + sx + ", " + sy + ", " + sz + cc + "!");
+				String scale_str = sx + ", " + sy + ", " + sz;
+				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
 			} else {
 				float scale = 1;
 				try {
 					scale = Float.parseFloat(def);
 				} catch(Exception ex) {
-					p.sendMessage("§4Error: §cYou must send a multiplier!");
+					p.sendMessage(getConfigString("must-send-number", session));
 					return true;
 				}
 
 				d.setScale(scale);
 
-				p.sendMessage(cc + "Set " + (d.getLabel() != null ? cc2 + d.getLabel() + cc + " " : "") + "scale to " + cc2 + scale + cc + "!");
+				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
 			}
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
 			if (def == null) {
-				p.sendMessage("§4Usage: §c/d merge <sub-display>");
+				p.sendMessage(getUsage("merge"));
 				return true;
 			}
 			DexterityDisplay d = getSelected(session);
 			if (d == null || testInEdit(session)) return true;
 			DexterityDisplay parent = plugin.getDisplay(def);
 			if (parent == null) {
-				p.sendMessage("§4Error: §cCould not find display '" + def + "'");
+				p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));
 				return true;
 			}
 			String new_group = attr_str.get("new_group");
 			if (d.getLabel() == null) {
-				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
+				p.sendMessage(plugin.getConfigString("must-save-display"));
 				return true;
 			}
 			if (d == parent || d.equals(parent)) {
-				p.sendMessage("§4Error: §cMust be a different display than selected!");
+				p.sendMessage(getConfigString("must-be-different", session));
 				return true;
 			}
 			if (!d.getCenter().getWorld().getName().equals(parent.getCenter().getWorld().getName())) {
-				p.sendMessage("§4Error: §cDisplays must be in the same world!");
+				p.sendMessage(getConfigString("must-same-world", session));
 				return true;
 			}
 			if (d.getParent() != null) {
-				p.sendMessage("§4Error: §cCannot merge two sub-groups, unmerge first!");
+				p.sendMessage(getConfigString("cannot-merge-subgroups", session));
 				return true;
 			}
 			if (d.containsSubdisplay(parent)) {
-				p.sendMessage("§4Error: §cThis display has already been merged with '" + d.getLabel() + "'!");
+				p.sendMessage(getConfigString("already-merged", session));
 				return true;
 			}
 			if (new_group != null && plugin.getDisplayLabels().contains(new_group)) {
-				p.sendMessage("§4Error: §cA group with this name already exists!");
+				p.sendMessage(getConfigString("group-name-in-use", session));
 				return true;
 			}
 			
 			boolean hard = flags.contains("hard");
 			if (hard) {
 				if (!d.canHardMerge() || !parent.canHardMerge()) {
-					p.sendMessage("§4Error: §cCan not hard-merge on this display!");
+					p.sendMessage(getConfigString("cannot-hard-merge", session));
 					return true;
 				}
 				
 				if (parent.hardMerge(d)) {
 					session.setSelected(parent, false);
-					p.sendMessage(cc + "Successfully hard-merged displays!");
+					p.sendMessage(getConfigString("merge-success-hard", session));
 				}
-				else p.sendMessage("§cFailed to merge!");
+				else p.sendMessage(getConfigString("failed-merge", session));
 			} else {
 				DexterityDisplay g = d.merge(parent, new_group);
 				if (g != null) {
 					session.setSelected(g, false);
-					if (new_group == null) p.sendMessage(cc + "Successfully merged " + cc2 + parent.getLabel() + cc + "!");
-					else p.sendMessage(cc + "Successfully created new group " + cc2 + new_group + cc + "!");
-				} else p.sendMessage("§cFailed to merge!");
+					if (new_group == null) p.sendMessage(getConfigString("merge-success", session).replaceAll("\\Q%parentlabel%\\E", parent.getLabel()));
+					else p.sendMessage(getConfigString("merge-success-newgroup", session).replaceAll("\\Q%input%\\E", new_group));
+				} else p.sendMessage(getConfigString("failed-merge", session));
 			}
 		}
 		else if (args[0].equalsIgnoreCase("unmerge")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null || testInEdit(session)) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage(cc + "No display selected! Use " + cc2 + "/d save" + cc + " to convert selection into a display.");
+				p.sendMessage(getConfigString("must-save-display", session));
 				return true;
 			}
 			if (d.getParent() == null) {
-				p.sendMessage(cc + "Nothing to un-merge, " + cc2 + d.getLabel() + cc + " has no parent display!");
+				p.sendMessage(getConfigString("nothing-to-unmerge", session));
 				return true;
 			}
 			d.unmerge();
-			p.sendMessage(cc + "Un-merged " + cc2 + d.getLabel() + cc + "!");
+			p.sendMessage(getConfigString("unmerge-success", session));
 		}
 		
 		else {
-			p.sendMessage("§cUnknown sub-command.");
+			p.sendMessage(plugin.getConfigString("unknown-subcommand"));
 		}
 		
 		//plugin.createAnimation(p.getLocation().add(0, -1, 0));

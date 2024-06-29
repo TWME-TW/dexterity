@@ -1,0 +1,86 @@
+
+# ----------------------------------------------------------------------
+#  Use "&^" for primary color and "&*" for secondary color defined in config
+#  Language: US English (Default)       
+#  Translator: [None]
+# ----------------------------------------------------------------------
+
+#Player-facing strings
+no-permission: "&cYou don't have permission!"
+wand-title: "&fDexterity Wand"
+
+#General command strings
+usage-format: "&4Usage: &c%usage%"
+selected: "&^Selected &*%label%&^!"
+get-started: "&^Use &*/d help&^ to get started!"
+to-finish-edit: "&^Use &*/d set&^ to finish the edit!"
+must-finish-edit: "&^Use &*/d set&^ or &*/d cancel&^ to finish the edit first!"
+other-player-editing: "&^Cannot select until &*%editor%&^ finishes an in-progress edit!"
+help-page-header: "\n\n&^&lDexterity Commands: &6Page &6&l%page%&6/%maxpage%"
+list-page-header: "&^&lDisplay list: &6Page &6&l%page%&6/%maxpage%"
+cancelled-edit: "&^Cancelled edit!"
+unknown-subcommand: "&cUnknown sub-command."
+
+#Error strings
+display-not-found: "&4Error: &cCould not find display '%input%'"
+must-save-display: "&^No display selected! Use &*/d save&^ to convert selection into a display."
+must-select-display: "&4Error: &cYou must select a display to do this!"
+must-same-world: "&4Error: &cDisplays must be in the same world!"
+must-same-world-points: "&4Error: &cPoints must be set in the same world! Use /d desel"
+must-be-numbers-xyz: "&4Error: &cx, y, and z must be numbers!"
+must-send-number: "&4Error: &cYou must send a number!"
+cannot-clone: "&4Error: &cThis display can not be cloned!"
+alread-saved: "&^This selection is already saved! Use &*/d rename"
+name-in-use: "&4Error: &cThis name is already in use by another display!"
+group-name-in-use: "&4Error: &cA group with this name already exists!"
+invalid-name: "&4Error: &cInvalid name!"
+unknown-color: "&4Error: &cUnknown color '%input%'!"
+need-locations: "&4Error: &cBoth locations must be set!"
+no-saved-displays: "&cThere are no saved displays!"
+must-be-different: "&4Error: &cMust be a different display than selected!"
+cannot-merge-subgroups: "&4Error: &cCannot merge two sub-groups, unmerge first!"
+already-merged: "&4Error: &cThis display has already been merged with '%label%'!"
+cannot-hard-merge: "&4Error: &ccan not hard-merge on this display!"
+failed-merge: "&cFailed to merge!"
+nothing-to-unmerge: "&^Nothing to un-merge, &*%label%&^ has no parent display!"
+
+#Success strings
+clone-success: "&^Successfully cloned %label%!"
+convert-success: "&^Successfully converted block selection!"
+desel-success: "&^Cleared selection!"
+glow-success: "&^Set the glow for &*%label%&^!"
+glow-success-disable: "&^Disabled glow for %label%!"
+merge-success: "&^Successfully merged &*%parentlabel%&^!"
+merge-success-newgroup: "&^Successfully created new group &*%input%&^!"
+merge-success-hard: "&^Successfully hard-merged displays!"
+remove-success: "&^Removed the display %loclabel%!"
+rename-success: "&^Named this display to %label%!"
+restore-success: "&^Restored the display %loclabel%!"
+scale-success: "&^Set %label%scale to &*%scale%&^!"
+set-success: "&^Set point #%number% to &*%location%"
+unmerge-success: "&^Un-merged &*%label%&^!"
+
+#Command descriptions
+animation-description: "Modify the display's animations"
+clone-description: "Clone the selection"
+convert-description: "Convert the selected region to display blocks"
+deconvert-description: "Revert selection back into block form"
+deselect-description: "Clear selected region"
+glow-description: "Make the selection glow"
+list-description: "List all displays"
+merge-description: "Combine two displays"
+move-description: "Teleport a display"
+pos1-description: "Set the first position"
+remove-description: "Delete a selection"
+rename-description: "Change a display's name"
+rotate-description: "Rotate a selection"
+scale-description: "Resize a selection"
+sel-description: "Select a display or region"
+unmerge-description: "Separate a display group"
+wand-description: "Get a wand to select block locations"
+
+#Command usage
+merge-usage: "/d merge <sub-display>"
+rename-usage: "/d name <name>"
+rotate-usage: "/d rotate <yaw> [pitch]"
+sel-usage: "/d sel <name>"
