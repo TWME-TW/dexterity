@@ -13,12 +13,19 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 
 public class RideAnimation extends Animation {
 	
+	public enum LookMode {
+		NONE,
+		YAW_ONLY,
+		YAW_PITCH,
+	}
+	
 	private Location start_loc;
-	private double speed = 2.0/20;
-	private boolean x_enabled = true, y_enabled = true, z_enabled = true, teleport_when_done = false, looking_direction = true;
+	private double speed = 2.0/20, seat_y_offset = -1.34;
+	private boolean x_enabled = true, y_enabled = true, z_enabled = true, teleport_when_done = false;
+	private LookMode look_mode = LookMode.YAW_PITCH;
 	private Snowball mount;
 	private Player p;
-	private Vector seat_offset = new Vector(0, 0, 0);
+	private Vector seat_offset = new Vector(0, seat_y_offset, 0);
 
 	public RideAnimation(DexterityDisplay display, Dexterity plugin) {
 		super(display, plugin, 1);
@@ -28,6 +35,8 @@ public class RideAnimation extends Animation {
 		setFrameRate(1);
 		
 		start_loc = display.getCenter();
+		
+		if (!x_enabled && !y_enabled && !z_enabled) return;
 						
 		super.setRunnable(new BukkitRunnable() {
 			@Override
@@ -52,17 +61,18 @@ public class RideAnimation extends Animation {
 				}
 				
 				dir.multiply(speed);
+				mount.setVelocity(dir);
 				
 				display.teleport(dir);
-				if (looking_direction) display.setRotation(p.getLocation().getYaw(), 0);
+				if (look_mode == LookMode.YAW_ONLY) display.setRotation(p.getLocation().getYaw(), (float) display.getPitch());
+				else if (look_mode == LookMode.YAW_PITCH) display.setRotation(p.getLocation().getYaw(), p.getLocation().getPitch());
 				
-				mount.setVelocity(dir);
 			}
 		});
 	}
 	
 	private void spawnMount() {
-		mount = getDisplay().getCenter().getWorld().spawn(getDisplay().getCenter().clone().add(seat_offset), Snowball.class, a -> {
+		mount = getDisplay().getCenter().getWorld().spawn(getDisplay().getCenter().add(seat_offset), Snowball.class, a -> {
 			//a.addPassenger(p);
 			//a.setVisible(false);
 			//a.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1, false));
@@ -102,7 +112,12 @@ public class RideAnimation extends Animation {
 		teleport_when_done = b;
 	}
 	
+	public void setLookingMode(LookMode lm) {
+		look_mode = lm;
+	}
+	
 	public void setSeatOffset(Vector v) {
+		v.setY(v.getY() + seat_y_offset);
 		Vector diff = v.clone().subtract(seat_offset);
 		if (mount != null) mount.teleport(mount.getLocation().add(diff));
 		seat_offset = v;

@@ -7,6 +7,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
@@ -63,7 +64,7 @@ public class DexBlock {
 				new Vector3f(1, 1, 1),
 				new AxisAngle4f(0f, 0f, 0f, 0f)));
 	}
-	
+		
 	public DexTransformation getTransformation() {
 		return trans;
 	}
@@ -77,6 +78,11 @@ public class DexBlock {
 		entity.setTransformation(trans.build());
 	}
 	
+	public void setRotation(double xrad, double yrad, double zrad) {		
+		Quaternionf ql = new Quaternionf(Math.sin(xrad/4), Math.sin(yrad/4), Math.sin(zrad/4), Math.cos(zrad/4)*Math.cos(yrad/4)*Math.cos(xrad/4));
+		trans.setLeftRotation(ql).setRightRotation(ql);
+		updateTransformation();
+	}
 	
 	public void teleport(Location loc) {
 		entity.teleport(loc);

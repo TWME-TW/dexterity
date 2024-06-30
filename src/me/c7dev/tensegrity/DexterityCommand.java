@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,10 +16,12 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import me.c7dev.tensegrity.DexSession.EditType;
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
@@ -30,7 +31,6 @@ import me.c7dev.tensegrity.util.BlockDisplayFace;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
-import me.c7dev.tensegrity.util.EditType;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
@@ -186,10 +186,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			db.getTransformation().setDisplacement(new Vector3f(-0.5f, -0.5f, -0.5f))
 				.setLeftRotation(zero).setRightRotation(zero);
 			db.updateTransformation();
-			db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
-			float deg = Float.parseFloat(args[1]);
+			//db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
 			
-			/*Bukkit.broadcastMessage("A");
 			new BukkitRunnable() {
 				float deg = 0;
 				public void run() {
@@ -206,7 +204,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					deg++;
 					//if (deg > 360) this.cancel();
 				}
-			}.runTaskTimer(plugin, 0, 1l);*/
+			}.runTaskTimer(plugin, 0, 1l);
 		}
 		else if (args[0].equalsIgnoreCase("animtest")) {
 			DexterityDisplay d = getSelected(session);
@@ -226,21 +224,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			d.getAnimations().clear();
 			RideAnimation r = new RideAnimation(d, plugin);
 			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
-			r.setSeatOffset(new Vector(0, -0.7, 0));
+			//r.setSeatOffset(new Vector(0, -0.7, 0));
 			r.setSpeed(10);
 			r.mount(p);
 			r.start();
 		}
 		else if (args[0].equalsIgnoreCase("testnear")) {
 			BlockDisplayFace b = api.getLookingAt(p);
-			if (b == null) Bukkit.broadcastMessage("none in range");
-			else Bukkit.broadcastMessage("clicked " + b.getBlockFace() + ", disp = " + DexUtils.vectorString(b.getOffsetFromFaceCenter(), 3));
-		}
-		else if (args[0].equalsIgnoreCase("testloc")) {
-			Location loc = DexUtils.blockLoc(p.getLocation());
-			loc.add(0, 0, 2).getBlock().setType(Material.STONE);
-			DexBlock db = new DexBlock(loc.getBlock(), session.getSelected());
-			plugin.getAPI().markerPoint(db.getEntity().getLocation(), Color.LIME, 3);
+			if (b == null) p.sendMessage("None in range");
+			else {
+				api.markerPoint(b.getClickLocation(), Color.RED, 4);
+				p.sendMessage("Clicked " + b.getBlockFace() + ", disp = " + DexUtils.vectorString(b.getOffsetFromFaceCenter(), 3));
+			}
 		}
 		
 		else if (args[0].equalsIgnoreCase("set")) {
@@ -299,6 +294,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("desel") || args[0].equalsIgnoreCase("deselect") || args[0].equalsIgnoreCase("clear")) {
 			if (session.getSelected() != null) {
 				session.setSelected(null, false);
+				session.clearLocationSelection();
 				p.sendMessage(plugin.getConfigString("desel-success"));
 			}
 		}
@@ -399,12 +395,20 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (testInEdit(session)) return true;
 			if (session.getLocation1() != null && session.getLocation2() != null) {
+				
+				if (!session.getLocation1().getWorld().getName().equals(session.getLocation2().getWorld().getName())) {
+					p.sendMessage(getConfigString("must-same-world-points", session));
+					return true;
+				}
+				if (session.getSelectionVolume() > plugin.getMaxVolume()) {
+					p.sendMessage(getConfigString("exceeds-max-volume", session).replaceAll("\\Q%volume%\\E", "" + plugin.getMaxVolume()));
+					return true;
+				}
+				
 				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2());
 				
 				session.setSelected(d, false);
-				
-				session.clearLocationSelection();
-				
+								
 				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
 				p.sendMessage(getConfigString("convert-success", session));
 				
@@ -485,11 +489,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
-			if (yaw == Double.MAX_VALUE) yaw = 0;
-			if (pitch == Double.MAX_VALUE) pitch = 0;
+			boolean set = flags.contains("set");
+			if (yaw == Double.MAX_VALUE) yaw = set ? d.getYaw() : 0;
+			if (pitch == Double.MAX_VALUE) pitch = set ? d.getPitch() : 0;
 			
 			//TODO toggle messages in session
-			if (flags.contains("set")) {
+			if (set) {
 				d.setRotation((float) yaw, (float) pitch);
 				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
 			} else {

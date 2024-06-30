@@ -56,6 +56,8 @@ public class EventListeners implements Listener {
 		
 		if (e.getPlayer().hasPermission("dexterity.command")) {	
 			
+			if (clickDelay(e.getPlayer().getUniqueId())) return;
+			
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
 			BlockDisplayFace clicked = plugin.getAPI().getLookingAt(e.getPlayer());
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
@@ -68,17 +70,21 @@ public class EventListeners implements Listener {
 			}
 						
 			if (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand"))) {
-				if (clickDelay(e.getPlayer().getUniqueId())) return;
 				if (session == null) session = new DexSession(e.getPlayer(), plugin);
 				e.setCancelled(true);
 				
-				if (clicked_display != null) {
+				if (clicked_display != null && clicked_display.getLabel() != null) {
 					session.setSelected(clicked_display, true);
 					return;
 				}
-								
-				if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
-				else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
+				if (clicked != null) {
+					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), true);
+					else session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), false);
+					if (session.getLocation1() == null || session.getLocation2() == null) plugin.getAPI().tempHighlight(clicked.getBlockDisplay(), 15);
+				} else if (e.getClickedBlock() != null) {
+					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
+					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
+				}
 			} else {
 				if (clicked == null) return;
 				e.setCancelled(true);

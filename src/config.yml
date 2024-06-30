@@ -1,7 +1,19 @@
 
-no-permission: "&4You do not have permission!"
-wand-title: "&fDexterity Wand"
+#----------------------------------------------------------------------------------------------------------------------#
+#
+#                                                       Dexterity by c7dev
+#
+#    Thank you for downloading Dexterity! This plugin is intended to make your worlds pop with the power of block displays. 
+#    Using a worldedit-like interface, you can easily move, scale, rotate, and animate block displays without the hassle!
+#
+#   If you need help or have a question, join the discord: https://discord.gg/yx9hUByTzq
+#
+#   Please consider writing a review if you like the plugin :D
+#
+#----------------------------------------------------------------------------------------------------------------------#
 
 lang-file: "en-US.yml"
 primary-color: "#49eb9a" #Default #49eb9a
 secondary-color: "#42f5ef" #Default #42f5ef
+max-selection-volume: 25000 #for tps safety
+highlight-display-on-select: true

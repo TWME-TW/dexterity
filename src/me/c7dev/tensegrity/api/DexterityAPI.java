@@ -1,11 +1,14 @@
 package me.c7dev.tensegrity.api;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,7 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.Matrix3d;
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
@@ -39,6 +41,17 @@ public class DexterityAPI {
 			BlockFace.EAST,
 			BlockFace.WEST
 	};
+	
+	HashMap<UUID, Integer> pidMap = new HashMap<>();
+	List<UUID> markerPoints = new ArrayList<>();
+	private int pid_ = Integer.MIN_VALUE + 1; //min val reserved for getOrDefault
+	
+	private int getNewPID() {
+		int p = pid_;
+		if (pid_ == Integer.MAX_VALUE) pid_ = Integer.MIN_VALUE + 1;
+		else pid_++;
+		return p;
+	}
 	
 	public DexterityAPI(Dexterity plugin) {
 		this.plugin = plugin;
@@ -77,6 +90,11 @@ public class DexterityAPI {
 		int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
 		int zmin = Math.min(l1.getBlockZ(), l2.getBlockZ()), zmax = Math.max(l1.getBlockZ(), l2.getBlockZ());
 		
+		if (Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin) > plugin.getMaxVolume()) {
+			Bukkit.getLogger().warning("Failed to create a display because it exceeds the maximum volume in config!");
+			return null;
+		}
+		
 		Location center = new Location(l1.getWorld(), Math.min(l1.getX(), l2.getX()) + Math.abs((l1.getX()-l2.getX())/2),
 				Math.min(l1.getY(), l2.getY()) + Math.abs(((l1.getY() - l2.getY()) / 2)),
 				Math.min(l1.getZ(), l2.getZ()) + Math.abs((l1.getZ() - l2.getZ()) / 2));
@@ -99,9 +117,9 @@ public class DexterityAPI {
 		
 		d.recalculateCenter();
 		
-		plugin.registerDisplay(d.getLabel(), d);
+		//plugin.registerDisplay(d.getLabel(), d);
 		
-		plugin.saveDisplays();
+		//plugin.saveDisplays();
 		
 		return d;
 	}
@@ -110,7 +128,7 @@ public class DexterityAPI {
 		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
-		double dot = Double.MAX_VALUE;
+		double mindist = Double.MAX_VALUE;
 		BlockDisplayFace nearest = null;
 				
 		Vector[][] basis_vecs = {
@@ -145,6 +163,7 @@ public class DexterityAPI {
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
 			
+			//block face centers
 			Vector up = loc.clone().add(0, (scale.getY()), 0).toVector();
 			Vector down = loc.clone().add(0, -scale.getY(), 0).toVector();
 			Vector north = loc.clone().add(0, 0, -scale.getZ()).toVector();
@@ -159,6 +178,7 @@ public class DexterityAPI {
 				Vector basis1 = basis_vecs[i][0];
 				Vector basis2 = basis_vecs[i][1];
 				
+				// Solve `(FaceCenter) + a(basis1) + b(basis2) = c(dir) + (EyeLoc)` to find intersection of block face plane
 				Vector L = eye_loc.clone().subtract(locs[i]);
 				Matrix3f matrix = new Matrix3f(
 						(float) basis1.getX(), (float) basis1.getY(), (float) basis1.getZ(),
@@ -167,11 +187,11 @@ public class DexterityAPI {
 						);
 				matrix.invert();
 				Vector3f cf = new Vector3f();
-				Vector c = DexUtils.vector(matrix.transform((float) L.getX(), (float) L.getY(), (float) L.getZ(), cf));
-				double dot2 = -c.getZ();
-				if (dot2 < 0) continue;
+				Vector c = DexUtils.vector(matrix.transform(DexUtils.vector(L), cf));
+				double dist = -c.getZ();
+				if (dist < 0) continue; //behind head
 				
-				switch(i) {
+				switch(i) { //check within block face
 				case 0:
 				case 1:
 					if (Math.abs(c.getX()) > scale.getX()) continue;
@@ -193,8 +213,8 @@ public class DexterityAPI {
 				
 				//markerPoint(DexUtils.location(loc.getWorld(), blockoffset), Color.WHITE, 5);
 				
-				if (dot2 < dot) {
-					dot = dot2;
+				if (dist < mindist) {
+					mindist = dist;
 					nearest = new BlockDisplayFace(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), loc);
 				}
 			}
@@ -204,9 +224,9 @@ public class DexterityAPI {
 	}
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
-		float size = 0.05f;
+		float size = 0.04f;
 		BlockDisplay disp = loc.getWorld().spawn(loc, BlockDisplay.class, a -> {
-			a.setBlock(Bukkit.createBlockData(Material.RED_WOOL));
+			a.setBlock(Bukkit.createBlockData(Material.WHITE_CONCRETE));
 			if (glow != null) {
 				a.setGlowColorOverride(glow);
 				a.setGlowing(true);
@@ -215,15 +235,105 @@ public class DexterityAPI {
 			Transformation t2 = new Transformation(new Vector3f(-size/2, -size/2, -size/2), t.getLeftRotation(), 
 					new Vector3f(size, size, size), t.getRightRotation());
 			a.setTransformation(t2);
+			markerPoints.add(a.getUniqueId());
 		});
 		if (seconds > 0) {
 			new BukkitRunnable() {
 				public void run() {
+					markerPoints.add(disp.getUniqueId());
 					disp.remove();
 				}
 			}.runTaskLater(plugin, seconds*20l);
 		}
 		return disp;
+	}
+	
+	public void tempHighlight(DexterityDisplay d, int ticks) {
+		List<BlockDisplay> blocks = new ArrayList<>();
+		for (DexBlock db : d.getBlocks()) blocks.add(db.getEntity());
+		tempHighlight(blocks, ticks);
+	}
+	public void tempHighlight(BlockDisplay block, int ticks) {
+		List<BlockDisplay> blocks = new ArrayList<>();
+		blocks.add(block);
+		tempHighlight(blocks, ticks);
+	}
+	
+	private void tempHighlight(List<BlockDisplay> blocks, int ticks) {
+		List<UUID> unhighlight = new ArrayList<>();
+		int pid = getNewPID();
+		for (BlockDisplay block : blocks) {
+			if (!block.isGlowing() || pidMap.containsKey(block.getUniqueId())) {
+				unhighlight.add(block.getUniqueId());
+				block.setGlowColorOverride(Color.SILVER);
+				block.setGlowing(true);
+				pidMap.put(block.getUniqueId(), pid);
+			}
+		}
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				for (UUID u : unhighlight) {
+					if (pidMap.getOrDefault(u, Integer.MIN_VALUE) != pid) continue;
+					pidMap.remove(u);
+					Entity e = Bukkit.getEntity(u);
+					if (e != null) e.setGlowing(false);
+				}
+			}
+		}.runTaskLater(plugin, ticks);
+	}
+	
+	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r) {
+		List<BlockDisplay> blocks = new ArrayList<>();
+		
+		Location l1 = DexUtils.blockLoc(l1r.clone()), l2 = DexUtils.blockLoc(l2r.clone());
+				
+		if (l1.getX() > l2.getX()) {
+			double xt = l1.getX();
+			l1.setX(l2.getX());
+			l2.setX(xt);
+		}
+		if (l1.getY() > l2.getY()) {
+			double yt = l1.getY();
+			l1.setY(l2.getY());
+			l2.setY(yt);
+		}
+		if (l1.getZ() > l2.getZ()) {
+			double zt = l1.getZ();
+			l1.setZ(l2.getZ());
+			l2.setZ(zt);
+		}
+		
+		l2.add(1, 1, 1);
+				
+//		markerPoint(l1, Color.LIME, 10);
+//		markerPoint(l2, Color.GREEN, 10);
+		
+		int xchunks = (int) Math.ceil((l2.getX() - l1.getX()) / 16) + 1;
+		int zchunks = (int) Math.ceil((l2.getZ() - l1.getZ()) / 16) + 1;
+		Location sel = l1.clone();
+		for (int x = 0; x < xchunks; x++) {
+			Location xsel = sel.clone();
+			for (int z = 0; z < zchunks; z++) {
+				Chunk chunk = xsel.getChunk();
+				if (!chunk.isLoaded()) continue;
+				for (Entity entity : chunk.getEntities()) {
+					if (entity instanceof BlockDisplay && !markerPoints.contains(entity.getUniqueId())) {
+						BlockDisplay bd = (BlockDisplay) entity;
+						if (entity.getLocation().getX() >= l1.getX() && entity.getLocation().getX() <= l2.getX() 
+								&& entity.getLocation().getY() >= l1.getY() && entity.getLocation().getY() <= l2.getY()
+								&& entity.getLocation().getZ() >= l1.getZ() && entity.getLocation().getZ() <= l2.getZ()) {
+		
+							blocks.add(bd);
+						}
+					}
+				}
+				xsel.add(0, 0, 16);
+			}
+			sel.add(16, 0, 0);
+		}
+						
+		return blocks;
 	}
 	
 }

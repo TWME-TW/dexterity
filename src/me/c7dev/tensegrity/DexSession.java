@@ -1,37 +1,47 @@
 package me.c7dev.tensegrity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
-import me.c7dev.tensegrity.util.EditType;
 
 public class DexSession {
+	
+	public enum EditType {
+		TRANSLATE,
+		CLONE,
+		MERGE,
+		DEEPMERGE,
+		SCALE,
+		ROTATE
+	}
 	
 	private Player p;
 	private Location l1, l2;
 	private DexterityDisplay selected = null, secondary = null;
 	private Dexterity plugin;
-	private String cc, cc2;
-	private double click_cooldown = 0;
 	private Vector3f editing_scale = null;
 	private Vector following = null;
 	private EditType editType = null;
 	private Location orig_loc = null;
+	private int volume = Integer.MAX_VALUE;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
 		this.plugin = plugin;
-		cc = plugin.getChatColor(); cc2 = plugin.getChatColor2();
 		plugin.setEditSession(player.getUniqueId(), this);
 	}
 	
@@ -80,7 +90,7 @@ public class DexSession {
 		selected = o;
 		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(plugin.getConfigString("selected").replaceAll("\\Q%label%\\E", o.getLabel()));
-			//TODO glow effect for 1s
+			if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(o, 15);
 		}
 	}
 	
@@ -140,28 +150,47 @@ public class DexSession {
 		return l1 == null ? null : l1.getWorld();
 	}
 	
+	public int getSelectionVolume() {
+		return volume;
+	}
+	
 	public void setLocation(Location loc, boolean is_l1) {
-		int decimals = 3;
-		if (System.currentTimeMillis() - click_cooldown < 100) return;
-		click_cooldown = System.currentTimeMillis();
 		
 		loc.setX(loc.getBlockX());
 		loc.setY(loc.getBlockY());
 		loc.setZ(loc.getBlockZ());
-		decimals = 0;
 		loc.setYaw(0);
 		loc.setPitch(0);
-		
-		World world = getWorld();
-		if (world != null && !loc.getWorld().getName().equals(world.getName())) {
-			p.sendMessage(plugin.getConfigString("must-same-world-points"));
-			return;
-		}
-		
+
 		if (is_l1) l1 = loc;
 		else l2 = loc;
+
+		if (editType == null) {
+			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
+				int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());
+				int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
+				int zmin = Math.min(l1.getBlockZ(), l2.getBlockZ()), zmax = Math.max(l1.getBlockZ(), l2.getBlockZ());
+
+				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
+
+				if (volume <= plugin.getMaxVolume()) {
+					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegion(l1, l2);
+					if (blocks.size() > 0) {
+						DexterityDisplay s = new DexterityDisplay(plugin);
+						List<DexBlock> dblocks = new ArrayList<>();
+						for (BlockDisplay bd : blocks) {
+							dblocks.add(new DexBlock(bd, s));
+						}
+						s.setEntities(dblocks, true);
+						if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(s, 30);
+
+						selected = s;
+					}
+				}
+			} else volume = Integer.MAX_VALUE;
+		}
 		
-		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, decimals)));
+		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
 	}
 	
 	public void clearLocationSelection() {

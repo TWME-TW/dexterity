@@ -34,23 +34,19 @@ public class Dexterity extends JavaPlugin {
 	private HashMap<UUID,DexBlock> display_map = new HashMap<>();
 	private FileConfiguration lang, defaultLang;
 	
-	public String chat_color, chat_color2;
-	public DexterityAPI api;
-	
-	public static final Vector3f DEFAULT_DISP = new Vector3f(-0.5f, -0.5f, -0.5f);
-	
+	private String chat_color, chat_color2;
+	private DexterityAPI api;
+	private int max_volume = 25000;
+		
 	@Override
 	public void onEnable() {
 		saveDefaultConfig();
 		api = new DexterityAPI(this);
 		
-		chat_color = parseChatColor(getConfig().getString("primary-color"));
-		chat_color2 = parseChatColor(getConfig().getString("secondary-color"));
-		loadLanguageFile(false);
+		loadConfigSettings();
 		
 		new DexterityCommand(this);
 		new EventListeners(this);
-		
 		
 		loadDisplays();
 		
@@ -61,12 +57,17 @@ public class Dexterity extends JavaPlugin {
 		saveDisplays();
 	}
 	
-	public DexterityAPI getAPI() {
-		return api;
+	public void loadConfigSettings() {
+		chat_color = parseChatColor(getConfig().getString("primary-color"));
+		chat_color2 = parseChatColor(getConfig().getString("secondary-color"));
+		int config_mv = getConfig().getInt("max-selection-volume");
+		if (config_mv > 0) max_volume = config_mv;
+		loadLanguageFile(false);
+		//TODO wand item type
 	}
 	
-	public String getAuthor() {
-		return api.getAuthor();
+	public DexterityAPI getAPI() {
+		return api;
 	}
 	
 	public String getChatColor() {
@@ -74,6 +75,10 @@ public class Dexterity extends JavaPlugin {
 	}
 	public String getChatColor2() {
 		return chat_color2;
+	}
+	
+	public int getMaxVolume() {
+		return max_volume;
 	}
 	
 	private String parseChatColor(String s) {
@@ -100,6 +105,10 @@ public class Dexterity extends JavaPlugin {
 	public String getConfigString(String dir, String def) {
 		String r = getConfigString(dir);
 		return r == null ? def.replaceAll("&", "§").replaceAll("\\Q[newline]\\E", "\n") : r;
+	}
+	
+	public String getAuthor() {
+		return api.getAuthor();
 	}
 
 	public String getConfigString(String dir) {

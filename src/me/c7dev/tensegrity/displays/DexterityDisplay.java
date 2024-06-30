@@ -31,7 +31,7 @@ public class DexterityDisplay {
 	private DexterityDisplay parent;
 	private boolean started_animations = false;
 	private UUID uuid = UUID.randomUUID(), editing_lock;
-	private double pitch = 0, yaw = 0;
+	private double yaw = 0, pitch = 0, roll = 0;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
@@ -323,6 +323,7 @@ public class DexterityDisplay {
 	}
 		
 	public void setScale(Vector s) {
+		if (s.getX() == 0 && s.getY() == 0 && s.getZ() == 0) return;
 		Vector v = new Vector(s.getX() / scale.getX(), s.getY() / scale.getY(), s.getZ() / scale.getZ());
 		Vector sd = v.clone().add(new Vector(-1, -1, -1));
 		Vector3f trans_disp = DexUtils.vector(s.clone().multiply(-0.5)); //DexUtils.vector(v.clone().add(scale.clone().multiply(-0.5))).mul(0.5f);
@@ -354,9 +355,42 @@ public class DexterityDisplay {
 		return pitch;
 	}
 	
+	public double getRoll() {
+		return roll;
+	}
+	
 	public void rotate(float yaw_deg, float pitch_deg) {
 		if (yaw_deg == 0 && pitch_deg == 0) return;
 		setRotation((float) yaw + yaw_deg, (float) pitch + pitch_deg);
+	}
+	
+	public void rotateQ(double x, double y, double z) {
+		for (DexBlock b : blocks) {
+			b.setTransformation(b.getTransformation().setDisplacement(new Vector3f(0, 0, 0)));
+		}
+		pitch += x;
+		yaw += y;
+		roll += z;
+		Vector centerv = center.toVector().add(scale.clone().multiply(0.5));
+		plugin.getAPI().markerPoint(DexUtils.location(center.getWorld(), centerv), Color.LIME, 8);
+		double gamma = Math.toRadians(x), beta = Math.toRadians(y), alpha = Math.toRadians(z);
+		
+		Matrix3d rotmat = new Matrix3d(
+				Math.cos(alpha)*Math.cos(beta), (Math.cos(alpha)*Math.sin(beta)*Math.sin(gamma)) - (Math.sin(alpha)*Math.cos(gamma)), (Math.cos(alpha)*Math.sin(beta)*Math.cos(gamma)) + (Math.sin(alpha)*Math.sin(beta)),
+				Math.sin(alpha)*Math.cos(beta), (Math.sin(alpha)*Math.sin(beta)*Math.sin(gamma)) + (Math.cos(alpha)*Math.cos(gamma)), (Math.sin(alpha)*Math.sin(beta)*Math.cos(gamma)) - (Math.cos(alpha)*Math.sin(gamma)),
+				-Math.sin(beta), Math.cos(beta)*Math.sin(gamma), Math.cos(beta)*Math.cos(gamma)
+				).transpose();
+		
+		for (DexBlock b : blocks) {
+			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
+			Vector3f newOffset = new Vector3f();
+			rotmat.transform(oldOffset, newOffset);
+			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
+//			plugin.getAPI().markerPoint(b.getEntity().getLocation(), Color.RED, 8);
+//			plugin.getAPI().markerPoint(loc, Color.ORANGE, 8);
+			b.teleport(loc);
+			b.setRotation(Math.sin(Math.toRadians(pitch)), Math.sin(Math.toRadians(yaw)), Math.sin(Math.toRadians(roll)));
+		}
 	}
 	
 	public void setRotation(float yaw_deg, float pitch_deg) {
@@ -371,25 +405,26 @@ public class DexterityDisplay {
 				0f, 1f, 0f,
 				-Math.sin(oldYaw), 0f, Math.cos(oldYaw)).transpose();
 		Matrix3d pitchMat = new Matrix3d(1f, 0f, 0f,
-				0f, Math.cos(pitch), Math.sin(pitch),
-				0f, -Math.sin(pitch), Math.cos(pitch)).transpose();	
+				0f, Math.cos(pitch), -Math.sin(pitch),
+				0f, Math.sin(pitch), Math.cos(pitch)).transpose();	
 		Matrix3d yawMat = new Matrix3d(
 				(float) Math.cos(yaw), 0f, -Math.sin(yaw),
 				0f, 1f, 0f,
 				Math.sin(yaw), 0f, Math.cos(yaw)).transpose();
-		
+				
 		//Matrix3f rotmat = undoyawmat.mul(pitchmat).mul(yawmat);
 		Matrix3d rotmat = yawMat.mul(pitchMat).mul(undoYawMat);
-		
+				
 		Vector centerv = center.toVector();
 		for (DexBlock b : blocks) {
-			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv).setY(0));
+			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
 			Vector3f newOffset = new Vector3f();
 			rotmat.transform(oldOffset, newOffset);
 			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
 			loc.setYaw(loc.getYaw() + yaw_deg - oldYawDeg);
 			loc.setPitch(loc.getPitch() + pitch_deg - oldPitchDeg);
 			b.teleport(loc);
+			//b.setRotation(0, 0, Math.toRadians(20));
 		}
 		
 		this.yaw = yaw_deg;
