@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,7 +28,7 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
-import me.c7dev.tensegrity.util.BlockDisplayFace;
+import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -39,8 +40,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, usage_format;
 	
 	public String[] commands = {
-		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "remove", "rotate", 
-		"scale", "select", "unmerge", "wand"
+		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "recenter", 
+		"remove", "rotate", "scale", "select", "unmerge", "wand"
 	};
 	public String[] descriptions = new String[commands.length];
 	public String[] command_strs = new String[commands.length];
@@ -170,14 +171,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				if (e instanceof BlockDisplay) e.remove();
 			}
 		}
-		else if (args[0].equalsIgnoreCase("test2")) {
-			DexterityDisplay d = getSelected(session);
-			if (d == null) return true;
-			float f = Float.parseFloat(args[1]);
-			for (DexBlock db : d.getBlocks()) {
-				db.setRotation(f, 0f);
-			}
-		}
 		else if (args[0].equalsIgnoreCase("test3")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
@@ -230,7 +223,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			r.start();
 		}
 		else if (args[0].equalsIgnoreCase("testnear")) {
-			BlockDisplayFace b = api.getLookingAt(p);
+			ClickedBlockDisplay b = api.getLookingAt(p);
 			if (b == null) p.sendMessage("None in range");
 			else {
 				api.markerPoint(b.getClickLocation(), Color.RED, 4);
@@ -242,13 +235,35 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
 				case CLONE:
-					session.getSecondary().hardMerge(session.getSelected());
+					if (session.getSecondary() != null) {
+						Bukkit.broadcastMessage("A");
+						session.getSecondary().hardMerge(session.getSelected());
+					}
 					p.sendMessage(getConfigString("clone-success", session));
 					break;
 				default:
 				}
 				session.finishEdit();
 			}
+		}
+		
+		else if (args[0].equalsIgnoreCase("recenter")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			
+			if (!d.getCenter().getWorld().getName().equals(p.getLocation().getWorld().getName())) {
+				p.sendMessage(getConfigString("must-same-world", session));
+				return true;
+			}
+			
+			Location loc = p.getLocation();
+			if (!flags.contains("continuous")) DexUtils.blockLoc(loc).add(0.5, 0.5, 0.5);
+			
+			d.setCenter(loc);
+			api.markerPoint(loc, Color.AQUA, 4);
+			
+			p.sendMessage(getConfigString("recenter-success", session));
+			
 		}
 		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
@@ -306,7 +321,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage(getConfigString("must-finish-edit", session));
 				return true;
 			}
-			if (!d.canHardMerge()) {
+			boolean mergeafter = flags.contains("merge");
+			if (mergeafter && !d.canHardMerge()) {
 				p.sendMessage(getConfigString("cannot-clone", session));
 				return true;
 			}
@@ -330,7 +346,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			clone.setEntities(blocks, false);
 			
-			session.startEdit(clone, EditType.CLONE);
+			session.startEdit(clone, EditType.CLONE, mergeafter);
 			
 			if (!flags.contains("nofollow")) session.startFollowing();
 			
@@ -425,7 +441,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			} else if (args.length == 1) {
 				session.startFollowing();
-				session.startEdit(d, EditType.TRANSLATE);
+				session.startEdit(d, EditType.TRANSLATE, false);
 				p.sendMessage(getConfigString("to-finish-edit", session));
 				return true;
 			}
@@ -600,10 +616,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			String new_group = attr_str.get("new_group");
-			if (d.getLabel() == null) {
-				p.sendMessage(plugin.getConfigString("must-save-display"));
-				return true;
-			}
+//			if (d.getLabel() == null) {
+//				p.sendMessage(plugin.getConfigString("must-save-display"));
+//				return true;
+//			}
 			if (d == parent || d.equals(parent)) {
 				p.sendMessage(getConfigString("must-be-different", session));
 				return true;
@@ -694,6 +710,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
 			add_labels = true;
 		}
+		else if (argsr[0].equalsIgnoreCase("recenter")) {
+			ret.add("-continuous");
+		}
 		else if (argsr[0].equalsIgnoreCase("scale")) {
 			ret.add("x=");
 			ret.add("y=");
@@ -724,6 +743,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equalsIgnoreCase("clone")) {
 			ret.add("-nofollow");
+			ret.add("-merge");
 		}
 		else if (argsr[0].equalsIgnoreCase("animation") || argsr[0].equalsIgnoreCase("a")) {
 			ret.add("start");

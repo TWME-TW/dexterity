@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
+import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 public class DexUtils {
@@ -245,6 +247,25 @@ public class DexUtils {
 		default:
 		}
 		return new Vector(1, 1, 1);
+	}
+	
+	public static Matrix3d rotMatDeg(double xdeg, double ydeg, double zdeg) {
+		return rotMat(Math.toRadians(xdeg), Math.toRadians(ydeg), Math.toRadians(zdeg));
+	}
+	
+	public static Matrix3d rotMat(double xrad, double yrad, double zrad) {
+		double sinx = Math.sin(xrad), siny = -Math.sin(yrad), sinz = Math.sin(zrad);
+		double cosx = Math.cos(xrad), cosy = Math.cos(yrad), cosz = Math.cos(zrad);
+//		return new Matrix3d(
+//				cosz*cosy, (cosz*siny*sinx) - (sinz*cosx), (cosz*siny*cosx) + (sinz*siny),
+//				sinz*cosy, (sinz*siny*sinx) + (cosz*cosx), (sinz*siny*cosx) - (cosz*sinx),
+//				-siny, cosy*sinx, cosy*cosx
+//				).transpose();
+		return new Matrix3d(
+				cosz*cosy, sinz*cosy, -siny,
+				(cosz*siny*sinx) - (sinz*cosx), (sinz*siny*sinx) + (cosz*cosx), cosy*sinx,
+				(cosz*siny*cosx) + (sinz*siny), (sinz*siny*cosx) - (cosz*sinx), cosy*cosx
+				);
 	}
 	
 	public static Vector nearestPoint(Vector a, Vector b, Vector x) {

@@ -5,19 +5,20 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Vector;
 
-public class BlockDisplayFace {
+public class ClickedBlockDisplay {
 	
 	private BlockDisplay b;
 	private BlockFace bf_;
-	private Vector offset_;
+	private Vector offset_, normal_;
 	private Location loc_, center_;
 	
-	public BlockDisplayFace(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc) {
+	public ClickedBlockDisplay(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc, Vector normal) {
 		b = block;
 		bf_ = blockFace;
 		offset_ = offset;
 		loc_ = loc;
 		center_ = centerLoc;
+		normal_ = normal;
 	}
 	
 	public BlockDisplay getBlockDisplay() {
@@ -38,6 +39,10 @@ public class BlockDisplayFace {
 	
 	public Location getDisplayCenterLocation() {
 		return center_.clone();
+	}
+	
+	public Vector getNormal() {
+		return normal_.clone();
 	}
 
 }

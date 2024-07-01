@@ -64,7 +64,7 @@ public class RotationAnimation extends Animation {
 			int step = (int) (n_steps*angle/(2*Math.PI));
 			if (block.getLocation().getBlockZ() < getDisplay().getCenter().getBlockZ()) step = n_steps - step;
 			
-			block.setAngleStep(step);
+//			block.setAngleStep(step);
 		}
 	}
 	
@@ -98,42 +98,6 @@ public class RotationAnimation extends Animation {
 	}
 	public void setClockwise(boolean b) {
 		clockwise = b;
-	}
-	
-	public void start() {
-		if (started_instance) return;
-		
-		runnable = new BukkitRunnable() {
-			@Override
-			public void run() {
-								
-				for(DexBlock bd : getDisplay().getBlocks()) {
-					bd.setAngleStep((bd.getAngleStep() + 1) % n_steps);
-					double vx = delta_sin * bd.getRadius(plane) * sinList[bd.getAngleStep()];
-					double vy = -delta_sin * bd.getRadius(plane) * cosList[bd.getAngleStep()];
-					if (!clockwise) {
-						vx *= -1;
-						vy *= -1;
-					}
-					
-					switch(plane) {
-					case XY:
-						bd.move(-vx, -vy, 0);
-						break;
-					case ZY:
-						bd.move(0, -vy, -vx);
-						break;
-					default:
-						bd.move(vx, 0, vy);
-						break;
-					}
-				}
-								
-			}
-		};
-		runnable.runTaskTimer(getDisplay().getPlugin(), 0, 1l);
-		
-		started_instance = true;
 	}
 
 }

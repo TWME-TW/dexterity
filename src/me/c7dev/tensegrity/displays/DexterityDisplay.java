@@ -78,7 +78,6 @@ public class DexterityDisplay {
 			}
 		}
 		center = DexUtils.location(w, cvec.multiply(1.0/n));
-		for (DexBlock b : blocks) b.recalculateRadius(center);
 	}
 	
 	public void setDefaultLabel() {
@@ -170,7 +169,6 @@ public class DexterityDisplay {
 			!subdisplay.canHardMerge() || !canHardMerge()) return false;
 		plugin.unregisterDisplay(subdisplay);
 		for (DexBlock b : subdisplay.getBlocks()) {
-			b.recalculateRadius(center);
 			b.setDexterityDisplay(this);
 			blocks.add(b);
 		}
@@ -271,7 +269,6 @@ public class DexterityDisplay {
 	
 	public void setCenter(Location loc) {
 		center = loc;
-		for (DexBlock b : blocks) b.recalculateRadius(center);
 	}
 	
 	public void startAnimations() {
@@ -404,16 +401,17 @@ public class DexterityDisplay {
 				Math.cos(oldYaw), 0f, Math.sin(oldYaw),
 				0f, 1f, 0f,
 				-Math.sin(oldYaw), 0f, Math.cos(oldYaw)).transpose();
-		Matrix3d pitchMat = new Matrix3d(1f, 0f, 0f,
-				0f, Math.cos(pitch), -Math.sin(pitch),
-				0f, Math.sin(pitch), Math.cos(pitch)).transpose();	
-		Matrix3d yawMat = new Matrix3d(
-				(float) Math.cos(yaw), 0f, -Math.sin(yaw),
-				0f, 1f, 0f,
-				Math.sin(yaw), 0f, Math.cos(yaw)).transpose();
+//		Matrix3d pitchMat = new Matrix3d(1f, 0f, 0f,
+//				0f, Math.cos(pitch), -Math.sin(pitch),
+//				0f, Math.sin(pitch), Math.cos(pitch)).transpose();	
+//		Matrix3d yawMat = new Matrix3d(
+//				(float) Math.cos(yaw), 0f, -Math.sin(yaw),
+//				0f, 1f, 0f,
+//				Math.sin(yaw), 0f, Math.cos(yaw)).transpose();
+		Matrix3d applyrot = DexUtils.rotMat(pitch, yaw, 0);
 				
-		//Matrix3f rotmat = undoyawmat.mul(pitchmat).mul(yawmat);
-		Matrix3d rotmat = yawMat.mul(pitchMat).mul(undoYawMat);
+		//Matrix3d rotmat = yawMat.mul(pitchMat).mul(undoYawMat);
+		Matrix3d rotmat = applyrot.mul(undoYawMat);
 				
 		Vector centerv = center.toVector();
 		for (DexBlock b : blocks) {
@@ -429,122 +427,6 @@ public class DexterityDisplay {
 		
 		this.yaw = yaw_deg;
 		this.pitch = pitch_deg;
-	}
-	
-	private void rotatePlane(double degrees, Plane plane) {
-		double radians_m = Math.toRadians(degrees % 360);
-		if (radians_m < 0) radians_m += 2*Math.PI;
-		final double radians = radians_m;
-		
-		RotationAnimation animation = null;
-		for (Animation a : animations) {
-			if (a instanceof RotationAnimation) {
-				animation = (RotationAnimation) a;
-				break;
-			}
-		}
-		if (animation != null) {
-			if (animation.isPaused()) animation = null;
-			else animation.setPaused(true);
-		}
-		
-		/*final RotationAnimation a = animation;
-		
-		double sin = Math.sin(radians/2);
-		double cos = Math.cos(radians/2);
-		double x = sin*plane.getNormal().getX();
-		double y = sin*plane.getNormal().getY();
-		double z = sin*plane.getNormal().getZ();
-		double w = cos;
-		
-		double mag = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2) + Math.pow(w, 2));
-		x = x/mag; y = y/mag; z = z/mag; w = w/mag;
-		
-		Quaternionf left = new Quaternionf(-x, -y, -z, w);
-		Quaternionf right = new Quaternionf(x, y, z, w);
-		
-		boolean printed = false;
-		for (DexBlock db : blocks) {
-			Transformation tr1 = db.getEntity().getTransformation();
-			if (!printed) {
-				printed = true;
-				Bukkit.broadcastMessage(tr1.getLeftRotation().toString());
-				Bukkit.broadcastMessage(tr1.getRightRotation().toString());
-			}
-			
-			Transformation tr2 = new Transformation(
-					tr1.getTranslation(),
-					left,
-					tr1.getScale(),
-					right
-					);
-			db.getEntity().setTransformation(tr2);
-		}*/
-		
-		new BukkitRunnable() {
-			double sin = 2*Math.sin(radians/2), root2 = Math.sqrt(2)/2;
-			
-			@Override
-			public void run() {
-				if (plane == Plane.XY && degrees < 0) sin *= -1;
-				final HashMap<UUID,DoubleHolder> vx_map = new HashMap<>(), vy_map = new HashMap<>();
-				for (DexBlock block : blocks) {
-					//if (rot_plane != plane) block.recalculateRadius(center, plane);
-					
-					double angle = block.calculateAngle(center, plane);
-					if (Double.isNaN(angle)) angle = 0;
-					//Bukkit.broadcastMessage("angle=" + angle + ", r=" + block.getRadius());
-					vx_map.put(block.getEntity().getUniqueId(), new DoubleHolder(-block.getRadius(plane)*sin *Math.sin(angle + radians/2) - 
-							0*root2*sin*Math.sin(Math.toRadians(block.getRotationXZ()) + radians/2)));
-					vy_map.put(block.getEntity().getUniqueId(), new DoubleHolder( block.getRadius(plane)*sin*Math.cos(angle + radians/2) +
-							0*root2*sin*Math.cos(Math.toRadians(block.getRotationXZ()) + radians/2)));
-				}
-				//Bukkit.broadcastMessage("took " + (System.currentTimeMillis() - start) + "ms to calculate");
-				
-				new BukkitRunnable() {
-					@Override
-					public void run() {
-						for (DexBlock block : blocks) {
-							//block.addRotation((float) -degrees, 0f);
-							if (!vx_map.containsKey(block.getEntity().getUniqueId())) continue;
-							double vx = vx_map.get(block.getEntity().getUniqueId()).getValue();
-							double vy = vy_map.get(block.getEntity().getUniqueId()).getValue();
-							
-							//Bukkit.broadcastMessage("dx = " + vx + ", dy=" + vy + ", r=" + block.getRadius() + " t=" + block.getEntity().getBlock().getMaterial().toString());
-							
-							switch(plane) {
-							case XY:
-								block.getTransformation().setDisplacement(block.getTransformation().getDisplacement()
-										.add(new Vector3f((float) vx, (float) -vy, 0f)));
-								block.getEntity().setRotation((float) degrees + 90, 0);
-								block.updateTransformation();
-								//block.move(vx, -vy, 0);
-								break;
-							case ZY:
-								//block.move(0, vx, vy);
-								block.getTransformation().setDisplacement(block.getTransformation().getDisplacement()
-										.add(new Vector3f((float) vx, 0f, (float) vy)));
-								block.getEntity().setRotation((float) degrees + 90, 0);
-								block.updateTransformation();
-								break;
-							default:
-								//block.getTransformation().setDisplacement(new Vector3f((float) vx, 0, (float) vy).add(Dexterity.DEFAULT_DISP));
-								block.getEntity().setRotation((float) degrees, 0);
-								//block.updateTransformation();
-								block.move(vx, 0, vy);
-								break;
-							}
-						}
-						
-						/*if (a != null) {
-							a.recalculateAngleSteps();
-							a.setPaused(false);
-						}*/
-						
-					}
-				}.runTask(plugin);
-			}
-		}.runTaskAsynchronously(plugin);
 	}
 
 }

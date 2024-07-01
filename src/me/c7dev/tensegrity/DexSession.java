@@ -111,13 +111,17 @@ public class DexSession {
 		return following.clone();
 	}
 	
-	public void startEdit(DexterityDisplay d, EditType type) {
+	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {
 		if (selected == null) return;
 		editType = type;
 		if (d != selected) {
-			secondary = selected;
-			secondary.setEditingLock(p.getUniqueId());
-			selected = d;
+			if (swap) {
+				secondary = selected;
+				secondary.setEditingLock(p.getUniqueId());
+				selected = d;
+			} else {
+				setSelected(d, false);
+			}
 		} else selected.setEditingLock(p.getUniqueId());
 		orig_loc = d.getCenter();
 	}
@@ -173,7 +177,7 @@ public class DexSession {
 
 				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
 
-				if (volume <= plugin.getMaxVolume()) {
+				if (volume <= plugin.getMaxVolume()) { //set selected
 					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegion(l1, l2);
 					if (blocks.size() > 0) {
 						DexterityDisplay s = new DexterityDisplay(plugin);

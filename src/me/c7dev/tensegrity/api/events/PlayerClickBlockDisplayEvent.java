@@ -10,17 +10,17 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.Action;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.util.BlockDisplayFace;
+import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 
 public class PlayerClickBlockDisplayEvent extends Event implements Cancellable {
 	
 	private Player player_;
-	private BlockDisplayFace clicked_;
+	private ClickedBlockDisplay clicked_;
 	private Action action_;
 	private boolean cancelled = false;
 	private DexterityDisplay display_;
 	
-	public PlayerClickBlockDisplayEvent(Player player, BlockDisplayFace clicked, Action action, DexterityDisplay display) {
+	public PlayerClickBlockDisplayEvent(Player player, ClickedBlockDisplay clicked, Action action, DexterityDisplay display) {
 		player_ = player;
 		clicked_ = clicked;
 		action_ = action;

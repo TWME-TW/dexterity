@@ -20,13 +20,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.DexSession;
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.util.BlockDisplayFace;
+import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 
@@ -36,8 +37,8 @@ public class DexterityAPI {
 	private BlockFace[] faces = {
 			BlockFace.UP,
 			BlockFace.DOWN,
-			BlockFace.NORTH,
 			BlockFace.SOUTH,
+			BlockFace.NORTH,
 			BlockFace.EAST,
 			BlockFace.WEST
 	};
@@ -124,24 +125,48 @@ public class DexterityAPI {
 		return d;
 	}
 	
-	public BlockDisplayFace getLookingAt(Player p) {
+	private Vector[][] getBasisVecs(Matrix3d mat) {
+		Vector a = new Vector(mat.m00, mat.m01, mat.m02).normalize(), 
+				b = new Vector(mat.m10, mat.m11, mat.m12).normalize(), 
+				c = new Vector(mat.m20, mat.m21, mat.m22).normalize();
+//		Vector[][] basis_vecs = {
+//				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
+//				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
+//				{new Vector(-1, 0, 0), new Vector(0, 1, 0)},
+//				{new Vector(1, 0, 0), new Vector(0, 1, 0)},
+//				{new Vector(0, 0, -1), new Vector(0, 1, 0)},
+//				{new Vector(0, 0, 1), new Vector(0, 1, 0)}
+//		};
+		Vector[][] basis_vecs = {{a, c}, {a, c}, {a, b}, {a.clone().multiply(-1), b}, {c.clone().multiply(-1), b}, {c, b}};
+		return basis_vecs;
+	}
+	
+	private Vector getNormal(BlockFace f, Vector up, Vector east, Vector south) {
+		switch(f) {
+		case UP: return up.clone().normalize();
+		case DOWN: return up.clone().multiply(-1).normalize();
+		case SOUTH: return south.clone().normalize();
+		case NORTH: return south.clone().multiply(-1).normalize();
+		case EAST: return east.clone().normalize();
+		case WEST: return east.clone().multiply(-1).normalize();
+		default: return new Vector(0, 0, 0);
+		}
+	}
+	
+	public ClickedBlockDisplay getLookingAt(Player p) {
 		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
 		double mindist = Double.MAX_VALUE;
-		BlockDisplayFace nearest = null;
+		ClickedBlockDisplay nearest = null;
 				
-		Vector[][] basis_vecs = {
-				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
-				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
-				{new Vector(-1, 0, 0), new Vector(0, 1, 0)},
-				{new Vector(1, 0, 0), new Vector(0, 1, 0)},
-				{new Vector(0, 0, -1), new Vector(0, 1, 0)},
-				{new Vector(0, 0, 1), new Vector(0, 1, 0)}
-		};
-					
+		HashMap<Vector, Vector[][]> basis = new HashMap<>();
+		HashMap<Vector, Matrix3d> rot_matrices = new HashMap<>();
+				
+		Vector[][] basis_vecs_norot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
+									
 		for (Entity entity : near) {
-			if (!(entity instanceof BlockDisplay)) continue;
+			if (!(entity instanceof BlockDisplay) || markerPoints.contains(entity.getUniqueId())) continue;
 			BlockDisplay e = (BlockDisplay) entity;
 			Vector scale_raw = DexUtils.vector(e.getTransformation().getScale());
 			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out
@@ -150,6 +175,7 @@ public class DexterityAPI {
 			Location loc = e.getLocation();
 			
 			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scale_raw);
+			
 			//loc.add(scale).subtract(scale_raw);
 			loc.setY(loc.getY() + scale.getY() - scale_raw.getY());
 						
@@ -162,19 +188,42 @@ public class DexterityAPI {
 			Vector diff = loc.toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
+			Vector locv = loc.toVector();
 			
+			
+			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0;
+			Vector up_dir, south_dir, east_dir;
+			Vector[][] basis_vecs;
+			if (rotated) {
+				Vector key = new Vector(e.getLocation().getYaw(), e.getLocation().getPitch(), 0f);
+				Matrix3d rotmat = rot_matrices.get(key);
+				if (rotmat == null) {
+					rotmat = DexUtils.rotMatDeg(e.getLocation().getPitch(), e.getLocation().getYaw(), 0);
+					rot_matrices.put(key, rotmat);
+					basis_vecs = getBasisVecs(rotmat);
+					basis.put(key, basis_vecs);		
+				} else basis_vecs = basis.get(key);
+				east_dir = new Vector(rotmat.m00, rotmat.m01, rotmat.m02).multiply(scale.getX());
+				up_dir = new Vector(rotmat.m10, rotmat.m11, rotmat.m12).multiply(scale.getY());
+				south_dir = new Vector(rotmat.m20, rotmat.m21, rotmat.m22).multiply(scale.getZ());
+				
+			} else {
+				east_dir = new Vector(scale.getX(), 0, 0);
+				up_dir = new Vector(0, scale.getY(), 0);
+				south_dir = new Vector(0, 0, scale.getZ());
+				basis_vecs = basis_vecs_norot;
+			}
+			
+									
 			//block face centers
-			Vector up = loc.clone().add(0, (scale.getY()), 0).toVector();
-			Vector down = loc.clone().add(0, -scale.getY(), 0).toVector();
-			Vector north = loc.clone().add(0, 0, -scale.getZ()).toVector();
-			Vector south = loc.clone().add(0, 0, scale.getZ()).toVector();
-			Vector east = loc.clone().add(scale.getX(), 0, 0).toVector();
-			Vector west = loc.clone().add(-scale.getX(), 0, 0).toVector();
+			Vector up = locv.clone().add(up_dir), down = locv.clone().add(up_dir.clone().multiply(-1));
+			Vector south = locv.clone().add(south_dir), north = locv.clone().add(south_dir.clone().multiply(-1));
+			Vector east = locv.clone().add(east_dir), west = locv.clone().add(east_dir.clone().multiply(-1));
 			
-			Vector[] locs = {up, down, north, south, east, west};
+			Vector[] locs = {up, down, south, north, east, west};
 						
 			for (int i = 0; i < locs.length; i++) {
-								
+												
 				Vector basis1 = basis_vecs[i][0];
 				Vector basis2 = basis_vecs[i][1];
 				
@@ -206,7 +255,7 @@ public class DexterityAPI {
 					if (Math.abs(c.getX()) > scale.getZ()) continue;
 					if (Math.abs(c.getY()) > scale.getY()) continue;
 				}
-				
+								
 				Vector raw_offset = basis1.clone().multiply(c.getX())
 						.add(basis2.clone().multiply(c.getY()));
 				Vector blockoffset = locs[i].clone().add(raw_offset);
@@ -215,11 +264,12 @@ public class DexterityAPI {
 				
 				if (dist < mindist) {
 					mindist = dist;
-					nearest = new BlockDisplayFace(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), loc);
+					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), loc, getNormal(faces[i], up_dir, east_dir, south_dir));
 				}
 			}
 			
 		}
+		
 		return nearest;
 	}
 	
@@ -251,21 +301,21 @@ public class DexterityAPI {
 	public void tempHighlight(DexterityDisplay d, int ticks) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		for (DexBlock db : d.getBlocks()) blocks.add(db.getEntity());
-		tempHighlight(blocks, ticks);
+		tempHighlight(blocks, ticks, Color.SILVER);
 	}
-	public void tempHighlight(BlockDisplay block, int ticks) {
+	public void tempHighlight(BlockDisplay block, int ticks, Color c) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		blocks.add(block);
-		tempHighlight(blocks, ticks);
+		tempHighlight(blocks, ticks, c);
 	}
 	
-	private void tempHighlight(List<BlockDisplay> blocks, int ticks) {
+	private void tempHighlight(List<BlockDisplay> blocks, int ticks, Color c) {
 		List<UUID> unhighlight = new ArrayList<>();
 		int pid = getNewPID();
 		for (BlockDisplay block : blocks) {
 			if (!block.isGlowing() || pidMap.containsKey(block.getUniqueId())) {
 				unhighlight.add(block.getUniqueId());
-				block.setGlowColorOverride(Color.SILVER);
+				block.setGlowColorOverride(c);
 				block.setGlowing(true);
 				pidMap.put(block.getUniqueId(), pid);
 			}

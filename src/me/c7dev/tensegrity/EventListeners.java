@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
@@ -19,7 +20,7 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.util.BlockDisplayFace;
+import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -59,7 +60,7 @@ public class EventListeners implements Listener {
 			if (clickDelay(e.getPlayer().getUniqueId())) return;
 			
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
-			BlockDisplayFace clicked = plugin.getAPI().getLookingAt(e.getPlayer());
+			ClickedBlockDisplay clicked = plugin.getAPI().getLookingAt(e.getPlayer());
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
 			DexterityDisplay clicked_display = null;
 			DexBlock clicked_db = null;
@@ -80,7 +81,7 @@ public class EventListeners implements Listener {
 				if (clicked != null) {
 					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), true);
 					else session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), false);
-					if (session.getLocation1() == null || session.getLocation2() == null) plugin.getAPI().tempHighlight(clicked.getBlockDisplay(), 15);
+					if (session.getLocation1() == null || session.getLocation2() == null) plugin.getAPI().tempHighlight(clicked.getBlockDisplay(), 15, Color.GRAY);
 				} else if (e.getClickedBlock() != null) {
 					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
 					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
@@ -105,7 +106,8 @@ public class EventListeners implements Listener {
 						Vector dimensions = DexUtils.hadimard(blockscale, DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));
 						//Vector placedDimensions = DexUtils.hadimard(blockscale, DexUtils.getBlockDimensions(bdata));
 						
-						Vector dir = clicked.getBlockFace().getDirection();
+						//Vector dir = clicked.getBlockFace().getDirection();
+						Vector dir = clicked.getNormal();
 						//Vector delta = DexUtils.hadimard(dimensions.clone().add(placingScale).multiply(0.5), dir);
 						Vector delta = DexUtils.hadimard(dimensions.clone().setY(0.5 * (dimensions.getY() + placingScale.getY())), dir);
 						
