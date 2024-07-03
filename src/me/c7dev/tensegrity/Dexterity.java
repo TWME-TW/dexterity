@@ -122,7 +122,7 @@ public class Dexterity extends JavaPlugin {
 		String s = use.getString(dir);
 		if (s == null) {
 			Bukkit.getLogger().warning("Could not get value from config: '" + dir + "'");
-			return null;
+			return "§c[Language file missing '§c§o" + dir + "§r§c']";
 		}
 		return s
 				.replaceAll("\\Q&^\\E", chat_color)
@@ -213,9 +213,7 @@ public class Dexterity extends JavaPlugin {
 				double sy = afile.getDouble(label + ".scale-y");
 				double sz = afile.getDouble(label + ".scale-z");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
-				double yaw = afile.getDouble(label + ".yaw");
-				double pitch = afile.getDouble(label + ".pitch");
-				DexterityDisplay disp = new DexterityDisplay(this, center, scale, yaw, pitch);
+				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
 				disp.forceSetLabel(label);
 				
 				for (BlockDisplay bd : blocks) {
@@ -277,8 +275,6 @@ public class Dexterity extends JavaPlugin {
 		if (disp.getScale().getX() != 1) afile.set(disp.getLabel() + ".scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set(disp.getLabel() + ".scale-y", disp.getScale().getY());
 		if (disp.getScale().getZ() != 1) afile.set(disp.getLabel() + ".scale-z", disp.getScale().getZ());
-		if (disp.getYaw() != 0) afile.set(disp.getLabel() + ".yaw", disp.getYaw());
-		if (disp.getPitch() != 0) afile.set(disp.getLabel() + ".pitch", disp.getPitch());;
 		List<String> uuids = new ArrayList<>();
 		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
 		afile.set(disp.getLabel() + ".uuids", uuids);

@@ -8,6 +8,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.Action;
+import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
@@ -53,6 +54,14 @@ public class PlayerClickBlockDisplayEvent extends Event implements Cancellable {
 	
 	public boolean isCancelled() {
 		return cancelled;
+	}
+	
+	public Vector getSurfaceNormal() {
+		return clicked_.getNormal();
+	}
+	
+	public double getPreciseDistanceFromEye() {
+		return clicked_.getDistance();
 	}
 	
 	public void setCancelled(boolean b) {

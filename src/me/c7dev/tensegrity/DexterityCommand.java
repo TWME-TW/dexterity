@@ -28,6 +28,7 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
+import me.c7dev.tensegrity.displays.animation.RideAnimation.LookMode;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
@@ -40,7 +41,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, usage_format;
 	
 	public String[] commands = {
-		"animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "recenter", 
+		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "recenter", 
 		"remove", "rotate", "scale", "select", "unmerge", "wand"
 	};
 	public String[] descriptions = new String[commands.length];
@@ -176,7 +177,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			DexBlock db = d.getBlocks().get(0);
 			Quaternionf zero = new Quaternionf(0f, 0f, 0f, 1f);
-			db.getTransformation().setDisplacement(new Vector3f(-0.5f, -0.5f, -0.5f))
+			db.getTransformation().setDisplacement(new Vector(-0.5f, -0.5f, -0.5f))
 				.setLeftRotation(zero).setRightRotation(zero);
 			db.updateTransformation();
 			//db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
@@ -219,6 +220,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
 			//r.setSeatOffset(new Vector(0, -0.7, 0));
 			r.setSpeed(10);
+			r.setLookingMode(LookMode.YAW_ONLY);
 			r.mount(p);
 			r.start();
 		}
@@ -266,6 +268,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
+		else if (args[0].equalsIgnoreCase("align")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			
+			d.align();
+			
+			p.sendMessage(getConfigString("align-success", session));
+		}
+		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			
 			int index = -1;
@@ -299,7 +310,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					loc = new Location(p.getWorld(), x, y, z, 0, 0);
 					index = -1;
 				} catch (Exception ex) {
-					p.sendMessage(plugin.getConfigString("must-be-numbers-xyz"));
+					p.sendMessage(plugin.getConfigString("must-send-numbers-xyz"));
 					return true;
 				}
 			}
@@ -329,7 +340,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			p.sendMessage(getConfigString("to-finish-edit", session));
 			
-			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone(), d.getYaw(), d.getPitch());
+			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
 			
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
@@ -431,7 +442,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			} else p.sendMessage(getConfigString("need-locations", session));
 		}
 		
-		else if (args[0].equalsIgnoreCase("move")) { //TODO check if in edit session, change displacement vector
+		else if (args[0].equalsIgnoreCase("move") || args[0].equalsIgnoreCase("m")) { //TODO check if in edit session, change displacement vector
 			
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
@@ -479,7 +490,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
 		
-		else if (args[0].equalsIgnoreCase("rotate")){
+		else if (args[0].equalsIgnoreCase("rotate") || args[0].equalsIgnoreCase("r")){
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
@@ -506,12 +517,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 			}
 			boolean set = flags.contains("set");
-			if (yaw == Double.MAX_VALUE) yaw = set ? d.getYaw() : 0;
-			if (pitch == Double.MAX_VALUE) pitch = set ? d.getPitch() : 0;
-			
+			boolean setyaw, setpitch;
+			if (yaw == Double.MAX_VALUE) {
+				setyaw = false;
+				yaw = 0;
+			} else setyaw = true;
+			if (pitch == Double.MAX_VALUE) {
+				setpitch = false;
+				pitch = 0;
+			} else setpitch = true;
+						
 			//TODO toggle messages in session
 			if (set) {
-				d.setRotation((float) yaw, (float) pitch);
+				d.rotate((float) yaw, (float) pitch, setyaw, setpitch);
 				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
 			} else {
 				d.rotate((float) yaw, (float) pitch);
@@ -728,7 +746,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
 		}
-		else if (argsr[0].equalsIgnoreCase("move")) {
+		else if (argsr[0].equalsIgnoreCase("move") || argsr[0].equalsIgnoreCase("m")) {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
@@ -753,7 +771,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("reset");
 			ret.add("edit");
 		}
-		else if (argsr[0].equalsIgnoreCase("rotate")) {
+		else if (argsr[0].equalsIgnoreCase("rotate") || argsr[0].equalsIgnoreCase("r")) {
 //			if (!params.contains("plane")) ret.add("plane=");
 //			else if (params.size() == 2) {
 //				ret.add("plane=XY");

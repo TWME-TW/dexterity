@@ -20,6 +20,8 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.displays.animation.Animation;
+import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexTransformation;
@@ -122,8 +124,8 @@ public class EventListeners implements Listener {
 												
 						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.add(delta), BlockDisplay.class, a -> {
 							a.setBlock(bdata);
-							trans.setScale(DexUtils.vector(placingScale));
-							trans.setDisplacement(DexUtils.vector(placingScale.clone().multiply(-0.5)));
+							trans.setScale(placingScale);
+							trans.setDisplacement(placingScale.clone().multiply(-0.5));
 							a.setTransformation(trans.build());
 						});
 //						plugin.getAPI().markerPoint(clicked.getDisplayCenterLocation(), Color.RED, 6);
@@ -132,6 +134,19 @@ public class EventListeners implements Listener {
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 
 						if (clicked_display != null) clicked_display.getBlocks().add(new DexBlock(b, clicked_display));
+					} else if (clicked_display != null) {
+						//clicked display with empty hand
+						RideAnimation ride = null;
+						for (Animation a : clicked_display.getAnimations()) {
+							if (a instanceof RideAnimation) {
+								ride = (RideAnimation) a;
+								break;
+							}
+						}
+						if (ride != null && ride.getMountedPlayer() == null) {
+							ride.mount(e.getPlayer());
+							ride.start();
+						}
 					}
 					
 				} else {

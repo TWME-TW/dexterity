@@ -11,14 +11,16 @@ public class ClickedBlockDisplay {
 	private BlockFace bf_;
 	private Vector offset_, normal_;
 	private Location loc_, center_;
+	private double dist_;
 	
-	public ClickedBlockDisplay(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc, Vector normal) {
+	public ClickedBlockDisplay(BlockDisplay block, BlockFace blockFace, Vector offset, Location loc, Location centerLoc, Vector normal, double dist) {
 		b = block;
 		bf_ = blockFace;
 		offset_ = offset;
 		loc_ = loc;
 		center_ = centerLoc;
 		normal_ = normal;
+		dist_ = dist;
 	}
 	
 	public BlockDisplay getBlockDisplay() {
@@ -43,6 +45,10 @@ public class ClickedBlockDisplay {
 	
 	public Vector getNormal() {
 		return normal_.clone();
+	}
+	
+	public double getDistance() {
+		return dist_;
 	}
 
 }

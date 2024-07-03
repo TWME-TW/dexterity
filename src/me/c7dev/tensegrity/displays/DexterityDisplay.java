@@ -9,18 +9,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.animation.Animation;
-import me.c7dev.tensegrity.displays.animation.RotationAnimation;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
-import me.c7dev.tensegrity.util.DoubleHolder;
-import me.c7dev.tensegrity.util.Plane;
 
 public class DexterityDisplay {
 	
@@ -29,23 +25,20 @@ public class DexterityDisplay {
 	private String label;
 	private Vector scale;
 	private DexterityDisplay parent;
-	private boolean started_animations = false;
+	private boolean started_animations = false, zero_pitch = false;
 	private UUID uuid = UUID.randomUUID(), editing_lock;
-	private double yaw = 0, pitch = 0, roll = 0;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
 	
 	public DexterityDisplay(Dexterity plugin) {
-		this(plugin, null, new Vector(1, 1, 1), 0, 0);
+		this(plugin, null, new Vector(1, 1, 1));
 	}
 		
-	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, double yaw, double pitch) {
+	public DexterityDisplay(Dexterity plugin, Location center, Vector scale) {
 		this.plugin = plugin;
 		this.scale = scale;
-		this.yaw = yaw;
-		this.pitch = pitch;
 		if (center == null) recalculateCenter();
 		else this.center = center;
 	}
@@ -66,6 +59,7 @@ public class DexterityDisplay {
 		Vector cvec = new Vector(0, 0, 0);
 		World w;
 		int n = 0;
+		zero_pitch = true;
 		if (blocks.size() == 0) {
 			w = plugin.getDefaultWorld();
 			n = 1;
@@ -75,6 +69,7 @@ public class DexterityDisplay {
 			n = blocks.size();
 			for (DexBlock db : blocks) {
 				cvec.add(db.getLocation().toVector());
+				if (zero_pitch && db.getEntity().getLocation().getPitch() != 0) zero_pitch = false;
 			}
 		}
 		center = DexUtils.location(w, cvec.multiply(1.0/n));
@@ -164,6 +159,10 @@ public class DexterityDisplay {
 		return started_animations;
 	}
 	
+	public boolean isZeroPitch() {
+		return zero_pitch;
+	}
+	
 	public boolean hardMerge(DexterityDisplay subdisplay) {
 		if (!subdisplay.getCenter().getWorld().getName().equals(center.getWorld().getName()) ||
 			!subdisplay.canHardMerge() || !canHardMerge()) return false;
@@ -171,6 +170,7 @@ public class DexterityDisplay {
 		for (DexBlock b : subdisplay.getBlocks()) {
 			b.setDexterityDisplay(this);
 			blocks.add(b);
+			if (zero_pitch && b.getLocation().getPitch() != 0) zero_pitch = false;
 		}
 		for (DexterityDisplay subdisp : subdisplay.getSubdisplays()) {
 			subdisp.merge(this, null);
@@ -323,7 +323,7 @@ public class DexterityDisplay {
 		if (s.getX() == 0 && s.getY() == 0 && s.getZ() == 0) return;
 		Vector v = new Vector(s.getX() / scale.getX(), s.getY() / scale.getY(), s.getZ() / scale.getZ());
 		Vector sd = v.clone().add(new Vector(-1, -1, -1));
-		Vector3f trans_disp = DexUtils.vector(s.clone().multiply(-0.5)); //DexUtils.vector(v.clone().add(scale.clone().multiply(-0.5))).mul(0.5f);
+		Vector trans_disp = s.clone().multiply(-0.5); //DexUtils.vector(v.clone().add(scale.clone().multiply(-0.5))).mul(0.5f);
 		for (DexBlock db : blocks) {
 			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
 //			displacement.setX((displacement.getX() * (x - 1)) + (x >= 0 ? -0.5 : Math.abs(x) - 0.5));
@@ -337,96 +337,147 @@ public class DexterityDisplay {
 			
 			db.getTransformation()
 					.setDisplacement(trans_disp)
-					.setScale(DexUtils.vector(s));
+					.setScale(s);
 			db.updateTransformation();
 		}
 		scale = s;
 		for (DexterityDisplay sub : subdisplays) sub.setScale(v);
 	}
 	
-	public double getYaw() {
-		return yaw;
+	public void align() { //TODO add -from_center
+		DexBlock block = null;
+		double minx = 0, miny = 0, minz = 0;
+		for (DexBlock b : blocks) {
+			Location loc = b.getLocation().add(b.getTransformation().getDisplacement());
+			if (block == null || (loc.getX() <= minx && loc.getY() <= miny && loc.getZ() <= minz)) {
+				block = b;
+				minx = loc.getX();
+				miny = loc.getY();
+				minz = loc.getZ();
+			}
+		}
+		if (block != null) {
+			Location loc = block.getLocation().add(block.getTransformation().getDisplacement());
+			Vector disp = loc.clone().subtract(DexUtils.blockLoc(loc.clone())).toVector();
+			teleport(center.clone().subtract(disp));
+		}
 	}
 	
-	public double getPitch() {
-		return pitch;
-	}
-	
-	public double getRoll() {
-		return roll;
-	}
+//	public void rotateQ(double x, double y, double z) {
+//		for (DexBlock b : blocks) {
+//			b.setTransformation(b.getTransformation().setDisplacement(new Vector(0, 0, 0)));
+//		}
+//		Vector centerv = center.toVector().add(scale.clone().multiply(0.5));
+//		plugin.getAPI().markerPoint(DexUtils.location(center.getWorld(), centerv), Color.LIME, 8);
+//		double gamma = Math.toRadians(x), beta = Math.toRadians(y), alpha = Math.toRadians(z);
+//		
+//		Matrix3d rotmat = new Matrix3d(
+//				Math.cos(alpha)*Math.cos(beta), (Math.cos(alpha)*Math.sin(beta)*Math.sin(gamma)) - (Math.sin(alpha)*Math.cos(gamma)), (Math.cos(alpha)*Math.sin(beta)*Math.cos(gamma)) + (Math.sin(alpha)*Math.sin(beta)),
+//				Math.sin(alpha)*Math.cos(beta), (Math.sin(alpha)*Math.sin(beta)*Math.sin(gamma)) + (Math.cos(alpha)*Math.cos(gamma)), (Math.sin(alpha)*Math.sin(beta)*Math.cos(gamma)) - (Math.cos(alpha)*Math.sin(gamma)),
+//				-Math.sin(beta), Math.cos(beta)*Math.sin(gamma), Math.cos(beta)*Math.cos(gamma)
+//				).transpose();
+//		
+//		for (DexBlock b : blocks) {
+//			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
+//			Vector3f newOffset = new Vector3f();
+//			rotmat.transform(oldOffset, newOffset);
+//			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
+////			plugin.getAPI().markerPoint(b.getEntity().getLocation(), Color.RED, 8);
+////			plugin.getAPI().markerPoint(loc, Color.ORANGE, 8);
+//			b.teleport(loc);
+//			//b.setRotation(Math.sin(Math.toRadians(pitch)), Math.sin(Math.toRadians(yaw)), Math.sin(Math.toRadians(roll)));
+//		}
+//	}
 	
 	public void rotate(float yaw_deg, float pitch_deg) {
-		if (yaw_deg == 0 && pitch_deg == 0) return;
-		setRotation((float) yaw + yaw_deg, (float) pitch + pitch_deg);
-	}
-	
-	public void rotateQ(double x, double y, double z) {
-		for (DexBlock b : blocks) {
-			b.setTransformation(b.getTransformation().setDisplacement(new Vector3f(0, 0, 0)));
-		}
-		pitch += x;
-		yaw += y;
-		roll += z;
-		Vector centerv = center.toVector().add(scale.clone().multiply(0.5));
-		plugin.getAPI().markerPoint(DexUtils.location(center.getWorld(), centerv), Color.LIME, 8);
-		double gamma = Math.toRadians(x), beta = Math.toRadians(y), alpha = Math.toRadians(z);
-		
-		Matrix3d rotmat = new Matrix3d(
-				Math.cos(alpha)*Math.cos(beta), (Math.cos(alpha)*Math.sin(beta)*Math.sin(gamma)) - (Math.sin(alpha)*Math.cos(gamma)), (Math.cos(alpha)*Math.sin(beta)*Math.cos(gamma)) + (Math.sin(alpha)*Math.sin(beta)),
-				Math.sin(alpha)*Math.cos(beta), (Math.sin(alpha)*Math.sin(beta)*Math.sin(gamma)) + (Math.cos(alpha)*Math.cos(gamma)), (Math.sin(alpha)*Math.sin(beta)*Math.cos(gamma)) - (Math.cos(alpha)*Math.sin(gamma)),
-				-Math.sin(beta), Math.cos(beta)*Math.sin(gamma), Math.cos(beta)*Math.cos(gamma)
-				).transpose();
-		
-		for (DexBlock b : blocks) {
-			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
-			Vector3f newOffset = new Vector3f();
-			rotmat.transform(oldOffset, newOffset);
-			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
-//			plugin.getAPI().markerPoint(b.getEntity().getLocation(), Color.RED, 8);
-//			plugin.getAPI().markerPoint(loc, Color.ORANGE, 8);
-			b.teleport(loc);
-			b.setRotation(Math.sin(Math.toRadians(pitch)), Math.sin(Math.toRadians(yaw)), Math.sin(Math.toRadians(roll)));
-		}
+		rotate(yaw_deg, pitch_deg, false, false);
 	}
 	
 	public void setRotation(float yaw_deg, float pitch_deg) {
-		float oldPitchDeg = (float) this.pitch, oldYawDeg = (float) this.yaw;
-		float oldYaw = (float) Math.toRadians(oldYawDeg);
-		double yaw = Math.toRadians(yaw_deg), pitch = Math.toRadians(pitch_deg - oldPitchDeg);
+		rotate(yaw_deg, pitch_deg, true, true);
+	}
+	
+	public void rotate(float yaw_deg, float pitch_deg, boolean set_yaw, boolean set_pitch) {
 		
-		if (pitch == 0 && Math.abs(yaw - oldYaw) < 0.0001) return;
+		if (Math.abs(yaw_deg) < 0.0001 && !set_yaw && Math.abs(pitch_deg) < 0.0001 && !set_pitch) return;
 		
-		Matrix3d undoYawMat = new Matrix3d(
-				Math.cos(oldYaw), 0f, Math.sin(oldYaw),
-				0f, 1f, 0f,
-				-Math.sin(oldYaw), 0f, Math.cos(oldYaw)).transpose();
-//		Matrix3d pitchMat = new Matrix3d(1f, 0f, 0f,
-//				0f, Math.cos(pitch), -Math.sin(pitch),
-//				0f, Math.sin(pitch), Math.cos(pitch)).transpose();	
-//		Matrix3d yawMat = new Matrix3d(
-//				(float) Math.cos(yaw), 0f, -Math.sin(yaw),
-//				0f, 1f, 0f,
-//				Math.sin(yaw), 0f, Math.cos(yaw)).transpose();
-		Matrix3d applyrot = DexUtils.rotMat(pitch, yaw, 0);
-				
-		//Matrix3d rotmat = yawMat.mul(pitchMat).mul(undoYawMat);
-		Matrix3d rotmat = applyrot.mul(undoYawMat);
-				
-		Vector centerv = center.toVector();
+		if (pitch_deg == 0 && zero_pitch) {
+			rotate(yaw_deg, set_yaw);
+			return;
+		}
+		if (zero_pitch && pitch_deg != 0) zero_pitch = false;
+		
+		HashMap<Vector, Matrix3d> rotmats = new HashMap<>();
+		
+		final Vector centerv = center.toVector();
+		double yaw = Math.toRadians(yaw_deg);
 		for (DexBlock b : blocks) {
+			float oldPitchDeg = b.getEntity().getLocation().getPitch(), oldYawDeg = b.getEntity().getLocation().getYaw();
+			float oldYaw = (float) Math.toRadians(oldYawDeg);
+			double pitch = Math.toRadians(pitch_deg - (set_pitch ? oldPitchDeg : 0)); //-oldPitch
+			
+			double deltaYaw = yaw + (set_yaw ? 0 : oldYaw);
+
+			if (pitch == 0 && Math.abs(deltaYaw - oldYaw) < 0.00001) return;
+			
+			Matrix3d rotmat;
+			Vector key = new Vector(oldPitchDeg, oldYawDeg, 0);
+			if (rotmats.containsKey(key)) {
+				rotmat = rotmats.get(key);
+			} else {
+				Matrix3d undoYawMat = new Matrix3d(
+						Math.cos(oldYaw), 0f, -Math.sin(oldYaw),
+						0f, 1f, 0f,
+						Math.sin(oldYaw), 0f, Math.cos(oldYaw));
+				Matrix3d applyrot = DexUtils.rotMat(pitch, deltaYaw, 0);
+
+				rotmat = applyrot.mul(undoYawMat);
+				rotmats.put(key, rotmat);
+			}
+
 			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
 			Vector3f newOffset = new Vector3f();
 			rotmat.transform(oldOffset, newOffset);
-			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
-			loc.setYaw(loc.getYaw() + yaw_deg - oldYawDeg);
-			loc.setPitch(loc.getPitch() + pitch_deg - oldPitchDeg);
+
+			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
+			loc.setYaw(yaw_deg + (set_yaw ? 0 : oldYawDeg));
+			loc.setPitch(pitch_deg + (set_pitch ? 0 : oldPitchDeg));
 			b.teleport(loc);
-			//b.setRotation(0, 0, Math.toRadians(20));
 		}
 		
-		this.yaw = yaw_deg;
-		this.pitch = pitch_deg;
+		if (pitch_deg == 0 && set_pitch && rotmats.size() == 1) zero_pitch = true;
+	}
+	
+	//faster function for the case where pitch == 0
+	private void rotate(float yaw_deg, boolean set) {
+		Bukkit.broadcastMessage("using yaw shortcut");
+		if (!zero_pitch || (!set && Math.abs(yaw_deg) <= 0.00001)) return;
+		HashMap<Float, Matrix3d> rotmats = new HashMap<>();
+
+		final Vector centerv = center.toVector();
+		double yaw = Math.toRadians(yaw_deg);
+		for (DexBlock b : blocks) {
+			float oldYawDeg = b.getEntity().getLocation().getYaw();
+
+			double deltaYaw = (set ? Math.toRadians(oldYawDeg) - yaw : yaw);
+			if (Math.abs(deltaYaw) < 0.00001) continue;
+			Matrix3d rotmat;
+			if (rotmats.containsKey(oldYawDeg)) rotmat = rotmats.get(oldYawDeg);
+			else {
+				rotmat = new Matrix3d(
+						Math.cos(deltaYaw), 0f, -Math.sin(deltaYaw),
+						0f, 1f, 0f,
+						Math.sin(deltaYaw), 0f, Math.cos(deltaYaw));
+				rotmats.put(oldYawDeg, rotmat);
+			}
+			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
+			Vector3f newOffset = new Vector3f();
+			rotmat.transform(oldOffset, newOffset);
+
+			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
+			loc.setYaw(yaw_deg + (set ? 0 : oldYawDeg));
+			b.teleport(loc);
+		}
 	}
 
 }

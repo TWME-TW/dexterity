@@ -74,14 +74,8 @@ public class DexterityAPI {
 		return plugin.getDisplay(label);
 	}
 	
-	public DexSession getEditSession(UUID u) {
+	public DexSession getSession(UUID u) {
 		return plugin.getEditSession(u);
-	}
-	
-	public String getAuthor() {
-		final String message_for_pirates = "Go ahead and make the software FREE for the benefit of Minecraft servers. However, you'd better not claim it as your own or load it with viruses, or I'll find you >:3" +
-				"\n Leave a visible spigotMC link to the original work at the top of your page. Also take a shower you smell like rum.";
-		return ("ytrew").replace('y', 'C').replace('w', 'v').replace('t', '7').replace('r', 'd');
 	}
 	
 	public DexterityDisplay createDisplay(Location l1, Location l2) { //l1 and l2 bounding box, all blocks inside converted
@@ -153,7 +147,7 @@ public class DexterityAPI {
 		}
 	}
 	
-	public ClickedBlockDisplay getLookingAt(Player p) {
+	public ClickedBlockDisplay getLookingAt(Player p) { //get the block display that the player is looking at
 		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
@@ -169,32 +163,30 @@ public class DexterityAPI {
 			if (!(entity instanceof BlockDisplay) || markerPoints.contains(entity.getUniqueId())) continue;
 			BlockDisplay e = (BlockDisplay) entity;
 			Vector scale_raw = DexUtils.vector(e.getTransformation().getScale());
-			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out
+			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out displacement to center
 			scale_raw.multiply(0.5);
 			//Location loc = e.getLocation().add(scale);
 			Location loc = e.getLocation();
-			
 			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scale_raw);
-			
 			//loc.add(scale).subtract(scale_raw);
+			
+			//calculate the center of the actual block we see, accounting for y-axis asymmetry
 			loc.setY(loc.getY() + scale.getY() - scale_raw.getY());
 						
-			
 			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
 			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
-
-			//if (!e.isGlowing()) markerPoint(loc, Color.AQUA, 4);
 			
+			//check if the player is looking in the general direction of the block, accounting for scale
 			Vector diff = loc.toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
+			
 			Vector locv = loc.toVector();
-			
-			
 			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0;
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
-			if (rotated) {
+			
+			if (rotated) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
 				Vector key = new Vector(e.getLocation().getYaw(), e.getLocation().getPitch(), 0f);
 				Matrix3d rotmat = rot_matrices.get(key);
 				if (rotmat == null) {
@@ -213,7 +205,6 @@ public class DexterityAPI {
 				south_dir = new Vector(0, 0, scale.getZ());
 				basis_vecs = basis_vecs_norot;
 			}
-			
 									
 			//block face centers
 			Vector up = locv.clone().add(up_dir), down = locv.clone().add(up_dir.clone().multiply(-1));
@@ -237,7 +228,7 @@ public class DexterityAPI {
 				matrix.invert();
 				Vector3f cf = new Vector3f();
 				Vector c = DexUtils.vector(matrix.transform(DexUtils.vector(L), cf));
-				double dist = -c.getZ();
+				double dist = -c.getZ(); //distance from player's eye to precise location on surface in units of blocks (magic :3)
 				if (dist < 0) continue; //behind head
 				
 				switch(i) { //check within block face
@@ -258,13 +249,14 @@ public class DexterityAPI {
 								
 				Vector raw_offset = basis1.clone().multiply(c.getX())
 						.add(basis2.clone().multiply(c.getY()));
-				Vector blockoffset = locs[i].clone().add(raw_offset);
+				Vector blockoffset = locs[i].clone().add(raw_offset); //surface location
 				
 				//markerPoint(DexUtils.location(loc.getWorld(), blockoffset), Color.WHITE, 5);
 				
 				if (dist < mindist) {
 					mindist = dist;
-					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), loc, getNormal(faces[i], up_dir, east_dir, south_dir));
+					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), 
+							loc, getNormal(faces[i], up_dir, east_dir, south_dir), dist);
 				}
 			}
 			
@@ -296,6 +288,12 @@ public class DexterityAPI {
 			}.runTaskLater(plugin, seconds*20l);
 		}
 		return disp;
+	}
+	
+	public String getAuthor() {
+		final String message_for_pirates = "Make it FREE. You'd better not claim it as your own or load it with viruses, or I'll find you >:3" +
+				"\n Leave a visible spigotMC link to the original work at the top of your page. Also take a shower you smell like rum.";
+		return ("ytrew").replace('y', 'C').replace('w', 'v').replace('t', '7').replace('r', 'd');
 	}
 	
 	public void tempHighlight(DexterityDisplay d, int ticks) {
