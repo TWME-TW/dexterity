@@ -236,11 +236,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("set")) {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
-				case CLONE:
+				case CLONE_MERGE:
 					if (session.getSecondary() != null) {
-						Bukkit.broadcastMessage("A");
 						session.getSecondary().hardMerge(session.getSelected());
 					}
+				case CLONE_NOMERGE:
 					p.sendMessage(getConfigString("clone-success", session));
 					break;
 				default:
@@ -341,6 +341,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("to-finish-edit", session));
 			
 			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
+			clone.setBaseRotation((float) d.getYaw(), (float) d.getPitch(), 0f);
 			
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
@@ -357,7 +358,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			clone.setEntities(blocks, false);
 			
-			session.startEdit(clone, EditType.CLONE, mergeafter);
+			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE_NOMERGE, true);
 			
 			if (!flags.contains("nofollow")) session.startFollowing();
 			

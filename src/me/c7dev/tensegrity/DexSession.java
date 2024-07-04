@@ -22,7 +22,8 @@ public class DexSession {
 	
 	public enum EditType {
 		TRANSLATE,
-		CLONE,
+		CLONE_MERGE,
+		CLONE_NOMERGE,
 		MERGE,
 		DEEPMERGE,
 		SCALE,
@@ -112,7 +113,7 @@ public class DexSession {
 	}
 	
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {
-		if (selected == null) return;
+		if (selected == null || editType != null) return;
 		editType = type;
 		if (d != selected) {
 			if (swap) {

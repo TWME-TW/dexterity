@@ -212,8 +212,12 @@ public class Dexterity extends JavaPlugin {
 				double sx = afile.getDouble(label + ".scale-x");
 				double sy = afile.getDouble(label + ".scale-y");
 				double sz = afile.getDouble(label + ".scale-z");
+				float base_yaw = (float) afile.getDouble(label + ".yaw");
+				float base_pitch = (float) afile.getDouble(label + ".pitch");
+				float base_roll = (float) afile.getDouble(label + ".roll");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
+				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
 				disp.forceSetLabel(label);
 				
 				for (BlockDisplay bd : blocks) {

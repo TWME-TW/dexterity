@@ -27,6 +27,7 @@ public class DexterityDisplay {
 	private DexterityDisplay parent;
 	private boolean started_animations = false, zero_pitch = false;
 	private UUID uuid = UUID.randomUUID(), editing_lock;
+	private float base_yaw = 0f, base_pitch = 0f;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
@@ -55,11 +56,25 @@ public class DexterityDisplay {
 		return label;
 	}
 	
+	public double getYaw() {
+		return base_yaw;
+	}
+	public double getPitch() {
+		return base_pitch;
+	}
+	public void setBaseRotation(float yaw, float pitch, float roll) {
+		base_yaw = yaw;
+		base_pitch = pitch;
+	}
+	
 	public void recalculateCenter() {
 		Vector cvec = new Vector(0, 0, 0);
 		World w;
 		int n = 0;
 		zero_pitch = true;
+		
+		boolean set_dir = false;
+		
 		if (blocks.size() == 0) {
 			w = plugin.getDefaultWorld();
 			n = 1;
@@ -70,6 +85,13 @@ public class DexterityDisplay {
 			for (DexBlock db : blocks) {
 				cvec.add(db.getLocation().toVector());
 				if (zero_pitch && db.getEntity().getLocation().getPitch() != 0) zero_pitch = false;
+				if (!set_dir) {
+					base_yaw = db.getEntity().getLocation().getYaw();
+					base_pitch = db.getEntity().getLocation().getPitch();
+				} else {
+					if (db.getEntity().getLocation().getYaw() != base_yaw) base_yaw = 0;
+					if (db.getEntity().getLocation().getPitch() != base_pitch) base_pitch = 0;
+				}
 			}
 		}
 		center = DexUtils.location(w, cvec.multiply(1.0/n));
@@ -399,24 +421,29 @@ public class DexterityDisplay {
 	
 	public void rotate(float yaw_deg, float pitch_deg, boolean set_yaw, boolean set_pitch) {
 		
+		if (blocks.size() == 0) return;
+		
 		if (Math.abs(yaw_deg) < 0.0001 && !set_yaw && Math.abs(pitch_deg) < 0.0001 && !set_pitch) return;
 		
-		if (pitch_deg == 0 && zero_pitch) {
-			rotate(yaw_deg, set_yaw);
-			return;
-		}
+//		if (pitch_deg == 0 && zero_pitch) {
+//			rotate(yaw_deg, set_yaw);
+//			return;
+//		}
 		if (zero_pitch && pitch_deg != 0) zero_pitch = false;
 		
 		HashMap<Vector, Matrix3d> rotmats = new HashMap<>();
+		HashMap<Vector, Vector> directions = new HashMap<>();
 		
 		final Vector centerv = center.toVector();
 		double yaw = Math.toRadians(yaw_deg);
+		float baseYaw = (float) Math.toRadians(base_yaw);
 		for (DexBlock b : blocks) {
 			float oldPitchDeg = b.getEntity().getLocation().getPitch(), oldYawDeg = b.getEntity().getLocation().getYaw();
 			float oldYaw = (float) Math.toRadians(oldYawDeg);
 			double pitch = Math.toRadians(pitch_deg - (set_pitch ? oldPitchDeg : 0)); //-oldPitch
 			
-			double deltaYaw = yaw + (set_yaw ? 0 : oldYaw);
+			//double deltaYaw = yaw + (set_yaw ? -oldYaw : oldYaw);
+			double deltaYaw = set_yaw ? yaw + oldYaw - baseYaw : yaw + oldYaw;
 
 			if (pitch == 0 && Math.abs(deltaYaw - oldYaw) < 0.00001) return;
 			
@@ -433,6 +460,7 @@ public class DexterityDisplay {
 
 				rotmat = applyrot.mul(undoYawMat);
 				rotmats.put(key, rotmat);
+				
 			}
 
 			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
@@ -440,10 +468,13 @@ public class DexterityDisplay {
 			rotmat.transform(oldOffset, newOffset);
 
 			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
-			loc.setYaw(yaw_deg + (set_yaw ? 0 : oldYawDeg));
+			loc.setYaw(set_yaw ? oldYawDeg - base_yaw + yaw_deg : oldYawDeg + yaw_deg);
 			loc.setPitch(pitch_deg + (set_pitch ? 0 : oldPitchDeg));
 			b.teleport(loc);
 		}
+		
+		base_yaw = set_yaw ? yaw_deg : base_yaw + yaw_deg;
+		base_pitch = set_pitch ? pitch_deg : base_pitch + pitch_deg;
 		
 		if (pitch_deg == 0 && set_pitch && rotmats.size() == 1) zero_pitch = true;
 	}
@@ -452,7 +483,7 @@ public class DexterityDisplay {
 	private void rotate(float yaw_deg, boolean set) {
 		Bukkit.broadcastMessage("using yaw shortcut");
 		if (!zero_pitch || (!set && Math.abs(yaw_deg) <= 0.00001)) return;
-		HashMap<Float, Matrix3d> rotmats = new HashMap<>();
+		HashMap<Double, Matrix3d> rotmats = new HashMap<>();
 
 		final Vector centerv = center.toVector();
 		double yaw = Math.toRadians(yaw_deg);
@@ -462,20 +493,20 @@ public class DexterityDisplay {
 			double deltaYaw = (set ? Math.toRadians(oldYawDeg) - yaw : yaw);
 			if (Math.abs(deltaYaw) < 0.00001) continue;
 			Matrix3d rotmat;
-			if (rotmats.containsKey(oldYawDeg)) rotmat = rotmats.get(oldYawDeg);
+			if (rotmats.containsKey(deltaYaw)) rotmat = rotmats.get(deltaYaw);
 			else {
 				rotmat = new Matrix3d(
-						Math.cos(deltaYaw), 0f, -Math.sin(deltaYaw),
+						Math.cos(deltaYaw), 0f, Math.sin(deltaYaw),
 						0f, 1f, 0f,
-						Math.sin(deltaYaw), 0f, Math.cos(deltaYaw));
-				rotmats.put(oldYawDeg, rotmat);
+						-Math.sin(deltaYaw), 0f, Math.cos(deltaYaw));
+				rotmats.put(deltaYaw, rotmat);
 			}
 			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
 			Vector3f newOffset = new Vector3f();
 			rotmat.transform(oldOffset, newOffset);
 
 			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
-			loc.setYaw(yaw_deg + (set ? 0 : oldYawDeg));
+			loc.setYaw(yaw_deg + (set ? -oldYawDeg : oldYawDeg));
 			b.teleport(loc);
 		}
 	}
