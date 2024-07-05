@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -18,7 +19,6 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
-import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
@@ -177,6 +177,14 @@ public class Dexterity extends JavaPlugin {
 		}
 	}
 	
+	private void purgeHelper(DexterityDisplay d) {
+		if (d.getBlocks().size() > 0) return;
+		if (d.getSubdisplays().size() == 0) d.remove(false);
+		else {
+			for (DexterityDisplay sub : d.getSubdisplays()) purgeHelper(sub);
+		}
+	}
+	
 	private int loadDisplays() { //load from displays.yml
 		File f = new File(this.getDataFolder().getAbsolutePath() + "/displays.yml");
 		try {
@@ -237,6 +245,15 @@ public class Dexterity extends JavaPlugin {
 				if (disp.getParent() == null) displays.put(disp.getLabel(), disp);
 				all_displays.put(disp.getLabel(), disp);
 			}
+			
+			//purge empty displays if any were loaded
+			DexterityDisplay[] allLabeled = new DexterityDisplay[displays.size()];
+			int i = 0;
+			for (Entry<String,DexterityDisplay> entry : displays.entrySet()) {
+				allLabeled[i] = entry.getValue();
+				i++;
+			}
+			for (DexterityDisplay disp : allLabeled) purgeHelper(disp);
 			
 			return display_count;
 			

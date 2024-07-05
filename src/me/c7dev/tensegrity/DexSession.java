@@ -22,8 +22,7 @@ public class DexSession {
 	
 	public enum EditType {
 		TRANSLATE,
-		CLONE_MERGE,
-		CLONE_NOMERGE,
+		CLONE,
 		MERGE,
 		DEEPMERGE,
 		SCALE,

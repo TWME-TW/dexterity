@@ -135,20 +135,8 @@ public class DexterityAPI {
 		return basis_vecs;
 	}
 	
-	private Vector getNormal(BlockFace f, Vector up, Vector east, Vector south) {
-		switch(f) {
-		case UP: return up.clone().normalize();
-		case DOWN: return up.clone().multiply(-1).normalize();
-		case SOUTH: return south.clone().normalize();
-		case NORTH: return south.clone().multiply(-1).normalize();
-		case EAST: return east.clone().normalize();
-		case WEST: return east.clone().multiply(-1).normalize();
-		default: return new Vector(0, 0, 0);
-		}
-	}
-	
 	public ClickedBlockDisplay getLookingAt(Player p) { //get the block display that the player is looking at
-		List<Entity> near = p.getNearbyEntities(6d, 6d, 6d);
+		List<Entity> near = p.getNearbyEntities(3.5, 3.5, 3.5);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
 		double mindist = Double.MAX_VALUE;
@@ -172,7 +160,7 @@ public class DexterityAPI {
 			
 			//calculate the center of the actual block we see, accounting for y-axis asymmetry
 			loc.setY(loc.getY() + scale.getY() - scale_raw.getY());
-						
+			
 			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
 			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
 			
@@ -256,7 +244,7 @@ public class DexterityAPI {
 				if (dist < mindist) {
 					mindist = dist;
 					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), 
-							loc, getNormal(faces[i], up_dir, east_dir, south_dir), dist);
+							loc, up_dir, east_dir, south_dir, dist);
 				}
 			}
 			

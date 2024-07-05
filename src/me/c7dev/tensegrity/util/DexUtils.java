@@ -3,12 +3,15 @@ package me.c7dev.tensegrity.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.type.Snow;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -16,7 +19,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
-import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 public class DexUtils {
@@ -181,6 +183,18 @@ public class DexUtils {
 		return firstarg;
 	}
 	
+	public static double faceToDirection(BlockFace face, Vector scale) {
+		switch(face) {
+		case UP: return scale.getY();
+		case DOWN: return -scale.getY();
+		case EAST: return scale.getX();
+		case WEST: return -scale.getX();
+		case SOUTH: return scale.getZ();
+		case NORTH: return -scale.getZ();
+		default: return 1;
+		}
+	}
+	
 	public static int parseInt(String s) {
 		try {
 			return Integer.parseInt(s);
@@ -232,21 +246,48 @@ public class DexUtils {
 	public static Vector getBlockDimensions(BlockData b) {
 		Material mat = b.getMaterial();
 		String m = mat.toString();
-		if (m.endsWith("_SLAB") || m.endsWith("_CARPET")) return new Vector(1, 0.5, 1);
+		if (m.endsWith("_SLAB")) return new Vector(1, 0.5, 1);
 		if (m.endsWith("_TRAPDOOR")) return new Vector(1, 3.0/16, 1);
 		if (m.endsWith("_FENCE")) return new Vector(0.25, 1, 0.25);
 		if (m.endsWith("_BED")) return new Vector(1, 9.0/16, 1);
+		if (m.endsWith("TORCH")) return new Vector(0.125, 0.625, 0.125);
+		if (m.endsWith("LANTERN")) return new Vector(0.375, 11.0/16, 0.375);
+		if (m.endsWith("_WALL")) return new Vector(0.5, 1, 0.5);
+		if (m.endsWith("_CARPET") || m.endsWith("_PRESSURE_PLATE")) return new Vector(1, 1.0/16, 1);
+		if (m.startsWith("POTTED")) {
+			if (m.endsWith("_SAPLING")) return new Vector(0.625, 1, 0.625);
+		}
+		if (m.endsWith("CANDLE")) return new Vector(0.125, 7.0/16, 0.125);
+		if (m.endsWith("RAIL")) return new Vector(1, 0.125, 1);
 		
 		//TODO doors, fences, gates
-		
+		BlockFace facing = null;
+		if (b instanceof Directional) {
+			Directional bd = (Directional) b;
+			facing = bd.getFacing();
+		}
+										
 		switch(mat) {
 		case SNOW:
 			Snow sd = (Snow) b;
 			return new Vector(1, sd.getLayers() / 8.0, 1);
+		case END_ROD:
+		case LIGHTNING_ROD:
 		case CHAIN: return new Vector(0.25, 1, 0.25);
-		default:
+		case IRON_BARS: return new Vector(0.125, 1, 0.125);
+		case END_PORTAL_FRAME: return new Vector(1, 13.0/16, 1);
+		case FLOWER_POT: return new Vector(0.375, 0.375, 0.357);
+		case POTTED_BROWN_MUSHROOM:
+		case POTTED_RED_MUSHROOM: return new Vector(0.375, 9.0/16, 0.375);
+		case POTTED_CACTUS: return new Vector(0.375, 1, 0.375);
+		case NETHER_PORTAL: return new Vector(1, 1, 0.25);
+		case BELL:
+			if (facing == BlockFace.WEST || facing == BlockFace.EAST) return new Vector(0.25, 1, 1);
+			else return new Vector(1, 1, 0.25);
+		case REPEATER:
+		case COMPARATOR: return new Vector(1, 7.0/16, 1);
+		default: return new Vector(1, 1, 1);
 		}
-		return new Vector(1, 1, 1);
 	}
 	
 	public static Matrix3d rotMatDeg(double xdeg, double ydeg, double zdeg) {

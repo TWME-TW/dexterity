@@ -354,7 +354,7 @@ public class DexterityDisplay {
 			
 			//Vector diff = new Vector(disp.getX()*(sd.getX()-1), disp.getY()*(sd.getY()-1), disp.getZ()*(sd.getZ()-1));
 			Vector diff = DexUtils.hadimard(disp, sd);
-						
+			
 			db.move(diff);
 			
 			db.getTransformation()
@@ -448,9 +448,12 @@ public class DexterityDisplay {
 			if (pitch == 0 && Math.abs(deltaYaw - oldYaw) < 0.00001) return;
 			
 			Matrix3d rotmat;
+			Vector direction;
 			Vector key = new Vector(oldPitchDeg, oldYawDeg, 0);
+			
 			if (rotmats.containsKey(key)) {
 				rotmat = rotmats.get(key);
+				direction = directions.get(key);
 			} else {
 				Matrix3d undoYawMat = new Matrix3d(
 						Math.cos(oldYaw), 0f, -Math.sin(oldYaw),
@@ -459,7 +462,15 @@ public class DexterityDisplay {
 				Matrix3d applyrot = DexUtils.rotMat(pitch, deltaYaw, 0);
 
 				rotmat = applyrot.mul(undoYawMat);
+				//rotmat = DexUtils.rotMat(pitch, deltaYaw - oldYaw, 0);
 				rotmats.put(key, rotmat);
+				
+				Location loc1 = b.getLocation();
+				Vector3f dirrot = DexUtils.vector(loc1.getDirection());
+				rotmat.transform(dirrot);
+				loc1.setDirection(DexUtils.vector(dirrot));
+				direction = new Vector(loc1.getYaw(), loc1.getPitch(), 0);
+				directions.put(key, direction);
 				
 			}
 
@@ -468,8 +479,10 @@ public class DexterityDisplay {
 			rotmat.transform(oldOffset, newOffset);
 
 			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
-			loc.setYaw(set_yaw ? oldYawDeg - base_yaw + yaw_deg : oldYawDeg + yaw_deg);
-			loc.setPitch(pitch_deg + (set_pitch ? 0 : oldPitchDeg));
+			loc.setYaw((float) direction.getX());
+			loc.setPitch((float) direction.getY());
+			//loc.setYaw(set_yaw ? oldYawDeg - base_yaw + yaw_deg : oldYawDeg + yaw_deg);
+			//loc.setPitch(pitch_deg + (set_pitch ? 0 : oldPitchDeg));
 			b.teleport(loc);
 		}
 		

@@ -236,11 +236,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("set")) {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
-				case CLONE_MERGE:
+				case CLONE:
 					if (session.getSecondary() != null) {
 						session.getSecondary().hardMerge(session.getSelected());
 					}
-				case CLONE_NOMERGE:
 					p.sendMessage(getConfigString("clone-success", session));
 					break;
 				default:
@@ -267,6 +266,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("recenter-success", session));
 			
 		}
+		
+		//TODO: solidify/unsolidify command to add barriers
 		
 		else if (args[0].equalsIgnoreCase("align")) {
 			DexterityDisplay d = getSelected(session);
@@ -358,7 +359,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			clone.setEntities(blocks, false);
 			
-			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE_NOMERGE, true);
+			session.startEdit(clone, EditType.CLONE, mergeafter);
 			
 			if (!flags.contains("nofollow")) session.startFollowing();
 			
@@ -595,7 +596,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equalsIgnoreCase("scale")) {
+		else if (args[0].equalsIgnoreCase("scale") || args[0].equalsIgnoreCase("s")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
@@ -732,7 +733,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equalsIgnoreCase("recenter")) {
 			ret.add("-continuous");
 		}
-		else if (argsr[0].equalsIgnoreCase("scale")) {
+		else if (argsr[0].equalsIgnoreCase("scale") || argsr[0].equalsIgnoreCase("s")) {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
