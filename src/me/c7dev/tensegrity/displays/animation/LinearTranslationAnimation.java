@@ -10,11 +10,14 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 public class LinearTranslationAnimation extends Animation {
 	
 	private Location start_loc;
-		
-	public LinearTranslationAnimation(DexterityDisplay display, Dexterity plugin, int ticks, Vector displacement) {
+	private Location end_loc;
+			
+	public LinearTranslationAnimation(DexterityDisplay display, Dexterity plugin, int ticks, Location end_loc) {
 		super(display, plugin, ticks);
 		
 		start_loc = display.getCenter();
+		this.end_loc = end_loc;
+		Vector displacement = end_loc.toVector().subtract(start_loc.toVector());
 				
 		super.setRunnable(new BukkitRunnable() {
 			Vector dtick = displacement.clone().multiply(1.0/ticks);
@@ -26,6 +29,14 @@ public class LinearTranslationAnimation extends Animation {
 				tick();
 			}
 		});
+	}
+	
+	public Location getStartLocation() {
+		return start_loc;
+	}
+	
+	public Location getEndLocation() {
+		return end_loc;
 	}
 	
 	@Override

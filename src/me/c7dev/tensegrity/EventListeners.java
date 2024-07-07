@@ -13,7 +13,6 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
@@ -24,6 +23,7 @@ import me.c7dev.tensegrity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
+import me.c7dev.tensegrity.util.ClickedBlock;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexTransformation;
@@ -66,6 +66,8 @@ public class EventListeners implements Listener {
 			//calculate if player clicked a block display
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
 			ClickedBlockDisplay clicked = plugin.getAPI().getLookingAt(e.getPlayer());
+			ClickedBlock clicked_block_data = plugin.getAPI().getBlockLookingAtRaw(e.getPlayer(), 0.05);
+			boolean clicked_block = clicked == null || (clicked_block_data != null && clicked_block_data.getDistance() < clicked.getDistance());		
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
 			DexterityDisplay clicked_display = null;
 			DexBlock clicked_db = null;
@@ -81,20 +83,19 @@ public class EventListeners implements Listener {
 				e.setCancelled(true);
 				
 				//select display with wand
-				if (clicked_display != null && clicked_display.getLabel() != null) {
+				if (!clicked_block && clicked_display != null && clicked_display.getLabel() != null) {
 					session.setSelected(clicked_display, true);
 					return;
 				}
-				if (clicked != null) { //click block with wand (set pos1 or pos2)
-					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), true);
-					else session.setLocation(DexUtils.blockLoc(clicked.getDisplayCenterLocation()), false);
-					if (session.getLocation1() == null || session.getLocation2() == null) plugin.getAPI().tempHighlight(clicked.getBlockDisplay(), 15, Color.GRAY);
+				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
+					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(clicked.getDisplayCenterLocation(), true, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
+					else session.setLocation(clicked.getDisplayCenterLocation(), false, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
 				} else if (e.getClickedBlock() != null) {
 					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
 					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
 				}
 			} else {
-				if (clicked == null) return;
+				if (clicked == null || clicked_block) return;
 				e.setCancelled(true);
 				
 				//send event
@@ -108,31 +109,42 @@ public class EventListeners implements Listener {
 						
 						BlockData bdata = Bukkit.createBlockData(hand.getType() == Material.NETHER_STAR ? Material.NETHER_PORTAL : hand.getType());
 						Vector placingDimensions = DexUtils.getBlockDimensions(bdata);
-						placingDimensions.setY(1); //account for block's y axis asymmetry
 
 						Vector blockscale = DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale());
 						Vector blockdimensions = DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock());
 						//Vector placingScale = DexUtils.hadimard(blockscale, DexUtils.getBlockDimensions(bdata));
-						
+												
 						//calculate dimensions of clicked block display
-						Vector avgPlaceDimensions = blockdimensions.clone().add(placingDimensions).multiply(0.5);
-						Vector dimensions = DexUtils.hadimard(blockscale, avgPlaceDimensions);
+						Vector avgPlaceDimensions;
+						if (clicked.getBlockFace() == BlockFace.DOWN) {
+							avgPlaceDimensions = blockdimensions.clone().multiply(0.5).add(placingDimensions).add(new Vector(-0.5, -0.5, -0.5));
+							//avgPlaceDimensions = new Vector(0, (blockdimensions.getY()/2) + placingDimensions.getY() - 0.5, 0); //new Vector(0, (blockdimensions.getY()/2) + placingDimensions.getY() - 0.5, 0); //blockscale.clone().add(placingDimensions).multiply(0.5);
+						}
+						else {
+							placingDimensions.setY(1); //account for block's y axis asymmetry
+							avgPlaceDimensions = blockdimensions.clone().add(placingDimensions).multiply(0.5);
+						}
 						
+						Vector offset = DexUtils.hadimard(blockscale, avgPlaceDimensions);
+												
 						Vector dir = clicked.getNormal();
-						Vector delta = dir.clone().multiply(Math.abs(DexUtils.faceToDirection(clicked.getBlockFace(), dimensions)));
+						Vector delta = dir.clone().multiply(DexUtils.faceToDirectionAbs(clicked.getBlockFace(), offset));
 						
 						DexTransformation trans = (clicked_db == null ? new DexTransformation(clicked.getBlockDisplay().getTransformation()) : clicked_db.getTransformation());
 
 						Location fromLoc = clicked.getDisplayCenterLocation();
 						if (clicked.getBlockFace() != BlockFace.UP && clicked.getBlockFace() != BlockFace.DOWN) fromLoc.add(clicked.getUpDir().multiply((blockscale.getY()/2)*(1 - blockdimensions.getY())));
-												
-						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.add(delta), BlockDisplay.class, a -> {
+						
+						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.clone().add(delta), BlockDisplay.class, a -> {
 							a.setBlock(bdata);
 							trans.setScale(blockscale);
 							trans.setDisplacement(blockscale.clone().multiply(-0.5));
 							a.setTransformation(trans.build());
 						});
-												
+						
+//						plugin.getAPI().markerPoint(clicked.getDisplayCenterLocation().add(dir.clone().multiply(blockdimensions.getY()/2)), Color.AQUA, 6);
+//						plugin.getAPI().markerPoint(b.getLocation(), Color.LIME, 6);
+						
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 
 						if (clicked_display != null) clicked_display.getBlocks().add(new DexBlock(b, clicked_display));

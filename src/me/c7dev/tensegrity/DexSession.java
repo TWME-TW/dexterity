@@ -37,7 +37,7 @@ public class DexSession {
 	private Vector following = null;
 	private EditType editType = null;
 	private Location orig_loc = null;
-	private int volume = Integer.MAX_VALUE;
+	private double volume = Integer.MAX_VALUE;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -154,31 +154,32 @@ public class DexSession {
 		return l1 == null ? null : l1.getWorld();
 	}
 	
-	public int getSelectionVolume() {
+	public double getSelectionVolume() {
 		return volume;
 	}
 	
 	public void setLocation(Location loc, boolean is_l1) {
+		setLocation(loc, is_l1, null);
+	}
+	
+	public void setLocation(Location loc, boolean is_l1, Vector scale) {
 		
-		loc.setX(loc.getBlockX());
-		loc.setY(loc.getBlockY());
-		loc.setZ(loc.getBlockZ());
-		loc.setYaw(0);
-		loc.setPitch(0);
+		if (scale == null) DexUtils.blockLoc(loc);
+		else scale.multiply(0.5);
 
 		if (is_l1) l1 = loc;
 		else l2 = loc;
 
 		if (editType == null) {
 			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
-				int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());
-				int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
-				int zmin = Math.min(l1.getBlockZ(), l2.getBlockZ()), zmax = Math.max(l1.getBlockZ(), l2.getBlockZ());
+				double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
+				double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
+				double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
 
 				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
 
 				if (volume <= plugin.getMaxVolume()) { //set selected
-					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegion(l1, l2);
+					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegion(l1, l2, scale);
 					if (blocks.size() > 0) {
 						DexterityDisplay s = new DexterityDisplay(plugin);
 						List<DexBlock> dblocks = new ArrayList<>();
@@ -186,8 +187,13 @@ public class DexSession {
 							dblocks.add(new DexBlock(bd, s));
 						}
 						s.setEntities(dblocks, true);
-						if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(s, 30);
 
+						if (selected != null) {
+							for (DexBlock db : selected.getBlocks()) {
+								if (plugin.getAPI().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
+							}
+						}
+						if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(s, 30);
 						selected = s;
 					}
 				}

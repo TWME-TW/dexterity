@@ -27,6 +27,7 @@ import org.joml.Vector3f;
 import me.c7dev.tensegrity.DexSession;
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.util.ClickedBlock;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -123,20 +124,14 @@ public class DexterityAPI {
 		Vector a = new Vector(mat.m00, mat.m01, mat.m02).normalize(), 
 				b = new Vector(mat.m10, mat.m11, mat.m12).normalize(), 
 				c = new Vector(mat.m20, mat.m21, mat.m22).normalize();
-//		Vector[][] basis_vecs = {
-//				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
-//				{new Vector(1, 0, 0), new Vector(0, 0, 1)},
-//				{new Vector(-1, 0, 0), new Vector(0, 1, 0)},
-//				{new Vector(1, 0, 0), new Vector(0, 1, 0)},
-//				{new Vector(0, 0, -1), new Vector(0, 1, 0)},
-//				{new Vector(0, 0, 1), new Vector(0, 1, 0)}
-//		};
 		Vector[][] basis_vecs = {{a, c}, {a, c}, {a, b}, {a.clone().multiply(-1), b}, {c.clone().multiply(-1), b}, {c, b}};
 		return basis_vecs;
 	}
 	
-	public ClickedBlockDisplay getLookingAt(Player p) { //get the block display that the player is looking at
-		List<Entity> near = p.getNearbyEntities(3.5, 3.5, 3.5);
+	//get the block display that the player is looking at
+	//avg 0.011371 milliseconds per block on a potato pc :D
+	public ClickedBlockDisplay getLookingAt(Player p) {
+		List<Entity> near = p.getNearbyEntities(4.5, 4.5, 4.5);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
 		double mindist = Double.MAX_VALUE;
@@ -146,6 +141,7 @@ public class DexterityAPI {
 		HashMap<Vector, Matrix3d> rot_matrices = new HashMap<>();
 				
 		Vector[][] basis_vecs_norot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
+		Vector east_unit = new Vector(1, 0, 0), up_unit = new Vector(0, 1, 0), south_unit = new Vector(0, 0, 1);
 									
 		for (Entity entity : near) {
 			if (!(entity instanceof BlockDisplay) || markerPoints.contains(entity.getUniqueId())) continue;
@@ -154,22 +150,13 @@ public class DexterityAPI {
 			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out displacement to center
 			scale_raw.multiply(0.5);
 			//Location loc = e.getLocation().add(scale);
-			Location loc = e.getLocation();
 			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scale_raw);
-			//loc.add(scale).subtract(scale_raw);
-			
-			//calculate the center of the actual block we see, accounting for y-axis asymmetry
-			loc.setY(loc.getY() + scale.getY() - scale_raw.getY());
-			
-			//loc.add(scale.getX()-0.5, scale.getY()-0.5, scale.getZ()-0.5);
-			//if (transl != null) loc.add(transl.x(), transl.y(), transl.z());
 			
 			//check if the player is looking in the general direction of the block, accounting for scale
-			Vector diff = loc.toVector().subtract(eye_loc).normalize();
+			Vector diff = e.getLocation().toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
 			
-			Vector locv = loc.toVector();
 			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0;
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
@@ -183,21 +170,26 @@ public class DexterityAPI {
 					basis_vecs = getBasisVecs(rotmat);
 					basis.put(key, basis_vecs);		
 				} else basis_vecs = basis.get(key);
-				east_dir = new Vector(rotmat.m00, rotmat.m01, rotmat.m02).multiply(scale.getX());
-				up_dir = new Vector(rotmat.m10, rotmat.m11, rotmat.m12).multiply(scale.getY());
+				east_dir = new Vector(rotmat.m00, rotmat.m01, rotmat.m02);
+				up_dir = new Vector(rotmat.m10, rotmat.m11, rotmat.m12);
 				south_dir = new Vector(rotmat.m20, rotmat.m21, rotmat.m22).multiply(scale.getZ());
 				
 			} else {
-				east_dir = new Vector(scale.getX(), 0, 0);
-				up_dir = new Vector(0, scale.getY(), 0);
-				south_dir = new Vector(0, 0, scale.getZ());
+				east_dir = east_unit;
+				up_dir = up_unit;
+				south_dir = south_unit;
 				basis_vecs = basis_vecs_norot;
 			}
+			
+			//calculate location of visual display accounting for axis asymmetry
+			Location loc = e.getLocation().add(DexUtils.vector(e.getTransformation().getTranslation())).add(scale_raw);
+			loc.add(up_dir.clone().multiply(scale.getY() - scale_raw.getY()));
+			Vector locv = loc.toVector();
 									
 			//block face centers
-			Vector up = locv.clone().add(up_dir), down = locv.clone().add(up_dir.clone().multiply(-1));
-			Vector south = locv.clone().add(south_dir), north = locv.clone().add(south_dir.clone().multiply(-1));
-			Vector east = locv.clone().add(east_dir), west = locv.clone().add(east_dir.clone().multiply(-1));
+			Vector up = locv.clone().add(up_dir.clone().multiply(scale.getY())), down = locv.clone().add(up_dir.clone().multiply(-scale.getY()));
+			Vector south = locv.clone().add(south_dir.clone().multiply(scale.getZ())), north = locv.clone().add(south_dir.clone().multiply(-scale.getZ()));
+			Vector east = locv.clone().add(east_dir.clone().multiply(scale.getX())), west = locv.clone().add(east_dir.clone().multiply(-scale.getX()));
 			
 			Vector[] locs = {up, down, south, north, east, west};
 						
@@ -253,6 +245,29 @@ public class DexterityAPI {
 		return nearest;
 	}
 	
+	public ClickedBlock getBlockLookingAt(Player p) {
+		return getBlockLookingAtRaw(p, 0.01); // same as getBlockLookingAt(p, 100);
+	}
+	
+	public ClickedBlock getBlockLookingAt(Player p, double percent_precision) {
+		return getBlockLookingAtRaw(p, Math.abs(1/percent_precision));
+	}
+	
+	public ClickedBlock getBlockLookingAtRaw(Player p, double step_multiplier) {
+		Vector step = p.getLocation().getDirection().multiply(step_multiplier);
+		
+		Location loc = p.getEyeLocation();
+		int i = 0, max = (int) (5.0 / step_multiplier);
+		while (loc.getBlock().getType() == Material.AIR && i < max) {
+			loc.add(step);
+			i++;
+		}
+
+		Block b = loc.getBlock();
+		if (b.getType() != Material.AIR) return new ClickedBlock(b, i*step_multiplier);
+		else return null;
+	}
+	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
 		float size = 0.04f;
 		BlockDisplay disp = loc.getWorld().spawn(loc, BlockDisplay.class, a -> {
@@ -285,9 +300,13 @@ public class DexterityAPI {
 	}
 	
 	public void tempHighlight(DexterityDisplay d, int ticks) {
+		tempHighlight(d, ticks, Color.SILVER);
+	}
+	
+	public void tempHighlight(DexterityDisplay d, int ticks, Color c) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		for (DexBlock db : d.getBlocks()) blocks.add(db.getEntity());
-		tempHighlight(blocks, ticks, Color.SILVER);
+		tempHighlight(blocks, ticks, c);
 	}
 	public void tempHighlight(BlockDisplay block, int ticks, Color c) {
 		List<BlockDisplay> blocks = new ArrayList<>();
@@ -319,10 +338,22 @@ public class DexterityAPI {
 		}.runTaskLater(plugin, ticks);
 	}
 	
+	public boolean isInProcess(UUID u) {
+		return pidMap.containsKey(u);
+	}
+	
 	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r) {
+		return getBlockDisplaysInRegion(l1r, l2r, null);
+	}
+	
+	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r, Vector scale_offset) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		
-		Location l1 = DexUtils.blockLoc(l1r.clone()), l2 = DexUtils.blockLoc(l2r.clone());
+		Location l1 = l1r.clone(), l2 = l2r.clone();
+		if (scale_offset == null) {
+			DexUtils.blockLoc(l1);
+			DexUtils.blockLoc(l2);
+		}
 				
 		if (l1.getX() > l2.getX()) {
 			double xt = l1.getX();
@@ -340,7 +371,11 @@ public class DexterityAPI {
 			l2.setZ(zt);
 		}
 		
-		l2.add(1, 1, 1);
+		if (scale_offset == null) l2.add(new Vector(1, 1, 1));
+		else {
+			l1.subtract(scale_offset);
+			l2.add(scale_offset);
+		}
 				
 //		markerPoint(l1, Color.LIME, 10);
 //		markerPoint(l2, Color.GREEN, 10);

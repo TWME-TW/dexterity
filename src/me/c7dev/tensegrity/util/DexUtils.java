@@ -194,6 +194,17 @@ public class DexUtils {
 		default: return 1;
 		}
 	}
+	public static double faceToDirectionAbs(BlockFace face, Vector scale) {
+		switch(face) {
+		case UP: 
+		case DOWN: return scale.getY();
+		case EAST: 
+		case WEST: return scale.getX();
+		case SOUTH: 
+		case NORTH: return scale.getZ();
+		default: return 1;
+		}
+	}
 	
 	public static int parseInt(String s) {
 		try {
@@ -266,7 +277,7 @@ public class DexUtils {
 			Directional bd = (Directional) b;
 			facing = bd.getFacing();
 		}
-										
+												
 		switch(mat) {
 		case SNOW:
 			Snow sd = (Snow) b;
@@ -281,6 +292,7 @@ public class DexUtils {
 		case POTTED_RED_MUSHROOM: return new Vector(0.375, 9.0/16, 0.375);
 		case POTTED_CACTUS: return new Vector(0.375, 1, 0.375);
 		case NETHER_PORTAL: return new Vector(1, 1, 0.25);
+		case DAYLIGHT_DETECTOR: return new Vector(1, 0.375, 1);
 		case BELL:
 			if (facing == BlockFace.WEST || facing == BlockFace.EAST) return new Vector(0.25, 1, 1);
 			else return new Vector(1, 1, 0.25);

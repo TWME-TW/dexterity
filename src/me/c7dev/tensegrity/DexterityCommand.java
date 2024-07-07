@@ -8,30 +8,28 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.DexSession.EditType;
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.displays.animation.Animation;
-import me.c7dev.tensegrity.displays.animation.LinearTranslationAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation.LookMode;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
@@ -41,9 +39,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, usage_format;
 	
 	public String[] commands = {
-		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "list", "merge", "move", "name", "pos1", "recenter", 
-		"remove", "rotate", "scale", "select", "unmerge", "wand"
+		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "merge", "move", "name", "pos1", "recenter", 
+		"remove", "replace", "rotate", "scale", "select", "unmerge", "wand"
 	};
+	public List<String> materials = new ArrayList<>();
 	public String[] descriptions = new String[commands.length];
 	public String[] command_strs = new String[commands.length];
 	
@@ -56,6 +55,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission");
 		usage_format = plugin.getConfigString("usage-format");
+		
+		for (Material mat : Material.values()) {
+			materials.add(mat.toString().toLowerCase());
+		}
 		
 		for (int i = 0; i < commands.length; i++) {
 			descriptions[i] = plugin.getConfigString(commands[i] + "-description");
@@ -167,9 +170,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equalsIgnoreCase("test")) {
-			for (Entity e : p.getWorld().getEntities()) {
-				if (e instanceof BlockDisplay) e.remove();
+		else if (args[0].equalsIgnoreCase("test2")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			for (DexBlock db : d.getBlocks()) {
+				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).build());
 			}
 		}
 		else if (args[0].equalsIgnoreCase("test3")) {
@@ -200,18 +205,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 			}.runTaskTimer(plugin, 0, 1l);
 		}
-		else if (args[0].equalsIgnoreCase("animtest")) {
-			DexterityDisplay d = getSelected(session);
-			if (d == null) return true;
-			d.getAnimations().clear();
-			Vector delta = new Vector(0, 0, 20);
-			Animation a1 = new LinearTranslationAnimation(d, plugin, 30, delta);
-			Animation a2 = new LinearTranslationAnimation(d, plugin, 30, delta.clone().multiply(-1));
-			a1.getSubsequentAnimations().add(a2);
-			a2.getSubsequentAnimations().add(a1);
-			d.getAnimations().add(a1);
-			a1.start();
-		}
+//		else if (args[0].equalsIgnoreCase("animtest")) {
+//			DexterityDisplay d = getSelected(session);
+//			if (d == null) return true;
+//			d.getAnimations().clear();
+//			Vector delta = new Vector(0, 0, 20);
+//			Animation a1 = new LinearTranslationAnimation(d, plugin, 30, delta);
+//			Animation a2 = new LinearTranslationAnimation(d, plugin, 30, delta.clone().multiply(-1));
+//			a1.getSubsequentAnimations().add(a2);
+//			a2.getSubsequentAnimations().add(a1);
+//			d.getAnimations().add(a1);
+//			a1.start();
+//		}
 		else if (args[0].equalsIgnoreCase("animtest2")) {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
@@ -278,6 +283,52 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("align-success", session));
 		}
 		
+		else if (args[0].equalsIgnoreCase("replace") || args[0].equalsIgnoreCase("rep")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			
+			if (args.length >= 3) {
+				Material from, to;
+				try {
+					from = Material.valueOf(args[1].toUpperCase());
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", args[1].toLowerCase()));
+					return true;
+				}
+				try {
+					to = Material.valueOf(args[2].toUpperCase());
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", args[2].toLowerCase()));
+					return true;
+				}
+				
+				if (to == Material.AIR) {
+					List<DexBlock> remove = new ArrayList<>();
+					for (DexBlock db : d.getBlocks()) {
+						if (db.getEntity().getBlock().getMaterial() == from) {
+							remove.add(db);
+						}
+					}
+					for (DexBlock db : remove) {
+						db.remove();
+					}
+				} else {
+					BlockData todata = Bukkit.createBlockData(to);
+					for (DexBlock db : d.getBlocks()) {
+						if (db.getEntity().getBlock().getMaterial() == from) {
+							db.getEntity().getBlock().copyTo(todata);
+							db.getEntity().setBlock(todata);
+						}
+					}
+				}
+				
+				p.sendMessage(getConfigString("replace-success", session)
+						.replaceAll("\\Q%from%\\E", from.toString().toLowerCase())
+						.replaceAll("\\Q%to%\\E", to.toString().toLowerCase()));
+				
+			} else p.sendMessage(getUsage("replace"));
+		}
+		
 		else if (args[0].equalsIgnoreCase("sel") || args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("pos1") || args[0].equalsIgnoreCase("pos2") || args[0].equalsIgnoreCase("load")) {
 			
 			int index = -1;
@@ -324,6 +375,24 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.clearLocationSelection();
 				p.sendMessage(plugin.getConfigString("desel-success"));
 			}
+		}
+		
+		else if (args[0].equalsIgnoreCase("path")) { //TODO
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			
+			if (args.length < 2) return true;
+			
+			if (args[0].equalsIgnoreCase("add")) {
+				
+			}
+			
+		}
+		
+		else if (args[0].equalsIgnoreCase("highlight") || args[0].equalsIgnoreCase("h")) {
+			DexterityDisplay d = getSelected(session);
+			if (d == null) return true;
+			api.tempHighlight(d, 50, Color.ORANGE);
 		}
 		
 		else if (args[0].equalsIgnoreCase("clone")) {
@@ -542,7 +611,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage(cc + "Selected " + cc2 + d.getBlocks().size() + cc + " ghost block" + (d.getBlocks().size() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld());
+				p.sendMessage(cc + "Selected " + cc2 + d.getBlocks().size() + cc + " ghost block" + (d.getBlocks().size() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
 			} else {
 				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
 				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
@@ -600,15 +669,24 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session);
 			if (d == null) return true;
 			
+			boolean set = flags.contains("set");
+			
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
-				float sx = attrsd.getOrDefault("x", d.getScale().getX()).floatValue();
-				float sy = attrsd.getOrDefault("y", d.getScale().getY()).floatValue();
-				float sz = attrsd.getOrDefault("z", d.getScale().getZ()).floatValue();
+				float sx = attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue();
+				float sy = attrsd.getOrDefault("y", set ? d.getScale().getY() : 1).floatValue();
+				float sz = attrsd.getOrDefault("z", set ? d.getScale().getZ() : 1).floatValue();
 				
-				d.setScale(new Vector(sx, sy, sz));
 				String scale_str = sx + ", " + sy + ", " + sz;
-				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+				if (set) {
+					d.setScale(new Vector(sx, sy, sz));
+					p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
+				}
+				else {
+					d.scale(new Vector(sx, sy, sz));
+					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+				}
+				
 			} else {
 				float scale = 1;
 				try {
@@ -618,9 +696,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 
-				d.setScale(scale);
-
-				p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
+				if (set) {
+					d.setScale(scale);
+					p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale + ""));
+				} else {
+					d.scale(scale);
+					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
+				}
 			}
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
@@ -714,7 +796,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		List<String> ret = new ArrayList<String>();
-		boolean add_labels = false;
+		boolean add_labels = false, finalized = false;
 		
 		if (argsr.length <= 1) {
 			for (String s : commands) ret.add(s);
@@ -727,6 +809,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select")) {
 			add_labels = true;
 		}
+		else if (argsr[0].equalsIgnoreCase("replace") || argsr[0].equalsIgnoreCase("rep")) {
+			if (argsr.length <= 3) {
+				ret = materials;
+				finalized = true;
+			}
+		}
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
 			add_labels = true;
 		}
@@ -737,6 +825,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
+			ret.add("-set");
 		}
 		else if (argsr[0].equalsIgnoreCase("merge")) {
 			ret.add("new_group=");
@@ -784,8 +873,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("pitch=");
 			ret.add("-set");
 		}
-		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
-
+		if (!finalized) {
+			if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
+		}
 		return ret;
 	}
 
