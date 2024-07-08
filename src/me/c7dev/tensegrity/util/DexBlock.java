@@ -1,15 +1,14 @@
 package me.c7dev.tensegrity.util;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
-import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
+import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 
 public class DexBlock {
@@ -23,7 +22,7 @@ public class DexBlock {
 	
 	public DexBlock(Block display, DexterityDisplay d) {
 		disp = d;
-		trans = newDefaultTransformation();
+		trans = DexTransformation.newDefaultTransformation();
 		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
 			spawned.setBlock(display.getBlockData());
 			spawned.setTransformation(trans.build());
@@ -39,6 +38,20 @@ public class DexBlock {
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
 	}
+	public DexBlock(DexBlockState state) {
+		Bukkit.broadcastMessage("spawn new dex block");
+		disp = state.getDisplay();
+		trans = state.getTransformation();
+		entity = state.getLocation().getWorld().spawn(state.getLocation(), BlockDisplay.class, a -> {
+			a.setBlock(state.getBlock());
+			a.setTransformation(state.getTransformation().build());
+			a.setTeleportDuration(1);
+		});
+		if (state.getDisplay() != null) {
+			state.getDisplay().getPlugin().setMappedDisplay(this);
+			state.getDisplay().getBlocks().add(this);
+		} else Bukkit.broadcastMessage("disp null");
+	}
 	
 	public BlockDisplay getEntity() {
 		return this.entity;
@@ -52,17 +65,21 @@ public class DexBlock {
 	public DexterityDisplay getDexterityDisplay() {
 		return disp;
 	}
-	
-	public static DexTransformation newDefaultTransformation() {
-		return new DexTransformation(new Transformation(
-				new Vector3f(-0.5f, -0.5f, -0.5f),
-				new AxisAngle4f(0f, 0f, 0f, 0f),
-				new Vector3f(1, 1, 1),
-				new AxisAngle4f(0f, 0f, 0f, 0f)));
-	}
 		
 	public DexTransformation getTransformation() {
 		return trans;
+	}
+	
+	public DexBlockState getState() {
+		return new DexBlockState(this);
+	}
+	
+	public void loadState(DexBlockState state) {
+		if (entity.isDead()) return;
+		trans = state.getTransformation();
+		entity.teleport(state.getLocation());
+		entity.setTransformation(state.getTransformation().build());
+		entity.setBlock(state.getBlock());
 	}
 		
 	public void setTransformation(DexTransformation dt) {

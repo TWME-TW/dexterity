@@ -2,6 +2,7 @@ package me.c7dev.tensegrity.util;
 
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -10,11 +11,32 @@ public class DexTransformation {
 	private Vector disp, scale;
 	private Quaternionf r, l;
 	
+	public DexTransformation() {
+		
+	}
+	
 	public DexTransformation(Transformation trans) {
 		disp = DexUtils.vector(trans.getTranslation());
 		scale = DexUtils.vector(trans.getScale());
 		r = trans.getRightRotation();
 		l = trans.getLeftRotation();
+	}
+	
+	public DexTransformation clone() {
+		DexTransformation ret = new DexTransformation();
+		ret.setDisplacement(disp.clone());
+		ret.setLeftRotation(new Quaternionf(l.x, l.y, l.z, l.w));
+		ret.setRightRotation(new Quaternionf(r.x, r.y, r.z, r.w));
+		ret.setScale(scale.clone());
+		return ret;
+	}
+	
+	public static DexTransformation newDefaultTransformation() {
+		return new DexTransformation(new Transformation(
+				new Vector3f(-0.5f, -0.5f, -0.5f),
+				new AxisAngle4f(0f, 0f, 0f, 0f),
+				new Vector3f(1, 1, 1),
+				new AxisAngle4f(0f, 0f, 0f, 0f)));
 	}
 	
 	public Vector getScale() {

@@ -1,6 +1,7 @@
 package me.c7dev.tensegrity;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +16,8 @@ import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.transaction.BlockTransaction;
+import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 
@@ -38,6 +41,7 @@ public class DexSession {
 	private EditType editType = null;
 	private Location orig_loc = null;
 	private double volume = Integer.MAX_VALUE;
+	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -109,6 +113,50 @@ public class DexSession {
 	
 	public Vector getFollowingOffset() {
 		return following.clone();
+	}
+	
+	public void pushTransaction(Transaction t) {
+		if (!t.isPossible()) toUndo.clear();
+		toRedo.clear();
+		toUndo.addFirst(t);
+	}
+	
+	public void undo() {
+		if (toUndo.size() == 0) {
+			p.sendMessage("Nothing to undo!");
+			return;
+		}
+		Transaction undo = toUndo.removeFirst();
+		
+		if (!undo.isPossible()) {
+			p.sendMessage("Cannot undo this!");
+			return;
+		}
+		
+		toRedo.addFirst(undo);
+		undo.undo();
+		
+		p.sendMessage("Undo");
+	}
+	
+	public void redo() {
+		if (toRedo.size() == 0) {
+			p.sendMessage("Nothing to redo!");
+			return;
+		}
+		
+		Transaction redo = toRedo.removeFirst();
+		
+		if (!redo.isPossible()) {
+			p.sendMessage("Cannot redo this!");
+			return;
+		}
+		
+		
+		toUndo.addFirst(redo);
+		redo.redo();
+
+		p.sendMessage("Redo");
 	}
 	
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {

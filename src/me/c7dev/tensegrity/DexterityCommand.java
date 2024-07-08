@@ -26,6 +26,9 @@ import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation.LookMode;
+import me.c7dev.tensegrity.transaction.BlockTransaction;
+import me.c7dev.tensegrity.transaction.ConvertTransaction;
+import me.c7dev.tensegrity.transaction.RecenterTransaction;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
@@ -52,10 +55,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		cc2 = plugin.getChatColor2();
 		api = plugin.getAPI();
 		plugin.getCommand("dex").setExecutor(this);
-		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission");
 		usage_format = plugin.getConfigString("usage-format");
-		
+				
 		for (Material mat : Material.values()) {
 			materials.add(mat.toString().toLowerCase());
 		}
@@ -66,7 +68,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 	}
 	
-	public DexterityDisplay getSelected(DexSession session) {
+	public boolean withPermission(Player p, String perm) {
+		if (p.hasPermission("dexterity.command." + perm)) return true;
+		else {
+			p.sendMessage(noperm);
+			return false;
+		}
+	}
+	
+	public DexterityDisplay getSelected(DexSession session, String perm) {
+		if (perm != null) {
+			if (!session.getPlayer().hasPermission("dexterity.command." + perm)) {
+				session.getPlayer().sendMessage(noperm);
+				return null;
+			}
+		}
 		DexterityDisplay d = session.getSelected();
 		if (d == null) {
 			session.getPlayer().sendMessage(plugin.getConfigString("must-select-display"));
@@ -171,33 +187,36 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("test2")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			for (DexBlock db : d.getBlocks()) {
 				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).build());
 			}
 		}
 		else if (args[0].equalsIgnoreCase("test3")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			DexBlock db = d.getBlocks().get(0);
-			Quaternionf zero = new Quaternionf(0f, 0f, 0f, 1f);
-			db.getTransformation().setDisplacement(new Vector(-0.5f, -0.5f, -0.5f))
-				.setLeftRotation(zero).setRightRotation(zero);
-			db.updateTransformation();
-			//db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
+//			Quaternionf zero = new Quaternionf(0f, 0f, 0f, 1f);
+//			db.getTransformation().setDisplacement(new Vector(-0.5f, -0.5f, -0.5f))
+//				.setLeftRotation(zero).setRightRotation(zero);
+//			db.updateTransformation();
+//			d.rotate(0, -45f);
+//			db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
 			
 			new BukkitRunnable() {
 				float deg = 0;
 				public void run() {
 					double rad = Math.toRadians(deg) / 4;
 					double a = Math.cos(rad);
-					Vector v = new Vector(1, 0, 0).normalize();
-					v.multiply(Math.sin(rad));
+					double s = Math.sin(rad);
+					Vector v = new Vector(0, 0, 1).normalize();
+					v.multiply(s);
 					
 					Quaternionf ql = new Quaternionf(v.getX(), v.getY(), v.getZ(), a);
-					Quaternionf qr = new Quaternionf(-v.getX(), -v.getY(), -v.getZ(), a);
+//					Quaternionf qr = new Quaternionf(v.getX(), v.getY(), v.getZ(), a);
 					db.getTransformation().setLeftRotation(ql).setRightRotation(ql);
+//					.setDisplacement(new Vector(s - 0.5, -a - 0.5, -0.5));
 					
 					db.updateTransformation();
 					deg++;
@@ -218,7 +237,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			a1.start();
 //		}
 		else if (args[0].equalsIgnoreCase("animtest2")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			d.getAnimations().clear();
 			RideAnimation r = new RideAnimation(d, plugin);
@@ -254,7 +273,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("recenter")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "recenter");
 			if (d == null) return true;
 			
 			if (!d.getCenter().getWorld().getName().equals(p.getLocation().getWorld().getName())) {
@@ -265,8 +284,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			Location loc = p.getLocation();
 			if (!flags.contains("continuous")) DexUtils.blockLoc(loc).add(0.5, 0.5, 0.5);
 			
+			RecenterTransaction t = new RecenterTransaction(d);
+			t.commit(loc);
+			
 			d.setCenter(loc);
 			api.markerPoint(loc, Color.AQUA, 4);
+			
+			session.pushTransaction(t);
 			
 			p.sendMessage(getConfigString("recenter-success", session));
 			
@@ -275,16 +299,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		//TODO: solidify/unsolidify command to add barriers
 		
 		else if (args[0].equalsIgnoreCase("align")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "move");
 			if (d == null) return true;
 			
+			BlockTransaction t = new BlockTransaction(d.getBlocks());
 			d.align();
+			t.commit(d.getBlocks());
+			session.pushTransaction(t);
 			
 			p.sendMessage(getConfigString("align-success", session));
 		}
 		
 		else if (args[0].equalsIgnoreCase("replace") || args[0].equalsIgnoreCase("rep")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "replace");
 			if (d == null) return true;
 			
 			if (args.length >= 3) {
@@ -302,10 +329,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 				
+				BlockTransaction t = new BlockTransaction(d.getBlocks(), from);
 				if (to == Material.AIR) {
 					List<DexBlock> remove = new ArrayList<>();
 					for (DexBlock db : d.getBlocks()) {
 						if (db.getEntity().getBlock().getMaterial() == from) {
+							t.commitBlock(db);
 							remove.add(db);
 						}
 					}
@@ -316,11 +345,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					BlockData todata = Bukkit.createBlockData(to);
 					for (DexBlock db : d.getBlocks()) {
 						if (db.getEntity().getBlock().getMaterial() == from) {
+							t.commitBlock(db);
 							db.getEntity().getBlock().copyTo(todata);
 							db.getEntity().setBlock(todata);
 						}
 					}
 				}
+				
+				session.pushTransaction(t);
 				
 				p.sendMessage(getConfigString("replace-success", session)
 						.replaceAll("\\Q%from%\\E", from.toString().toLowerCase())
@@ -378,7 +410,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("path")) { //TODO
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "animation");
 			if (d == null) return true;
 			
 			if (args.length < 2) return true;
@@ -390,13 +422,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("highlight") || args[0].equalsIgnoreCase("h")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			api.tempHighlight(d, 50, Color.ORANGE);
 		}
 		
 		else if (args[0].equalsIgnoreCase("clone")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "clone");
 			if (d == null) return true;
 			if (session.getSecondary() != null) {
 				p.sendMessage(getConfigString("must-finish-edit", session));
@@ -435,14 +467,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("cancel") || args[0].equalsIgnoreCase("quit")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			session.cancelEdit();
 			p.sendMessage(getConfigString("cancelled-edit", session));
 		}
 		
 		else if (args[0].equalsIgnoreCase("glow")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
 			boolean propegate = flags.contains("propegate");
 			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
@@ -462,7 +494,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("animation") || args[0].equalsIgnoreCase("a")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "animation");
 			if (d == null) return true;
 			if (d.getLabel() == null) {
 				p.sendMessage(plugin.getConfigString("must-save-display"));
@@ -491,7 +523,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
-			if (testInEdit(session)) return true;
+			if (!withPermission(p, "convert") || testInEdit(session)) return true;
 			if (session.getLocation1() != null && session.getLocation2() != null) {
 				
 				if (!session.getLocation1().getWorld().getName().equals(session.getLocation2().getWorld().getName())) {
@@ -503,9 +535,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 				
-				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2());
+				ConvertTransaction t = new ConvertTransaction();
+				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2(), t);
 				
 				session.setSelected(d, false);
+				session.pushTransaction(t);
 								
 				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
 				p.sendMessage(getConfigString("convert-success", session));
@@ -515,7 +549,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("move") || args[0].equalsIgnoreCase("m")) { //TODO check if in edit session, change displacement vector
 			
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "move");
 			if (d == null) return true;
 			
 			if (session.getEditType() == EditType.TRANSLATE) {
@@ -528,6 +562,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
+			BlockTransaction t = new BlockTransaction(d.getBlocks());
 			Location loc;
 			if (flags.contains("continuous") || flags.contains("c") || flags.contains("here")) {
 				if (flags.contains("continuous") || flags.contains("c")) loc = p.getLocation();
@@ -543,9 +578,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 						
 			d.teleport(loc);
 			
+			t.commit(d.getBlocks());
+			session.pushTransaction(t);
+			
 		}
 		else if (args[0].equalsIgnoreCase("label") || args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("rename") || args[0].equalsIgnoreCase("save")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "save");
 			if (d == null) return true;
 			
 			if (args.length != 2) {
@@ -561,8 +599,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
 		
+		else if (args[0].equalsIgnoreCase("undo")) {
+			session.undo();
+		}
+		else if (args[0].equalsIgnoreCase("redo")) {
+			session.redo();
+		}
+		
 		else if (args[0].equalsIgnoreCase("rotate") || args[0].equalsIgnoreCase("r")){
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "rotate");
 			if (d == null) return true;
 			
 			if (args.length < 2) {
@@ -587,6 +632,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
+			
 			boolean set = flags.contains("set");
 			boolean setyaw, setpitch;
 			if (yaw == Double.MAX_VALUE) {
@@ -598,6 +644,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				pitch = 0;
 			} else setpitch = true;
 						
+			BlockTransaction t = new BlockTransaction(d.getBlocks());
 			//TODO toggle messages in session
 			if (set) {
 				d.rotate((float) yaw, (float) pitch, setyaw, setpitch);
@@ -606,9 +653,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				d.rotate((float) yaw, (float) pitch);
 				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
 			}
+			t.commit(d.getBlocks());
+			session.pushTransaction(t);
 		}
 		else if (args[0].equalsIgnoreCase("info")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			if (d.getLabel() == null) {
 				p.sendMessage(cc + "Selected " + cc2 + d.getBlocks().size() + cc + " ghost block" + (d.getBlocks().size() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
@@ -618,6 +667,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		else if (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("deconvert") || args[0].equalsIgnoreCase("deconv")) {
+			boolean res = !args[0].equalsIgnoreCase("remove");
+			if ((res && !withPermission(p, "remove")) || (!res && !withPermission(p, "deconvert"))) return true;
+			
 			if (testInEdit(session)) return true;
 			DexterityDisplay d = session.getSelected();
 			if (d == null) {
@@ -628,7 +680,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
-			boolean res = !args[0].equalsIgnoreCase("remove");
 			d.remove(res);
 			if (res) p.sendMessage(getConfigString("restore-success", session));
 			else p.sendMessage(getConfigString("remove-success", session));
@@ -636,6 +687,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
+			if (!withPermission(p, "list")) return true;
 			if (plugin.getDisplays().size() == 0) {
 				p.sendMessage(plugin.getConfigString("no-saved-displays"));
 				return true;
@@ -666,11 +718,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("scale") || args[0].equalsIgnoreCase("s")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "scale");
 			if (d == null) return true;
 			
 			boolean set = flags.contains("set");
 			
+			BlockTransaction t = new BlockTransaction(d.getBlocks());
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
 				float sx = attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue();
@@ -704,13 +757,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
 				}
 			}
+			t.commit(d.getBlocks());
+			session.pushTransaction(t);
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {
 			if (def == null) {
 				p.sendMessage(getUsage("merge"));
 				return true;
 			}
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "merge");
 			if (d == null || testInEdit(session)) return true;
 			DexterityDisplay parent = plugin.getDisplay(def);
 			if (parent == null) {
@@ -765,7 +820,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		else if (args[0].equalsIgnoreCase("unmerge")) {
-			DexterityDisplay d = getSelected(session);
+			DexterityDisplay d = getSelected(session, "merge");
 			if (d == null || testInEdit(session)) return true;
 			if (d.getLabel() == null) {
 				p.sendMessage(getConfigString("must-save-display", session));
