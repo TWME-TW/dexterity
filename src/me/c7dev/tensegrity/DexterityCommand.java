@@ -28,7 +28,10 @@ import me.c7dev.tensegrity.displays.animation.RideAnimation;
 import me.c7dev.tensegrity.displays.animation.RideAnimation.LookMode;
 import me.c7dev.tensegrity.transaction.BlockTransaction;
 import me.c7dev.tensegrity.transaction.ConvertTransaction;
+import me.c7dev.tensegrity.transaction.DeconvertTransaction;
 import me.c7dev.tensegrity.transaction.RecenterTransaction;
+import me.c7dev.tensegrity.transaction.RemoveTransaction;
+import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
@@ -42,8 +45,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, usage_format;
 	
 	public String[] commands = {
-		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "merge", "move", "name", "pos1", "recenter", 
-		"remove", "replace", "rotate", "scale", "select", "unmerge", "wand"
+		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "merge", "move", 
+		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "wand"
 	};
 	public List<String> materials = new ArrayList<>();
 	public String[] descriptions = new String[commands.length];
@@ -473,7 +476,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("cancelled-edit", session));
 		}
 		
-		else if (args[0].equalsIgnoreCase("glow")) {
+		else if (args[0].equalsIgnoreCase("glow")) { //TODO add transaction
 			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
 			boolean propegate = flags.contains("propegate");
@@ -599,11 +602,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
 		
-		else if (args[0].equalsIgnoreCase("undo")) {
-			session.undo();
+		else if (args[0].equalsIgnoreCase("undo") || args[0].equalsIgnoreCase("u")) {
+			int count = attrs.getOrDefault("count", -1);
+			if (count < 2) session.undo();
+			else session.undo(count);
 		}
 		else if (args[0].equalsIgnoreCase("redo")) {
-			session.redo();
+			int count = attrs.getOrDefault("count", -1);
+			if (count < 2) session.redo();
+			else session.redo(count);
 		}
 		
 		else if (args[0].equalsIgnoreCase("rotate") || args[0].equalsIgnoreCase("r")){
@@ -680,10 +687,20 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
+			
+			Transaction t;
+			if (res) {
+				t = new DeconvertTransaction(d);
+				DeconvertTransaction dct = (DeconvertTransaction) t;
+				for (DexBlock db : d.getBlocks()) {
+					
+				}
+			} else t = new RemoveTransaction(d);
 			d.remove(res);
 			if (res) p.sendMessage(getConfigString("restore-success", session));
 			else p.sendMessage(getConfigString("remove-success", session));
 			session.setSelected(null, false);
+			session.pushTransaction(t);
 		}
 		
 		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
@@ -908,6 +925,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equalsIgnoreCase("clone")) {
 			ret.add("-nofollow");
 			ret.add("-merge");
+		}
+		else if (argsr[0].equalsIgnoreCase("undo") || argsr[0].equalsIgnoreCase("u") || argsr[0].equalsIgnoreCase("redo")) {
+			ret.add("count=");
 		}
 		else if (argsr[0].equalsIgnoreCase("animation") || argsr[0].equalsIgnoreCase("a")) {
 			ret.add("start");

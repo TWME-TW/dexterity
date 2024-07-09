@@ -11,7 +11,7 @@ public class BlockTransactionLine {
 	private DexBlockState from, to = null; //if to is null and committed, old block was deleted
 	private boolean isUndone = false, committed = false;
 
-	public BlockTransactionLine(DexBlock block) {
+	public BlockTransactionLine(DexBlock block) { //TODO make this more advanced with deltas
 		this.db = block;
 		this.from = block.getState();
 	}

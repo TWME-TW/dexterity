@@ -25,8 +25,8 @@ public class ConvertTransaction implements Transaction {
 		isCommitted = true;
 	}
 	
-	public void undo() {
-		if (!isCommitted || isUndone) return;
+	public DexterityDisplay undo() {
+		if (!isCommitted || isUndone) return null;
 		isUndone = true;
 		for (DexBlock db : dexblocks) db.remove();
 		dexblocks.clear();
@@ -35,6 +35,7 @@ public class ConvertTransaction implements Transaction {
 			b.setType(state.getMaterial());
 			b.setBlockData(state.getData());
 		}
+		return null;
 	}
 	
 	public void redo() {

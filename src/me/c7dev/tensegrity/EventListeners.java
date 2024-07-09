@@ -4,17 +4,18 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -86,7 +87,10 @@ public class EventListeners implements Listener {
 				if (!clicked_block && clicked_display != null && clicked_display.getLabel() != null) {
 					session.setSelected(clicked_display, true);
 					return;
+				} else {
+					Bukkit.broadcastMessage("clicked block = " + clicked_block+ ", label = " + (clicked_display == null ? "none" : clicked_display.getLabel()));
 				}
+				
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
 					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(clicked.getDisplayCenterLocation(), true, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
 					else session.setLocation(clicked.getDisplayCenterLocation(), false, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
@@ -194,6 +198,21 @@ public class EventListeners implements Listener {
 		double cutoff = 0.01; //follow player
 		if (Math.abs(e.getTo().getX() - e.getFrom().getX()) > cutoff || Math.abs(e.getTo().getY() - e.getFrom().getY()) > cutoff || Math.abs(e.getTo().getZ() - e.getFrom().getZ()) > cutoff) {
 			session.getSelected().teleport(loc);
+		}
+	}
+	
+	@EventHandler
+	public void onQuit(PlayerQuitEvent e) {
+		UUID u = e.getPlayer().getUniqueId();
+		DexSession session = plugin.getEditSession(u);
+		if (session != null) {
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					Player p = Bukkit.getPlayer(u);
+					if (p == null || !p.isOnline()) plugin.deleteEditSession(u);
+				}
+			}.runTaskLater(plugin, 600l); //TODO make this configurable
 		}
 	}
 

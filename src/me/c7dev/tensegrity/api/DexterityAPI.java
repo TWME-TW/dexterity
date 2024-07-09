@@ -77,6 +77,10 @@ public class DexterityAPI {
 		return plugin.getDisplay(label);
 	}
 	
+	public DexSession getSession(Player p) {
+		return plugin.getEditSession(p.getUniqueId());
+	}
+	
 	public DexSession getSession(UUID u) {
 		return plugin.getEditSession(u);
 	}

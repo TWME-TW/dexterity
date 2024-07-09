@@ -60,10 +60,11 @@ public class BlockTransaction implements Transaction {
 		}
 	}
 	
-	public void undo() {
-		if (!isCommitted || isUndone) return;
+	public DexterityDisplay undo() {
+		if (!isCommitted || isUndone) return null;
 		isUndone = true;
 		for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) entry.getValue().undo();
+		return null;
 	}
 	
 	public void redo() {

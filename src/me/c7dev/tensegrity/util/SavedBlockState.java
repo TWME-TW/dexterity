@@ -7,18 +7,21 @@ import org.bukkit.block.data.BlockData;
 
 public class SavedBlockState {
 	
-	private Material mat;
 	private Location loc;
 	private BlockData state;
 	
 	public SavedBlockState(Block b) {
-		mat = b.getType();
 		loc = b.getLocation();
 		state = b.getBlockData();
 	}
 	
+	public SavedBlockState(Location loc, BlockData data) {
+		this.loc = loc;
+		state = data;
+	}
+	
 	public Material getMaterial() {
-		return mat;
+		return state.getMaterial();
 	}
 	
 	public Location getLocation() {

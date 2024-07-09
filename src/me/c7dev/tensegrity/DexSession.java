@@ -16,7 +16,7 @@ import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.transaction.BlockTransaction;
+import me.c7dev.tensegrity.transaction.RemoveTransaction;
 import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
@@ -115,40 +115,76 @@ public class DexSession {
 		return following.clone();
 	}
 	
+	public void clearHistory() {
+		toUndo.clear();
+		toRedo.clear();
+	}
+	
 	public void pushTransaction(Transaction t) {
-		if (!t.isPossible()) toUndo.clear();
+		if (!t.isPossible() || t instanceof RemoveTransaction) toUndo.clear();
 		toRedo.clear();
 		toUndo.addFirst(t);
 	}
 	
 	public void undo() {
+		executeUndo(1);
+	}
+	
+	public void undo(int count) {
+		if (count < 1) return;
+		count = Math.max(Math.min(count, toUndo.size()), 1);
+		for (int i = 0; i < count; i++) {
+			executeUndo(i == count - 1 ? count : 0);
+		}
+	}
+	
+	private void executeUndo(int count) {
 		if (toUndo.size() == 0) {
-			p.sendMessage("Nothing to undo!");
+			if (count > 0) p.sendMessage(plugin.getConfigString("none-undo"));
 			return;
 		}
 		Transaction undo = toUndo.removeFirst();
 		
 		if (!undo.isPossible()) {
-			p.sendMessage("Cannot undo this!");
+			if (count > 0) p.sendMessage(plugin.getConfigString("cannot-undo"));
 			return;
 		}
 		
 		toRedo.addFirst(undo);
-		undo.undo();
+		DexterityDisplay set = undo.undo();
 		
-		p.sendMessage("Undo");
+		if (set != null) {
+			selected = set;
+		}
+		
+		if (count > 0) {
+			String msg = plugin.getConfigString("undo-success").replaceAll("\\Q%number%\\E", "" + count).replaceAll("\\Q(s)\\E", count == 1 ? "" : "s");
+			p.sendMessage(msg);
+		}
 	}
 	
 	public void redo() {
+		executeRedo(1);
+	}
+	
+	public void redo(int count) {
+		if (count < 1) return;
+		count = Math.max(Math.min(count, toRedo.size()), 1);
+		for (int i = 0; i < count; i++) {
+			redo(i == count - 1 ? count : 0);
+		}
+	}
+	
+	private void executeRedo(int count) {
 		if (toRedo.size() == 0) {
-			p.sendMessage("Nothing to redo!");
+			if (count > 0) p.sendMessage(plugin.getConfigString("none-redo"));
 			return;
 		}
 		
 		Transaction redo = toRedo.removeFirst();
 		
 		if (!redo.isPossible()) {
-			p.sendMessage("Cannot redo this!");
+			if (count > 0) p.sendMessage(plugin.getConfigString("cannot-redo"));
 			return;
 		}
 		
@@ -156,7 +192,10 @@ public class DexSession {
 		toUndo.addFirst(redo);
 		redo.redo();
 
-		p.sendMessage("Redo");
+		if (count > 0) {
+			String msg = plugin.getConfigString("redo-success").replaceAll("\\Q%number%\\E", "" + count).replaceAll("\\Q(s)\\E", count == 1 ? "" : "s");
+			p.sendMessage(msg);
+		}
 	}
 	
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {

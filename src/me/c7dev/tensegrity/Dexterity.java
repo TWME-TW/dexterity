@@ -341,6 +341,10 @@ public class Dexterity extends JavaPlugin {
 		return sessions.get(u);
 	}
 	
+	public void deleteEditSession(UUID u) {
+		sessions.remove(u);
+	}
+	
 	public void setEditSession(UUID u, DexSession s) {
 		sessions.put(u, s);
 	}

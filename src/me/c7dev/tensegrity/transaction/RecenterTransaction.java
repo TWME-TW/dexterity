@@ -21,9 +21,10 @@ public class RecenterTransaction implements Transaction {
 		new_loc = loc.clone();
 	}
 	
-	public void undo() {
+	public DexterityDisplay undo() {
 		disp.setCenter(old_loc);
 		disp.getPlugin().getAPI().markerPoint(old_loc, Color.AQUA, 4);
+		return null;
 	}
 	
 	public void redo() {

@@ -264,15 +264,15 @@ public class DexterityDisplay {
 		removeHelper(restore);
 		plugin.saveDisplays();
 	}
-	
+		
 	private void removeHelper(boolean restore) {
-		for (DexBlock b : blocks) {
-			if (restore) {
+		if (restore) {
+			for (DexBlock b : blocks) {
 				Location loc = DexUtils.blockLoc(b.getEntity().getLocation());
 				loc.getBlock().setBlockData(b.getEntity().getBlock());
+				b.getEntity().remove();
 			}
-			b.getEntity().remove();
-		}
+		} else for (DexBlock b : blocks) b.getEntity().remove();
 		
 		plugin.unregisterDisplay(this);
 		

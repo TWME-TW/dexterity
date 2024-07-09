@@ -39,7 +39,6 @@ public class DexBlock {
 		d.getPlugin().setMappedDisplay(this);
 	}
 	public DexBlock(DexBlockState state) {
-		Bukkit.broadcastMessage("spawn new dex block");
 		disp = state.getDisplay();
 		trans = state.getTransformation();
 		entity = state.getLocation().getWorld().spawn(state.getLocation(), BlockDisplay.class, a -> {
