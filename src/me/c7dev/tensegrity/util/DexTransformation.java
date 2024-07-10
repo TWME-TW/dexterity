@@ -8,7 +8,7 @@ import org.joml.Vector3f;
 
 public class DexTransformation {
 	
-	private Vector disp, scale;
+	private Vector disp, scale, disp2 = new Vector(0, 0, 0);
 	private Quaternionf r, l;
 	
 	public DexTransformation() {
@@ -55,6 +55,10 @@ public class DexTransformation {
 		return r;
 	}
 	
+	public Vector getRollOffset() {
+		return disp2;
+	}
+	
 	public DexTransformation setScale(Vector s) {
 		scale = s;
 		return this;
@@ -85,8 +89,13 @@ public class DexTransformation {
 		return this;
 	}
 	
+	public DexTransformation setRollOffset(Vector v) {
+		disp2 = v;
+		return this;
+	}
+	
 	public Transformation build() {
-		return new Transformation(DexUtils.vector(disp), l, DexUtils.vector(scale), r);
+		return new Transformation(DexUtils.vector(disp.clone().add(disp2)), l, DexUtils.vector(scale), r);
 	}
 
 }

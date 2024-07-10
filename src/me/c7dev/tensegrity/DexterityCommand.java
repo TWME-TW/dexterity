@@ -623,8 +623,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
-			double yaw = attrs_d.getOrDefault("yaw", Double.MAX_VALUE), pitch = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
-			if (yaw == Double.MAX_VALUE && pitch == Double.MAX_VALUE) {
+			double yaw = attrs_d.getOrDefault("yaw", Double.MAX_VALUE), pitch = attrs_d.getOrDefault("pitch", Double.MAX_VALUE), roll = attrs_d.getOrDefault("roll", Double.MAX_VALUE);
+			if (yaw == Double.MAX_VALUE && pitch == Double.MAX_VALUE && roll == Double.MAX_VALUE) {
 				try {
 					if (yaw == Double.MAX_VALUE) yaw = Double.parseDouble(args[1]);
 					if (args.length > 2 && pitch == Double.MAX_VALUE) {
@@ -641,24 +641,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			boolean set = flags.contains("set");
-			boolean setyaw, setpitch;
+			boolean setyaw, setpitch, setroll;
 			if (yaw == Double.MAX_VALUE) {
 				setyaw = false;
 				yaw = 0;
-			} else setyaw = true;
+			} else setyaw = set;
 			if (pitch == Double.MAX_VALUE) {
 				setpitch = false;
 				pitch = 0;
-			} else setpitch = true;
+			} else setpitch = set;
+			if (roll == Double.MAX_VALUE) {
+				setroll = false;
+				roll = 0;
+			} else setroll = set;
 						
 			BlockTransaction t = new BlockTransaction(d.getBlocks());
 			//TODO toggle messages in session
 			if (set) {
-				d.rotate((float) yaw, (float) pitch, setyaw, setpitch);
-				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
+				d.rotate((float) yaw, (float) pitch, (float) roll, setyaw, setpitch, setroll);
+				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch, " + cc2 + DexUtils.round(roll, 3) + cc + " roll!");
 			} else {
-				d.rotate((float) yaw, (float) pitch);
-				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch!");
+				d.rotate((float) yaw, (float) pitch, (float) roll, setyaw, setpitch, setroll);
+				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch, " + cc2 + DexUtils.round(roll, 3) + cc + " roll!");
 			}
 			t.commit(d.getBlocks());
 			session.pushTransaction(t);
@@ -946,6 +950,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			}
 			ret.add("yaw=");
 			ret.add("pitch=");
+			ret.add("roll=");
 			ret.add("-set");
 		}
 		if (!finalized) {

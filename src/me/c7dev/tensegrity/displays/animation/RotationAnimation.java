@@ -1,13 +1,11 @@
 package me.c7dev.tensegrity.displays.animation;
 
-import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
-import me.c7dev.tensegrity.util.Plane;
 
 public class RotationAnimation extends Animation {
 	
@@ -15,20 +13,10 @@ public class RotationAnimation extends Animation {
 	private double delta = 0, delta_sin = 1;
 	private int n_steps = 0;
 	private boolean started_instance = false, paused = false, clockwise = true;
-	private Plane plane;
 	private BukkitRunnable runnable;
 	
-	public RotationAnimation(DexterityDisplay display, Dexterity plugin, int ticks, Plane plane) {
+	public RotationAnimation(DexterityDisplay display, Dexterity plugin, int ticks) {
 		super(display, plugin, ticks);
-		this.plane = plane;
-		for (Animation an : display.getAnimations()) {
-			if (an instanceof RotationAnimation) {
-				if (((RotationAnimation) an).getRotationPlane() == plane) {
-					Bukkit.getConsoleSender().sendMessage("Error: There is already a " + plane.toString() + " rotation animation on this display!");
-					return;
-				}
-			}
-		}
 		display.getAnimations().add(this);
 		
 		setPeriod(3.2);
@@ -53,9 +41,9 @@ public class RotationAnimation extends Animation {
 		}
 		delta_sin = Math.sin(-delta);
 		
-		Vector anglev;
-		if (plane == Plane.XZ) anglev = new Vector(1, 0, 0);
-		else anglev = new Vector(0, 1, 0);
+		Vector anglev = new Vector(1, 0, 0); //TODO
+//		if (plane == Plane.XZ) anglev = new Vector(1, 0, 0);
+//		else anglev = new Vector(0, 1, 0);
 		
 		for (DexBlock block : getDisplay().getBlocks()) {
 			Vector displacement = block.getLocation().toVector().subtract(getDisplay().getCenter().toVector());
@@ -86,12 +74,6 @@ public class RotationAnimation extends Animation {
 			runnable.cancel();
 			started_instance = false;
 		} else start();
-	}
-	public Plane getRotationPlane() {
-		return plane;
-	}
-	public void setRotationPlane(Plane p) {
-		plane = p;
 	}
 	public boolean isClockwise() {
 		return clockwise;

@@ -1,14 +1,15 @@
 package me.c7dev.tensegrity.util;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 
-import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 
 public class DexBlock {
@@ -16,9 +17,12 @@ public class DexBlock {
 	private BlockDisplay entity;
 	private DexTransformation trans;
 	private DexterityDisplay disp;
+	private float roll = 0;
 	//private boolean armor_stand;
 	
 	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
+	
+	private static double root2inv = (1.0/Math.sqrt(2)), pi4 = Math.PI/4;
 	
 	public DexBlock(Block display, DexterityDisplay d) {
 		disp = d;
@@ -59,6 +63,20 @@ public class DexBlock {
 	@Deprecated
 	public void setDexterityDisplay(DexterityDisplay d) {
 		disp = d;
+	}
+	
+	public float getRoll() {
+		return roll;
+	}
+	
+	public void setRoll(float f) {
+		roll = f;
+		float frad = (float) Math.toRadians(f);
+		Quaternionf ql = new Quaternionf(new AxisAngle4f(frad, 0f, 0f, 1f));
+		trans.setLeftRotation(ql);
+		trans.setRollOffset(new Vector(0.5 - (root2inv*Math.cos(frad + pi4)), 0.5 - (root2inv*Math.sin(frad+pi4)), 0));
+		disp.getPlugin().getAPI().markerPoint(entity.getLocation(), Color.AQUA, 6);
+		updateTransformation();
 	}
 	
 	public DexterityDisplay getDexterityDisplay() {

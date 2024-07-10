@@ -87,9 +87,9 @@ public class EventListeners implements Listener {
 				if (!clicked_block && clicked_display != null && clicked_display.getLabel() != null) {
 					session.setSelected(clicked_display, true);
 					return;
-				} else {
-					Bukkit.broadcastMessage("clicked block = " + clicked_block+ ", label = " + (clicked_display == null ? "none" : clicked_display.getLabel()));
-				}
+				}// else {
+//					Bukkit.broadcastMessage("clicked block = " + clicked_block+ ", label = " + (clicked_display == null ? "none" : clicked_display.getLabel()));
+//				}
 				
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
 					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(clicked.getDisplayCenterLocation(), true, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));

@@ -64,8 +64,8 @@ public class RideAnimation extends Animation {
 				mount.setVelocity(dir);
 				
 				display.teleport(dir);
-				if (look_mode == LookMode.YAW_ONLY) display.rotate(p.getLocation().getYaw(), 0, true, false);
-				else if (look_mode == LookMode.YAW_PITCH) display.setRotation(p.getLocation().getYaw(), p.getLocation().getPitch());
+				if (look_mode == LookMode.YAW_ONLY) display.rotate(p.getLocation().getYaw(), 0, 0, true, false, false);
+				else if (look_mode == LookMode.YAW_PITCH) display.setRotation(p.getLocation().getYaw(), p.getLocation().getPitch(), 0);
 				
 			}
 		});

@@ -167,15 +167,17 @@ public class DexterityAPI {
 			double dot1 = diff.dot(dir);
 			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
 			
-			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0;
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
+			DexBlock db = plugin.getMappedDisplay(e.getUniqueId());
+			float roll = db == null ? 0 : db.getRoll();
+			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || roll != 0;
 			
 			if (rotated) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
-				Vector key = new Vector(e.getLocation().getYaw(), e.getLocation().getPitch(), 0f);
+				Vector key = new Vector(e.getLocation().getYaw(), e.getLocation().getPitch(), roll);
 				Matrix3d rotmat = rot_matrices.get(key);
 				if (rotmat == null) {
-					rotmat = DexUtils.rotMatDeg(e.getLocation().getPitch(), e.getLocation().getYaw(), 0);
+					rotmat = DexUtils.rotMatDeg(e.getLocation().getPitch(), e.getLocation().getYaw(), roll);
 					rot_matrices.put(key, rotmat);
 					basis_vecs = getBasisVecs(rotmat);
 					basis.put(key, basis_vecs);		
@@ -190,9 +192,9 @@ public class DexterityAPI {
 				south_dir = south_unit;
 				basis_vecs = basis_vecs_norot;
 			}
-			
+
 			//calculate location of visual display accounting for axis asymmetry
-			Location loc = e.getLocation().add(DexUtils.vector(e.getTransformation().getTranslation())).add(scale_raw);
+			Location loc = e.getLocation().add(db == null ? DexUtils.vector(e.getTransformation().getTranslation()) : db.getTransformation().getDisplacement().clone()).add(scale_raw);
 			loc.add(up_dir.clone().multiply(scale.getY() - scale_raw.getY()));
 			Vector locv = loc.toVector();
 									
@@ -204,7 +206,7 @@ public class DexterityAPI {
 			Vector[] locs = {up, down, south, north, east, west};
 						
 			for (int i = 0; i < locs.length; i++) {
-												
+																
 				Vector basis1 = basis_vecs[i][0];
 				Vector basis2 = basis_vecs[i][1];
 				
