@@ -258,26 +258,42 @@ public class DexterityAPI {
 	}
 	
 	public ClickedBlock getBlockLookingAt(Player p) {
-		return getBlockLookingAtRaw(p, 0.01); // same as getBlockLookingAt(p, 100);
+		return getBlockLookingAtRaw(p, 0.01, 5); // same as getBlockLookingAt(p, 100);
 	}
 	
 	public ClickedBlock getBlockLookingAt(Player p, double percent_precision) {
-		return getBlockLookingAtRaw(p, Math.abs(1/percent_precision));
+		return getBlockLookingAtRaw(p, Math.abs(1/percent_precision), 5);
 	}
 	
-	public ClickedBlock getBlockLookingAtRaw(Player p, double step_multiplier) {
+	public ClickedBlock getBlockLookingAtRaw(Player p, double step_multiplier, double max_dist) { //TODO account for physical block size
 		Vector step = p.getLocation().getDirection().multiply(step_multiplier);
 		
 		Location loc = p.getEyeLocation();
-		int i = 0, max = (int) (5.0 / step_multiplier);
-		while (loc.getBlock().getType() == Material.AIR && i < max) {
+		int i = 0, max = (int) (max_dist / step_multiplier);
+		Block b = null;
+		boolean found = false;
+		while (i < max) {
 			loc.add(step);
 			i++;
+			b = loc.getBlock();
+			if (b.getType() == Material.AIR) continue;
+			
+			Vector size = DexUtils.getBlockDimensions(b.getBlockData());
+			size.setX(size.getX()/2);
+			size.setZ(size.getZ()/2);
+			Vector locv = b.getLocation().add(0.5, 0, 0.5).toVector(); //TODO add 0.5 to y for upper slabs
+			Vector l1 = locv.clone().subtract(size.clone().setY(0)), l2 = locv.clone().add(size);
+			
+			if (loc.getX() >= l1.getX() && loc.getX() <= l2.getX() &&
+					loc.getY() >= l1.getY() && loc.getY() <= l2.getY() &&
+					loc.getZ() >= l1.getZ() && loc.getZ() <= l2.getZ()) {
+				found = true;
+				break;
+			}
 		}
-
-		Block b = loc.getBlock();
-		if (b.getType() != Material.AIR) return new ClickedBlock(b, i*step_multiplier);
-		else return null;
+		
+		if (!found || b == null || b.getType() == Material.AIR) return null;
+		return new ClickedBlock(b, i*step_multiplier);
 	}
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {

@@ -16,6 +16,7 @@ import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.transaction.BuildTransaction;
 import me.c7dev.tensegrity.transaction.RemoveTransaction;
 import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.DexBlock;
@@ -42,6 +43,7 @@ public class DexSession {
 	private Location orig_loc = null;
 	private double volume = Integer.MAX_VALUE;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
+	private BuildTransaction t_build = null;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -121,11 +123,36 @@ public class DexSession {
 	}
 	
 	public void pushTransaction(Transaction t) {
-		if (!t.isPossible() || t instanceof RemoveTransaction) toUndo.clear();
+		if (!t.isPossible() || t instanceof RemoveTransaction) {
+			t_build = null;
+			toUndo.clear();
+		}
 		toRedo.clear();
-		toUndo.addFirst(t);
+		if (t_build != null) {
+			if (t_build.size() > 0) {
+				t_build.commit();
+				toUndo.addFirst(t_build);
+			}
+			if (t != t_build) toUndo.addFirst(t);
+			t_build = null;
+		}
+		else toUndo.addFirst(t);
+		trimToSize();
 	}
 	
+	public void pushBlock(DexBlock db, boolean placing) {
+		if (db.getDexterityDisplay() == null) return;
+		if (t_build == null) t_build = new BuildTransaction(db.getDexterityDisplay());
+		else if (!db.getDexterityDisplay().getUniqueId().equals(t_build.getDisplayUniqueId())) {
+			t_build.commit();
+			pushTransaction(t_build);
+			t_build = new BuildTransaction(db.getDexterityDisplay());
+		}
+		
+		if (placing) t_build.addBlock(db);
+		else t_build.removeBlock(db);
+	}
+		
 	public void undo() {
 		executeUndo(1);
 	}
@@ -138,7 +165,23 @@ public class DexSession {
 		}
 	}
 	
+	private void trimToSize() {
+		int max = plugin.getConfig().getInt("session-history-size");
+		if (max <= 0) {
+			toUndo.clear();
+			return;
+		}
+		int toRemove = toUndo.size() - max;
+		for (int i = 0; i < toRemove; i++) toUndo.removeLast();
+	}
+	
 	private void executeUndo(int count) {
+		if (t_build != null) {
+			t_build.commit();
+			pushTransaction(t_build);
+			t_build = null;
+		}
+		
 		if (toUndo.size() == 0) {
 			if (count > 0) p.sendMessage(plugin.getConfigString("none-undo"));
 			return;

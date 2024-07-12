@@ -13,7 +13,10 @@
 #----------------------------------------------------------------------------------------------------------------------#
 
 lang-file: "en-US.yml"
-primary-color: "#49eb9a" #Default #49eb9a
-secondary-color: "#42f5ef" #Default #42f5ef
+primary-color: "#7a8c86" #Default: #7a8c86
+secondary-color: "#21de80" #Default: #21de80
+tertiary-color: "#42f5ef" #Default: #42f5ef
+
 max-selection-volume: 25000 #for tps safety
-highlight-display-on-select: true
+highlight-display-on-select: true #temporary glow effect when clicked with wand
+session-history-size: 25 #maximum number of transactions to store

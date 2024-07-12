@@ -108,12 +108,6 @@ public class DexBlock {
 		entity.setTransformation(trans.build());
 	}
 	
-	public void setRotation(double xrad, double yrad, double zrad) {		
-		Quaternionf ql = new Quaternionf(Math.sin(xrad/4), Math.sin(yrad/4), Math.sin(zrad/4), Math.cos(zrad/4)*Math.cos(yrad/4)*Math.cos(xrad/4));
-		trans.setLeftRotation(ql).setRightRotation(ql);
-		updateTransformation();
-	}
-	
 	public void teleport(Location loc) {
 		entity.teleport(loc);
 	}
@@ -123,9 +117,9 @@ public class DexBlock {
 	public void move(double x, double y, double z) {
 		entity.teleport(entity.getLocation().add(x, y, z));
 	}
-	public void setBrightness(int blockLight, int skyLight) {
-		//entity.setBrightness(new Brightness(blockLight, skyLight));
-	}
+//	public void setBrightness(int blockLight, int skyLight) {
+//		entity.setBrightness(new Brightness(blockLight, skyLight));
+//	}
 	
 	public void remove() {
 		disp.getBlocks().remove(this);

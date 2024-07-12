@@ -1,6 +1,6 @@
 
 # ----------------------------------------------------------------------
-#  Use "&^" for primary color and "&*" for secondary color defined in config
+#  Use "&^" for primary color, "&*" for secondary, and "&**" for tertiary color defined in config
 #  Language: US English (Default)       
 #  Translator: [None]
 # ----------------------------------------------------------------------
@@ -16,8 +16,8 @@ get-started: "&^Use &*/d help&^ to get started!"
 to-finish-edit: "&^Use &*/d set&^ to finish the edit!"
 must-finish-edit: "&^Use &*/d set&^ or &*/d cancel&^ to finish the edit first!"
 other-player-editing: "&^Cannot select until &*%editor%&^ finishes an in-progress edit!"
-help-page-header: "\n\n&^&lDexterity Commands: &6Page &6&l%page%&6/%maxpage%"
-list-page-header: "&^&lDisplay list: &6Page &6&l%page%&6/%maxpage%"
+help-page-header: "\n\n&^&lDexterity Commands: &**Page &**&l%page%&**/%maxpage%"
+list-page-header: "&^&lDisplay list: &**Page &**&l%page%&**/%maxpage%"
 cancelled-edit: "&^Cancelled edit!"
 unknown-subcommand: "&cUnknown sub-command."
 
@@ -51,21 +51,21 @@ none-redo: "&cThere is nothing left to redo!"
 cannot-redo: "&cCannot redo this edit!"
 
 #Success strings
-align-success: "&^Aligned %loclabel%!"
-clone-success: "&^Successfully cloned %loclabel%!"
+align-success: "&^Aligned %loclabel%&^!"
+clone-success: "&^Successfully cloned %loclabel%&^!"
 convert-success: "&^Successfully converted block selection!"
 desel-success: "&^Cleared selection!"
-glow-success: "&^Set the glow for %loclabel%!"
-glow-success-disable: "&^Disabled glow for %loclabel%!"
+glow-success: "&^Set the glow for %loclabel%&^!"
+glow-success-disable: "&^Disabled glow for %loclabel%&^!"
 merge-success: "&^Successfully merged with &*%parentlabel%&^!"
 merge-success-newgroup: "&^Successfully created new group &*%input%&^!"
 merge-success-hard: "&^Successfully hard-merged displays!"
-recenter-success: "&^Recentered %loclabel%!"
+recenter-success: "&^Recentered %loclabel%&^!"
 redo-success: "&^Redid &*%number%&^ edit(s)!"
-remove-success: "&^Removed the display %loclabel%!"
-rename-success: "&^Named this display %label%!"
-replace-success: "&^Replaced &*%from%&^ in %label%!"
-restore-success: "&^Restored the display %loclabel%!"
+remove-success: "&^Removed the display %loclabel%&^!"
+rename-success: "&^Named this display %label%&^!"
+replace-success: "&^Replaced &*%from%&^ in %label%&^!"
+restore-success: "&^Restored the display %loclabel%&^!"
 scale-success: "&^Scaled %label% by &*%scale%&^!"
 scale-success-set: "&^Set %label% scale to &*%scale%&^!"
 set-success: "&^Set point #%number% to &*%location%"

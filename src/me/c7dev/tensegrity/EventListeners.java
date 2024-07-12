@@ -4,8 +4,10 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
@@ -66,9 +68,15 @@ public class EventListeners implements Listener {
 			
 			//calculate if player clicked a block display
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
-			ClickedBlockDisplay clicked = plugin.getAPI().getLookingAt(e.getPlayer());
-			ClickedBlock clicked_block_data = plugin.getAPI().getBlockLookingAtRaw(e.getPlayer(), 0.05);
-			boolean clicked_block = clicked == null || (clicked_block_data != null && clicked_block_data.getDistance() < clicked.getDistance());		
+			ClickedBlockDisplay clicked = (hand.getType() == Material.BARRIER && (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK))
+					? null :  plugin.getAPI().getLookingAt(e.getPlayer());
+			
+			boolean clicked_block;
+			if (clicked == null) clicked_block = true;
+			else {
+				ClickedBlock clicked_block_data = plugin.getAPI().getBlockLookingAtRaw(e.getPlayer(), 0.1, clicked.getDistance());
+				clicked_block = clicked_block_data != null && clicked_block_data.getDistance() < clicked.getDistance();
+			}
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
 			DexterityDisplay clicked_display = null;
 			DexBlock clicked_db = null;
@@ -151,7 +159,11 @@ public class EventListeners implements Listener {
 						
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 
-						if (clicked_display != null) clicked_display.getBlocks().add(new DexBlock(b, clicked_display));
+						if (clicked_display != null) {
+							DexBlock new_db = new DexBlock(b, clicked_display);
+							clicked_display.getBlocks().add(new_db);
+							if (session != null) session.pushBlock(new_db, true);
+						}
 					} else if (clicked_display != null) {
 						//clicked display with empty hand
 						RideAnimation ride = null;
@@ -170,7 +182,10 @@ public class EventListeners implements Listener {
 				} else { //break a block display
 					e.getPlayer().playSound(clicked.getBlockDisplay().getLocation(), clicked.getBlockDisplay().getBlock().getSoundGroup().getBreakSound(), 1f, 1f);
 					if (clicked_db == null) clicked.getBlockDisplay().remove();
-					else clicked_db.remove();
+					else {
+						if (session != null) session.pushBlock(clicked_db, false);
+						clicked_db.remove();
+					}
 				}
 			}
 		}

@@ -42,7 +42,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
 	private DexterityAPI api;
-	String noperm, cc, cc2, usage_format;
+	String noperm, cc, cc2, cc3, usage_format;
 	
 	public String[] commands = {
 		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "merge", "move", 
@@ -56,6 +56,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		this.plugin= plugin;
 		cc = plugin.getChatColor();
 		cc2 = plugin.getChatColor2();
+		cc3 = plugin.getChatColor3();
 		api = plugin.getAPI();
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission");
@@ -146,7 +147,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		Player p = (Player) sender;
 		
 		if (args.length == 0) {
-			p.sendMessage(cc + "§lUsing §6§lDexterity");
+			p.sendMessage(cc + "§lUsing §x§E§3§5§1§2§2§lD§x§E§7§6§1§1§E§le§x§E§A§7§1§1§A§lx§x§E§E§8§0§1§5§lt§x§F§1§9§0§1§1§le§x§F§5§A§0§0§D§lr§x§F§8§B§0§0§9§li§x§F§C§B§F§0§4§lt§x§F§F§C§F§0§0§ly" + cc + " (v" + plugin.getDescription().getVersion() + ")");
 			if (p.hasPermission("dexterity.command")) {
 				p.sendMessage(plugin.getConfigString("get-started"));
 			}
@@ -189,6 +190,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
+		else if (args[0].equalsIgnoreCase("test")) {
+			p.sendMessage("§7Test message §8and in bold UwU");
+		}
 		else if (args[0].equalsIgnoreCase("test2")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
@@ -275,7 +279,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		
-		else if (args[0].equalsIgnoreCase("recenter")) {
+		else if (args[0].equalsIgnoreCase("recenter")) { //TODO add -auto to recalculate
 			DexterityDisplay d = getSelected(session, "recenter");
 			if (d == null) return true;
 			

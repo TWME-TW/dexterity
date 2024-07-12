@@ -44,10 +44,9 @@ public class DexRotation {
 		
 		if (affect_pitch || affect_roll || !d.isZeroPitch()) {
 			if (affect_roll) rotateAll(yaw_deg, pitch_deg, roll_deg, set_yaw, set_pitch, set_roll);
-			else rotateYawPitch(yaw_deg, pitch_deg, set_yaw, set_pitch);
+			else if (affect_pitch || affect_yaw) rotateYawPitch(yaw_deg, pitch_deg, set_yaw, set_pitch);
 		}
 		else if (affect_yaw) rotateYaw(yaw_deg, set_yaw);
-		else Bukkit.broadcastMessage("NONE");
 	}
 	
 	private void rotateAll(float yaw_deg, float pitch_deg, float roll_deg, boolean set_yaw, boolean set_pitch, boolean set_roll) {
@@ -57,16 +56,17 @@ public class DexRotation {
 		float base_yaw = d.getYaw(),  base_pitch = d.getPitch(), base_roll = d.getRoll();
 		
 		final Vector centerv = center.toVector();
-		double yaw = Math.toRadians(yaw_deg);
+		double yaw = Math.toRadians(yaw_deg), roll = Math.toRadians(roll_deg);
 		float baseYaw = (float) Math.toRadians(base_yaw);
 		for (DexBlock b : blocks) {
 			float oldPitchDeg = b.getEntity().getLocation().getPitch(), oldYawDeg = b.getEntity().getLocation().getYaw(), oldRollDeg = b.getRoll();
 			float oldYaw = (float) Math.toRadians(oldYawDeg);
 			double pitch = Math.toRadians(pitch_deg - (set_pitch ? oldPitchDeg : 0)); //-oldPitch
-			double roll = Math.toRadians(roll_deg - (set_roll ? oldRollDeg : 0));
+			double oldRoll = Math.toRadians(oldRollDeg);
 			
 			//double deltaYaw = yaw + (set_yaw ? -oldYaw : oldYaw);
-			double deltaYaw = set_yaw ? yaw + oldYaw - baseYaw : yaw + oldYaw;
+			double deltaYaw = set_yaw ? yaw + oldYaw - baseYaw : yaw + oldYaw,
+					deltaRoll = set_roll ? roll + oldRoll - base_roll : roll + oldRoll;
 
 //			if (pitch == 0 && roll == 0 && Math.abs(deltaYaw - oldYaw) < cutoff) return;
 			
@@ -75,14 +75,18 @@ public class DexRotation {
 			if (rotmats_v.containsKey(key)) {
 				rotmat = rotmats_v.get(key);
 			} else {
+				Matrix3d undoRollMat = new Matrix3d(
+						Math.cos(oldRoll), -Math.sin(oldRoll), 0,
+						Math.sin(oldRoll), Math.cos(oldRoll), 0,
+						0, 0, 1);
 				Matrix3d undoYawMat = new Matrix3d(
 						Math.cos(oldYaw), 0f, -Math.sin(oldYaw),
 						0f, 1f, 0f,
 						Math.sin(oldYaw), 0f, Math.cos(oldYaw));
-				Matrix3d applyrot = DexUtils.rotMat(pitch, deltaYaw, roll);
-				Bukkit.broadcastMessage("roll = " + Math.toDegrees(roll));
+				Matrix3d applyrot = DexUtils.rotMat(pitch, deltaYaw, deltaRoll);
+				Bukkit.broadcastMessage("roll = " + Math.toDegrees(deltaRoll) + ", old roll = " + oldRollDeg);
 
-				rotmat = applyrot.mul(undoYawMat);
+				rotmat = applyrot.mul(undoYawMat).mul(undoRollMat);
 				rotmats_v.put(key, rotmat);
 				
 			}

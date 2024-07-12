@@ -34,7 +34,7 @@ public class Dexterity extends JavaPlugin {
 	private HashMap<UUID,DexBlock> display_map = new HashMap<>();
 	private FileConfiguration lang, defaultLang;
 	
-	private String chat_color, chat_color2;
+	private String chat_color, chat_color2, chat_color3;
 	private DexterityAPI api;
 	private int max_volume = 25000;
 		
@@ -60,6 +60,7 @@ public class Dexterity extends JavaPlugin {
 	public void loadConfigSettings() {
 		chat_color = parseChatColor(getConfig().getString("primary-color"));
 		chat_color2 = parseChatColor(getConfig().getString("secondary-color"));
+		chat_color3 = parseChatColor(getConfig().getString("tertiary-color"));
 		int config_mv = getConfig().getInt("max-selection-volume");
 		if (config_mv > 0) max_volume = config_mv;
 		loadLanguageFile(false);
@@ -75,6 +76,9 @@ public class Dexterity extends JavaPlugin {
 	}
 	public String getChatColor2() {
 		return chat_color2;
+	}
+	public String getChatColor3() {
+		return chat_color3;
 	}
 	
 	public int getMaxVolume() {
@@ -126,6 +130,7 @@ public class Dexterity extends JavaPlugin {
 		}
 		return s
 				.replaceAll("\\Q&^\\E", chat_color)
+				.replaceAll("\\Q&**\\E", chat_color3)
 				.replaceAll("\\Q&*\\E", chat_color2)
 				.replace('&', ChatColor.COLOR_CHAR)
 				.replaceAll("\\Q[newline]\\E", "\n")
