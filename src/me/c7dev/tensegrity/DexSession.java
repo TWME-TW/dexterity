@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -38,12 +39,13 @@ public class DexSession {
 	private DexterityDisplay selected = null, secondary = null;
 	private Dexterity plugin;
 	private Vector3f editing_scale = null;
-	private Vector following = null;
+	private Vector following = null, l1_scale_offset = null, l2_scale_offset = null;
 	private EditType editType = null;
 	private Location orig_loc = null;
 	private double volume = Integer.MAX_VALUE;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	private BuildTransaction t_build = null;
+	private Material mask = null;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -67,6 +69,10 @@ public class DexSession {
 	
 	public Player getPlayer() {
 		return p;
+	}
+	
+	public Material getMask() {
+		return mask;
 	}
 	
 	public DexterityDisplay getSelected() {
@@ -285,23 +291,40 @@ public class DexSession {
 	}
 	
 	public double getSelectionVolume() {
+		if (volume == Integer.MAX_VALUE) return 0;
 		return volume;
 	}
 	
 	public void setLocation(Location loc, boolean is_l1) {
-		setLocation(loc, is_l1, null);
+		setContinuousLocation(DexUtils.blockLoc(loc), is_l1, is_l1 ? new Vector(0, 0, 0) : new Vector(1, 1, 1));
 	}
 	
-	public void setLocation(Location loc, boolean is_l1, Vector scale) {
+	public void setContinuousLocation(Location loc, boolean is_l1, Vector scale_offset) {
 		
-		if (scale == null) DexUtils.blockLoc(loc);
-		else scale.multiply(0.5);
+//		if (scale == null) DexUtils.blockLoc(loc);
+//		else scale.multiply(0.5);
 
-		if (is_l1) l1 = loc;
-		else l2 = loc;
+		
+		if (is_l1) {
+			l1 = loc;
+			l1_scale_offset = scale_offset.clone().multiply(0.5);
+		}
+		else {
+			l2 = loc;
+			l2_scale_offset = scale_offset.clone().multiply(0.5);
+		}
 
+		selectFromLocations();
+		
+		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
+	}
+	
+	private void selectFromLocations() {
 		if (editType == null) {
 			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
+				if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
+				if (l2_scale_offset == null) l2_scale_offset = new Vector(1, 1, 1);
+				
 				double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
 				double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
 				double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
@@ -309,28 +332,67 @@ public class DexSession {
 				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
 
 				if (volume <= plugin.getMaxVolume()) { //set selected
-					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegion(l1, l2, scale);
+					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
 					if (blocks.size() > 0) {
 						DexterityDisplay s = new DexterityDisplay(plugin);
 						List<DexBlock> dblocks = new ArrayList<>();
 						for (BlockDisplay bd : blocks) {
-							dblocks.add(new DexBlock(bd, s));
+							if (mask != null && bd.getBlock().getMaterial() != mask) continue;
+							
+							DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
+							if (db == null) db = new DexBlock(bd, s);
+							else if (db.getDexterityDisplay().isListed()) continue;
+							dblocks.add(db);
 						}
+						
+						if (dblocks.size() == 0) {
+							setSelected(null, false);
+							return;
+						}
+						
 						s.setEntities(dblocks, true);
 
-						if (selected != null) {
-							for (DexBlock db : selected.getBlocks()) {
-								if (plugin.getAPI().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
-							}
-						}
-						if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(s, 30);
+						highlightSelected(s);
 						selected = s;
 					}
 				}
 			} else volume = Integer.MAX_VALUE;
 		}
+	}
+	
+	private void highlightSelected(DexterityDisplay new_disp) {
+		if (!plugin.getConfig().getBoolean("highlight-display-on-select")) return;
+		if (selected != null) {
+			for (DexBlock db : selected.getBlocks()) {
+				if (plugin.getAPI().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
+			}
+		}
+		plugin.getAPI().tempHighlight(new_disp, 30);
+	}
+	
+	public void setMask(Material mat) {
+		if (mat == Material.AIR) mat = null;
+		if (mask == mat) return;
+		mask = mat;
+		if (mat != null) {
+			if (selected != null) {
+				DexterityDisplay s = new DexterityDisplay(plugin, selected.getCenter(), selected.getScale());
+				List<DexBlock> dblocks = new ArrayList<>();
+				for (DexBlock db : selected.getBlocks()) {
+					if (db.getEntity().getBlock().getMaterial() == mat) dblocks.add(db);
+				}
+				if (dblocks.size() == s.getBlocks().size()) selectFromLocations();
+
+				if (dblocks.size() == 0) setSelected(null, false);
+				else {
+					s.setEntities(dblocks, true);
+					highlightSelected(s);
+					setSelected(s, false);
+				}
+			}
+		} else selectFromLocations();
 		
-		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
+		
 	}
 	
 	public void clearLocationSelection() {
@@ -338,24 +400,24 @@ public class DexSession {
 		l2 = null;
 	}
 	
-	public void openAnimationEditor() {
-		if (selected == null) return;
-		
-		int rows = Math.max(Math.min(selected.getAnimations().size(), 9), 3);
-		Inventory inv = Bukkit.createInventory(null, 9*rows, plugin.getConfigString("animation-editor-title", "Animation Editor"));
-		
-		for (int i = 0; i < rows; i++) {
-			inv.setItem(9*i, DexUtils.createItem(Material.GRAY_STAINED_GLASS_PANE, 1, "Animation " + (i+1)));
-		}
-		
-		int j = 0;
-		for (; j < selected.getAnimations().size(); j++) {
-			
-			if (j >= rows) break;
-		}
-		if (j < rows - 1) inv.setItem(j, DexUtils.createItem(Material.LIME_WOOL, 1, "§aAdd Next Animation"));
-		
-		p.openInventory(inv);
-	}
+//	public void openAnimationEditor() {
+//		if (selected == null) return;
+//		
+//		int rows = Math.max(Math.min(selected.getAnimations().size(), 9), 3);
+//		Inventory inv = Bukkit.createInventory(null, 9*rows, plugin.getConfigString("animation-editor-title", "Animation Editor"));
+//		
+//		for (int i = 0; i < rows; i++) {
+//			inv.setItem(9*i, DexUtils.createItem(Material.GRAY_STAINED_GLASS_PANE, 1, "Animation " + (i+1)));
+//		}
+//		
+//		int j = 0;
+//		for (; j < selected.getAnimations().size(); j++) {
+//			
+//			if (j >= rows) break;
+//		}
+//		if (j < rows - 1) inv.setItem(j, DexUtils.createItem(Material.LIME_WOOL, 1, "§aAdd Next Animation"));
+//		
+//		p.openInventory(inv);
+//	}
 
 }

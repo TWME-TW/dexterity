@@ -371,18 +371,14 @@ public class DexterityAPI {
 	}
 	
 	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r) {
-		return getBlockDisplaysInRegion(l1r, l2r, null);
+		return getBlockDisplaysInRegionContinuous(DexUtils.blockLoc(l1r.clone()), DexUtils.blockLoc(l2r.clone()), new Vector(0, 0, 0), new Vector(1, 1, 1));
 	}
 	
-	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r, Vector scale_offset) {
+	public List<BlockDisplay> getBlockDisplaysInRegionContinuous(Location l1r, Location l2r, Vector l1o, Vector l2o) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		
 		Location l1 = l1r.clone(), l2 = l2r.clone();
-		if (scale_offset == null) {
-			DexUtils.blockLoc(l1);
-			DexUtils.blockLoc(l2);
-		}
-				
+						
 		if (l1.getX() > l2.getX()) {
 			double xt = l1.getX();
 			l1.setX(l2.getX());
@@ -399,14 +395,12 @@ public class DexterityAPI {
 			l2.setZ(zt);
 		}
 		
-		if (scale_offset == null) l2.add(new Vector(1, 1, 1));
-		else {
-			l1.subtract(scale_offset);
-			l2.add(scale_offset);
-		}
+//		if (scale_offset == null) l2.add(new Vector(1, 1, 1));
+		l1.subtract(l1o);
+		l2.add(l2o);
 				
-//		markerPoint(l1, Color.LIME, 10);
-//		markerPoint(l2, Color.GREEN, 10);
+//		markerPoint(l1, Color.LIME, 4);
+//		markerPoint(l2, Color.GREEN, 4);
 		
 		int xchunks = (int) Math.ceil((l2.getX() - l1.getX()) / 16) + 1;
 		int zchunks = (int) Math.ceil((l2.getZ() - l1.getZ()) / 16) + 1;

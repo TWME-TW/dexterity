@@ -34,10 +34,12 @@ public class DexterityDisplay {
 	public DexterityDisplay(Dexterity plugin) {
 		this(plugin, null, new Vector(1, 1, 1));
 	}
+	
+	//TODO make block transactions update scale and rotation
 		
 	public DexterityDisplay(Dexterity plugin, Location center, Vector scale) {
 		this.plugin = plugin;
-		this.scale = scale;
+		this.scale = scale == null ? new Vector(1, 1, 1) : scale;
 		if (center == null) recalculateCenter();
 		else this.center = center;
 	}
@@ -124,6 +126,9 @@ public class DexterityDisplay {
 		if (label != null) plugin.unregisterDisplay(this);
 		plugin.registerDisplay(s, this);
 		label = s;
+		for (DexBlock db : blocks) {
+			if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isListed()) db.setDexterityDisplay(this);
+		}
 		plugin.saveDisplays();
 		return true;
 	}
@@ -147,7 +152,7 @@ public class DexterityDisplay {
 	public void setEntities(List<DexBlock> entities_, boolean recalc_center){
 		this.blocks = entities_;
 		plugin.unregisterDisplay(this);
-		recalculateCenter();
+		if (recalc_center) recalculateCenter();
 	}
 	
 	public List<DexterityDisplay> getSubdisplays() {

@@ -62,17 +62,17 @@ public class EventListeners implements Listener {
 		//DexterityDisplay disp = plugin.getClickedDisplay(e.getPlayer());
 		//if (disp != null) Bukkit.getPluginManager().callEvent(new PlayerClickBlockDisplayEvent(e.getPlayer(), disp));
 		
-		if (e.getPlayer().hasPermission("dexterity.command")) {	
+		if (e.getPlayer().hasPermission("dexterity.build")) {	
 			
 			if (clickDelay(e.getPlayer().getUniqueId())) return;
 			
 			//calculate if player clicked a block display
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
 			ClickedBlockDisplay clicked = (hand.getType() == Material.BARRIER && (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK))
-					? null :  plugin.getAPI().getLookingAt(e.getPlayer());
+					? null : plugin.getAPI().getLookingAt(e.getPlayer());
 			
 			boolean clicked_block;
-			if (clicked == null) clicked_block = true;
+			if (clicked == null) clicked_block = e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_BLOCK;
 			else {
 				ClickedBlock clicked_block_data = plugin.getAPI().getBlockLookingAtRaw(e.getPlayer(), 0.1, clicked.getDistance());
 				clicked_block = clicked_block_data != null && clicked_block_data.getDistance() < clicked.getDistance();
@@ -88,7 +88,6 @@ public class EventListeners implements Listener {
 					
 			//wand click
 			if (hand.getType() == Material.WOODEN_AXE || (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")))) {
-				if (session == null) session = new DexSession(e.getPlayer(), plugin);
 				e.setCancelled(true);
 				
 				//select display with wand
@@ -100,8 +99,9 @@ public class EventListeners implements Listener {
 //				}
 				
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
-					if (e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(clicked.getDisplayCenterLocation(), true, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
-					else session.setLocation(clicked.getDisplayCenterLocation(), false, DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()));
+					boolean is_l1 = e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK;
+					Vector scale = DexUtils.hadimard(DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()), DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));
+					session.setContinuousLocation(clicked.getDisplayCenterLocation(), is_l1, scale);
 				} else if (e.getClickedBlock() != null) {
 					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
 					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2

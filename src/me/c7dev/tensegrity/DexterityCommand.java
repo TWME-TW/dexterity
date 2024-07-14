@@ -45,7 +45,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, cc3, usage_format;
 	
 	public String[] commands = {
-		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "merge", "move", 
+		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
 		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "wand"
 	};
 	public List<String> materials = new ArrayList<>();
@@ -160,9 +160,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		DexSession session = plugin.getEditSession(p.getUniqueId());
-		if (session == null) {
-			session = new DexSession(p, plugin);
-		}
 		
 		HashMap<String,Integer> attrs = DexUtils.getAttributes(args);
 		HashMap<String,String> attr_str = DexUtils.getAttributesStrings(args);
@@ -522,7 +519,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				
 			}
 			else if (args[1].equalsIgnoreCase("edit")) {
-				session.openAnimationEditor();
+//				session.openAnimationEditor();
 			}
 			else {
 				p.sendMessage(plugin.getConfigString("unknown-subcommand"));
@@ -615,6 +612,22 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			int count = attrs.getOrDefault("count", -1);
 			if (count < 2) session.redo();
 			else session.redo(count);
+		}
+		
+		else if (args[0].equalsIgnoreCase("mask")) {
+			if (args.length < 2) p.sendMessage(getUsage("mask"));
+			if (flags.contains("none") || flags.contains("off") || def.equalsIgnoreCase("none") || def.equalsIgnoreCase("off")) {
+				session.setMask(null);
+			} else {
+				Material mat;
+				try {
+					mat = Material.valueOf(def.toUpperCase());
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", args[1].toLowerCase()));
+					return true;
+				}
+				session.setMask(mat);
+			}
 		}
 		
 		else if (args[0].equalsIgnoreCase("rotate") || args[0].equalsIgnoreCase("r")){
@@ -893,6 +906,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (argsr.length <= 3) {
 				ret = materials;
 				finalized = true;
+			}
+		}
+		else if (argsr[0].equalsIgnoreCase("mask")) {
+			if (argsr.length <= 2) {
+				ret.add("-none"); //TODO add mats
 			}
 		}
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {

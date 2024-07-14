@@ -17,6 +17,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
@@ -343,7 +344,13 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public DexSession getEditSession(UUID u) {
-		return sessions.get(u);
+		DexSession s = sessions.get(u);
+		if (s == null) {
+			Player p = Bukkit.getPlayer(u);
+			if (p == null) return null;
+			s = new DexSession(p, this);
+		}
+		return s;
 	}
 	
 	public void deleteEditSession(UUID u) {
