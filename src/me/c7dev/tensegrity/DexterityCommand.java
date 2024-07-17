@@ -164,7 +164,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		HashMap<String,Integer> attrs = DexUtils.getAttributes(args);
 		HashMap<String,String> attr_str = DexUtils.getAttributesStrings(args);
 		List<String> flags = DexUtils.getFlags(args);
-		String def = DexUtils.getDefaultAttribute(args);
+		List<String> defs = DexUtils.getDefaultAttributes(args);
+		String def = defs.size() > 0 ? defs.get(0) : null;
 
 		if (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?")) {
 			int page = 0;
@@ -314,7 +315,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("align-success", session));
 		}
 		
-		else if (args[0].equalsIgnoreCase("replace") || args[0].equalsIgnoreCase("rep")) {
+		else if (args[0].equalsIgnoreCase("replace") || args[0].equalsIgnoreCase("rep")) { //TODO add to= from=
 			DexterityDisplay d = getSelected(session, "replace");
 			if (d == null) return true;
 			
@@ -447,7 +448,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("to-finish-edit", session));
 			
 			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
-			clone.setBaseRotation((float) d.getYaw(), (float) d.getPitch(), 0f);
+//			clone.setBaseRotation((float) d.getYaw(), (float) d.getPitch(), 0f); //TODO
 			
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
@@ -618,6 +619,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (args.length < 2) p.sendMessage(getUsage("mask"));
 			if (flags.contains("none") || flags.contains("off") || def.equalsIgnoreCase("none") || def.equalsIgnoreCase("off")) {
 				session.setMask(null);
+				p.sendMessage(getConfigString("mask-success-disable", session));
 			} else {
 				Material mat;
 				try {
@@ -627,6 +629,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 				session.setMask(mat);
+				
+				p.sendMessage(getConfigString("mask-success", session).replaceAll("\\Q%input%\\E", mat.toString().toLowerCase()));;
 			}
 		}
 		
@@ -641,18 +645,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 			double yaw = attrs_d.getOrDefault("yaw", Double.MAX_VALUE), pitch = attrs_d.getOrDefault("pitch", Double.MAX_VALUE), roll = attrs_d.getOrDefault("roll", Double.MAX_VALUE);
-			if (yaw == Double.MAX_VALUE && pitch == Double.MAX_VALUE && roll == Double.MAX_VALUE) {
+			
+			if (yaw == Double.MAX_VALUE && defs.size() >= 1) {
 				try {
-					if (yaw == Double.MAX_VALUE) yaw = Double.parseDouble(args[1]);
-					if (args.length > 2 && pitch == Double.MAX_VALUE) {
-						try {
-							pitch = Double.parseDouble(args[2]);
-						} catch (Exception ex) {
-							pitch = 0;
-						}
-					}
+					yaw = Double.parseDouble(defs.get(0));
 				} catch (Exception ex) {
-					p.sendMessage(getUsage("rotate"));
+					p.sendMessage(getConfigString("must-send-number", session));
+					return true;
+				}
+			}
+			if (pitch == Double.MAX_VALUE && defs.size() >= 2) {
+				try {
+					pitch = Double.parseDouble(defs.get(1));
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("must-send-number", session));
+					return true;
+				}
+			}
+			if (roll == Double.MAX_VALUE && defs.size() >= 3) {
+				try {
+					roll = Double.parseDouble(defs.get(2));
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("must-send-number", session));
 					return true;
 				}
 			}

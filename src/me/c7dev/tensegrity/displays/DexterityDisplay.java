@@ -25,7 +25,7 @@ public class DexterityDisplay {
 	private DexterityDisplay parent;
 	private boolean started_animations = false, zero_pitch = false;
 	private UUID uuid = UUID.randomUUID(), editing_lock;
-	private float base_yaw = 0f, base_pitch = 0f, base_roll = 0f;
+	private DexRotation rot = null;
 	
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
@@ -56,19 +56,14 @@ public class DexterityDisplay {
 		return label;
 	}
 	
-	public float getYaw() {
-		return base_yaw;
+	public double getYaw() {
+		return rot == null ? 0 : rot.getYaw();
 	}
-	public float getPitch() {
-		return base_pitch;
+	public double getPitch() {
+		return rot == null ? 0 : rot.getPitch();
 	}
-	public float getRoll() {
-		return base_roll;
-	}
-	public void setBaseRotation(float yaw, float pitch, float roll) {
-		base_yaw = yaw;
-		base_pitch = pitch;
-		base_roll = roll;
+	public double getRoll() {
+		return rot == null ? 0 : rot.getRoll();
 	}
 	
 	public void recalculateCenter() {
@@ -96,13 +91,13 @@ public class DexterityDisplay {
 				if (scale.getZ() > scalez) scalez = scale.getZ();
 				
 				if (zero_pitch && db.getEntity().getLocation().getPitch() != 0) zero_pitch = false;
-				if (!set_dir) {
-					base_yaw = db.getEntity().getLocation().getYaw();
-					base_pitch = db.getEntity().getLocation().getPitch();
-				} else {
-					if (db.getEntity().getLocation().getYaw() != base_yaw) base_yaw = 0;
-					if (db.getEntity().getLocation().getPitch() != base_pitch) base_pitch = 0;
-				}
+//				if (!set_dir) { //TODO
+//					base_yaw = db.getEntity().getLocation().getYaw();
+//					base_pitch = db.getEntity().getLocation().getPitch();
+//				} else {
+//					if (db.getEntity().getLocation().getYaw() != base_yaw) base_yaw = 0;
+//					if (db.getEntity().getLocation().getPitch() != base_pitch) base_pitch = 0;
+//				}
 			}
 			scale = new Vector(scalex, scaley, scalez);
 		}
@@ -436,18 +431,18 @@ public class DexterityDisplay {
 	
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
 		//rotate(yaw_deg, pitch_deg, false, false);
-		DexRotation rot = new DexRotation(this);
+		if (rot == null) rot = new DexRotation(this);
 		rot.rotate(yaw_deg, pitch_deg, roll_deg, false, false, false);
 	}
 	
 	public void setRotation(float yaw_deg, float pitch_deg, float roll_deg) {
 		//rotate(yaw_deg, pitch_deg, true, true);
-		DexRotation rot = new DexRotation(this);
+		if (rot == null) rot = new DexRotation(this);
 		rot.rotate(yaw_deg, pitch_deg, roll_deg, true, true, true);
 	}
 	
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg, boolean set_yaw, boolean set_pitch, boolean set_roll) {
-		DexRotation rot = new DexRotation(this);
+		if (rot == null) rot = new DexRotation(this);
 		rot.rotate(yaw_deg, pitch_deg, roll_deg, set_yaw, set_pitch, set_roll);
 	}
 	

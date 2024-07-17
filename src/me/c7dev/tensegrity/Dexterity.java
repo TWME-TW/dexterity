@@ -231,7 +231,7 @@ public class Dexterity extends JavaPlugin {
 				float base_roll = (float) afile.getDouble(label + ".roll");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
-				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
+//				disp.setBaseRotation(base_yaw, base_pitch, base_roll); //TODO
 				disp.forceSetLabel(label);
 				
 				for (BlockDisplay bd : blocks) {

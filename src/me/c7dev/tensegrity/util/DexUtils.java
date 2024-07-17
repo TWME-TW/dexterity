@@ -3,7 +3,6 @@ package me.c7dev.tensegrity.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -19,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 public class DexUtils {
@@ -169,18 +169,15 @@ public class DexUtils {
 		return flags;
 	}
 	
-	public static String getDefaultAttribute(String[] args) {
-		String firstarg = null;
-		int i =0;
-		for (int j = 1; j < args.length; j++) {
-			String arg = args[j];
+	public static List<String> getDefaultAttributes(String[] args) {
+		List<String> r = new ArrayList<>();
+		for (int i = 1; i < args.length; i++) {
+			String arg = args[i];
 			if (!arg.contains("=") && !arg.contains(":") && !arg.startsWith("-")) {
-				if (i == 0) firstarg = arg.toLowerCase();
-				else return arg.toLowerCase();
+				r.add(arg.toLowerCase());
 			}
-			i++;
 		}
-		return firstarg;
+		return r;
 	}
 	
 	public static double faceToDirection(BlockFace face, Vector scale) {
@@ -217,7 +214,13 @@ public class DexUtils {
 	public static Vector3f vector(Vector v) {
 		return new Vector3f((float) v.getX(), (float) v.getY(), (float) v.getZ());
 	}
+	public static Vector3d vectord(Vector v) {
+		return new Vector3d(v.getX(), v.getY(), v.getZ());
+	}
 	public static Vector vector(Vector3f v) {
+		return new Vector(v.x, v.y, v.z);
+	}
+	public static Vector vector(Vector3d v) {
 		return new Vector(v.x, v.y, v.z);
 	}
 	public static Vector hadimard(Vector a, Vector b) {
@@ -310,19 +313,19 @@ public class DexUtils {
 	public static Matrix3d rotMat(double xrad, double yrad, double zrad) {
 		double sinx = Math.sin(xrad), siny = -Math.sin(yrad), sinz = Math.sin(zrad);
 		double cosx = Math.cos(xrad), cosy = Math.cos(yrad), cosz = Math.cos(zrad);
-//		return new Matrix3d(
-//				cosz*cosy, (cosz*siny*sinx) - (sinz*cosx), (cosz*siny*cosx) + (sinz*siny),
-//				sinz*cosy, (sinz*siny*sinx) + (cosz*cosx), (sinz*siny*cosx) - (cosz*sinx),
-//				-siny, cosy*sinx, cosy*cosx
-//				).transpose();
-		return new Matrix3d(
-				cosz*cosy, sinz*cosy, -siny,
-				(cosz*siny*sinx) - (sinz*cosx), (sinz*siny*sinx) + (cosz*cosx), cosy*sinx,
-				(cosz*siny*cosx) + (sinz*siny), (sinz*siny*cosx) - (cosz*sinx), cosy*cosx
+//		return new Matrix3d( //(Rz)(Ry)(Rx)
+//				cosz*cosy, sinz*cosy, -siny,
+//				(cosz*siny*sinx) - (sinz*cosx), (sinz*siny*sinx) + (cosz*cosx), cosy*sinx,
+//				(cosz*siny*cosx) + (sinz*siny), (sinz*siny*cosx) - (cosz*sinx), cosy*cosx
+//				);
+		return new Matrix3d( //(Rz)(Rx)(Ry)
+				cosy*cosz - sinx*siny*sinz, sinx*siny*cosz + cosy*sinz, -cosx*siny,
+				-cosx*sinz, cosx*cosz, sinx,
+				sinx*cosy*sinz + siny*cosz, siny*sinz - sinx*cosy*cosz, cosx*cosy
 				);
 	}
 	
-	public static Vector nearestPoint(Vector a, Vector b, Vector x) {
+	public static Vector nearestPoint(Vector a, Vector b, Vector x) { //nearest point to x on line defined by a, b
 		Vector b_a = b.clone().subtract(a);
 		double theta = b_a.dot(x.clone().subtract(a)) / b_a.lengthSquared();
 		return a.clone().multiply(1-theta).add(b.clone().multiply(theta));
