@@ -432,18 +432,18 @@ public class DexterityDisplay {
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
 		//rotate(yaw_deg, pitch_deg, false, false);
 		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, false, false, false);
+		rot.rotate(yaw_deg, pitch_deg, roll_deg, 0, false, false, false, false);
 	}
 	
 	public void setRotation(float yaw_deg, float pitch_deg, float roll_deg) {
 		//rotate(yaw_deg, pitch_deg, true, true);
 		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, true, true, true);
+		rot.rotate(yaw_deg, pitch_deg, roll_deg, 0, true, true, true, true);
 	}
 	
-	public void rotate(float yaw_deg, float pitch_deg, float roll_deg, boolean set_yaw, boolean set_pitch, boolean set_roll) {
+	public void rotate(float yaw_deg, float pitch_deg, float roll_deg, float ryaw_deg, boolean set_yaw, boolean set_pitch, boolean set_roll, boolean set_ryaw) {
 		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, set_yaw, set_pitch, set_roll);
+		rot.rotate(yaw_deg, pitch_deg, roll_deg, ryaw_deg, set_yaw, set_pitch, set_roll, set_ryaw);
 	}
 	
 //	public void rotate(float yaw_deg, float pitch_deg, boolean set_yaw, boolean set_pitch) {

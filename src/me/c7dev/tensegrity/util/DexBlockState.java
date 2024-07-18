@@ -14,6 +14,7 @@ public class DexBlockState {
 	private DexTransformation trans;
 	private BlockData block;
 	private DexterityDisplay disp;
+	private float roll;
 	
 	public DexBlockState(DexBlock db) {
 		loc = db.getLocation().clone();
@@ -21,6 +22,7 @@ public class DexBlockState {
 		trans = db.getTransformation().clone();
 		block = db.getEntity().getBlock();
 		disp = db.getDexterityDisplay();
+		roll = db.getRoll();
 	}
 	
 	public Location getLocation() {
@@ -41,6 +43,10 @@ public class DexBlockState {
 	
 	public DexterityDisplay getDisplay() {
 		return disp;
+	}
+	
+	public float getRoll() {
+		return roll;
 	}
 
 }

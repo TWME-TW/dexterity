@@ -1,5 +1,6 @@
 package me.c7dev.tensegrity.util;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -93,6 +94,7 @@ public class DexBlock {
 	public void loadState(DexBlockState state) {
 		if (entity.isDead()) return;
 		trans = state.getTransformation();
+		roll = state.getRoll();
 		entity.teleport(state.getLocation());
 		entity.setTransformation(state.getTransformation().build());
 		entity.setBlock(state.getBlock());
