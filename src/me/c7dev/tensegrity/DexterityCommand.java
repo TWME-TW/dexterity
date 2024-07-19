@@ -37,6 +37,7 @@ import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.RotationPlan;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
@@ -643,71 +644,78 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
-			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
-			double yaw = attrs_d.getOrDefault("yaw", Double.MAX_VALUE), pitch = attrs_d.getOrDefault("pitch", Double.MAX_VALUE), roll = attrs_d.getOrDefault("roll", Double.MAX_VALUE), 
-					ryaw = attrs_d.getOrDefault("ryaw", Double.MAX_VALUE);
-			
-			if (yaw == Double.MAX_VALUE && defs.size() >= 1) {
-				try {
-					yaw = Double.parseDouble(defs.get(0));
-				} catch (Exception ex) {
-					p.sendMessage(getConfigString("must-send-number", session));
-					return true;
-				}
-			}
-			if (pitch == Double.MAX_VALUE && defs.size() >= 2) {
-				try {
-					pitch = Double.parseDouble(defs.get(1));
-				} catch (Exception ex) {
-					p.sendMessage(getConfigString("must-send-number", session));
-					return true;
-				}
-			}
-			if (roll == Double.MAX_VALUE && defs.size() >= 3) {
-				try {
-					roll = Double.parseDouble(defs.get(2));
-				} catch (Exception ex) {
-					p.sendMessage(getConfigString("must-send-number", session));
-					return true;
-				}
-			}
-			if (ryaw == Double.MAX_VALUE && defs.size() >= 4) {
-				try {
-					ryaw = Double.parseDouble(defs.get(3));
-				} catch (Exception ex) {
-					p.sendMessage(getConfigString("must-send-number", session));
-					return true;
-				}
-			}
-			
 			boolean set = flags.contains("set");
-			boolean setyaw, setpitch, setroll, setryaw;
-			if (yaw == Double.MAX_VALUE) {
-				setyaw = false;
-				yaw = 0;
-			} else setyaw = set;
-			if (pitch == Double.MAX_VALUE) {
-				setpitch = false;
-				pitch = 0;
-			} else setpitch = set;
-			if (roll == Double.MAX_VALUE) {
-				setroll = false;
-				roll = 0;
-			} else setroll = set;
-			if (ryaw == Double.MAX_VALUE) {
-				setryaw = false;
-				ryaw = 0;
-			} else setryaw = set;
+			double default_val = Double.MAX_VALUE;
+			if (flags.contains("reset")) {
+				set = true;
+				default_val = 0;
+			}
+			
+			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+			RotationPlan plan = new RotationPlan();
+			plan.yaw_deg = attrs_d.getOrDefault("yaw", default_val);
+			plan.pitch_deg = attrs_d.getOrDefault("pitch", default_val);
+			plan.roll_deg = attrs_d.getOrDefault("roll", default_val);
+			plan.y_deg = attrs_d.getOrDefault("y", default_val);
+			plan.x_deg = attrs_d.getOrDefault("x", default_val);
+			plan.z_deg = attrs_d.getOrDefault("z", default_val);
+			
+			try {
+				switch(Math.min(defs.size(), 6)) {
+				case 6:
+					if (plan.z_deg == Double.MAX_VALUE) plan.z_deg = Double.parseDouble(defs.get(5));
+				case 5:
+					if (plan.x_deg == Double.MAX_VALUE) plan.x_deg = Double.parseDouble(defs.get(4));
+				case 4: 
+					if (plan.yaw_deg == Double.MAX_VALUE) plan.yaw_deg = Double.parseDouble(defs.get(3));
+				case 3: 
+					if (plan.roll_deg == Double.MAX_VALUE) plan.roll_deg = Double.parseDouble(defs.get(2));
+				case 2: 
+					if (plan.pitch_deg == Double.MAX_VALUE) plan.pitch_deg = Double.parseDouble(defs.get(1));
+				case 1: 
+					if (plan.y_deg == Double.MAX_VALUE) plan.y_deg = Double.parseDouble(defs.get(0));
+				default:
+				}
+			} catch (Exception ex) {
+				p.sendMessage(getConfigString("must-send-number", session));
+				return true;
+			}
+			
+			if (plan.yaw_deg == Double.MAX_VALUE) {
+				plan.set_yaw = false;
+				plan.yaw_deg = 0;
+			} else plan.set_yaw = set;
+			if (plan.pitch_deg == Double.MAX_VALUE) {
+				plan.set_pitch = false;
+				plan.pitch_deg = 0;
+			} else plan.set_pitch = set;
+			if (plan.roll_deg == Double.MAX_VALUE) {
+				plan.set_roll = false;
+				plan.roll_deg = 0;
+			} else plan.set_roll = set;
+			if (plan.y_deg == Double.MAX_VALUE) {
+				plan.set_y = false;
+				plan.y_deg = 0;
+			} else plan.set_y = set;
+			if (plan.x_deg == Double.MAX_VALUE) {
+				plan.set_x = false;
+				plan.x_deg = 0;
+			} else plan.set_x = set;
+			if (plan.z_deg == Double.MAX_VALUE) {
+				plan.set_z = false;
+				plan.z_deg = 0;
+			} else plan.set_z = set;				
 						
 			BlockTransaction t = new BlockTransaction(d.getBlocks());
-			//TODO toggle messages in session
-			if (set) {
-				d.rotate((float) yaw, (float) pitch, (float) roll, (float) ryaw, setyaw, setpitch, setroll, setryaw);
-				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch, " + cc2 + DexUtils.round(roll, 3) + cc + " roll!");
-			} else {
-				d.rotate((float) yaw, (float) pitch, (float) roll, (float) ryaw, setyaw, setpitch, setroll, setryaw);
-				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(yaw, 3) + cc + " yaw, " + cc2 + DexUtils.round(pitch, 3) + cc + " pitch, " + cc2 + DexUtils.round(roll, 3) + cc + " roll!");
-			}
+			
+			d.rotate(plan);
+			
+			//TODO toggle messages in session, translate
+//			if (set) {
+//				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(plan.y_deg, 3) + cc + " yaw, " + cc2 + DexUtils.round(plan.pitch_deg, 3) + cc + " pitch, " + cc2 + DexUtils.round(plan.roll_deg, 3) + cc + " roll!");
+//			} else {
+//				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(plan.y_deg, 3) + cc + " yaw, " + cc2 + DexUtils.round(plan.pitch_deg, 3) + cc + " pitch, " + cc2 + DexUtils.round(plan.roll_deg, 3) + cc + " roll!");
+//			}
 			t.commit(d.getBlocks());
 			session.pushTransaction(t);
 		}
@@ -1000,8 +1008,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("yaw=");
 			ret.add("pitch=");
 			ret.add("roll=");
-			ret.add("ryaw=");
+			ret.add("y=");
+			ret.add("x=");
+			ret.add("z=");
 			ret.add("-set");
+			ret.add("-reset");
 		}
 		if (!finalized) {
 			if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);

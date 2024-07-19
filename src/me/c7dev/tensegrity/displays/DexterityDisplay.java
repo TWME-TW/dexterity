@@ -14,6 +14,7 @@ import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexRotation;
+import me.c7dev.tensegrity.util.RotationPlan;
 import me.c7dev.tensegrity.util.DexUtils;
 
 public class DexterityDisplay {
@@ -429,21 +430,28 @@ public class DexterityDisplay {
 //		}
 //	}
 	
-	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
-		//rotate(yaw_deg, pitch_deg, false, false);
-		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, 0, false, false, false, false);
+	public void rotate(float y_deg, float pitch_deg, float roll_deg) {
+		RotationPlan plan = new RotationPlan();
+		plan.y_deg = y_deg;
+		plan.pitch_deg = pitch_deg;
+		plan.roll_deg = roll_deg;
+		rotate(plan);
 	}
 	
-	public void setRotation(float yaw_deg, float pitch_deg, float roll_deg) {
-		//rotate(yaw_deg, pitch_deg, true, true);
-		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, 0, true, true, true, true);
+	public void setRotation(float y_deg, float pitch_deg, float roll_deg) {
+		RotationPlan plan = new RotationPlan();
+		plan.y_deg = y_deg;
+		plan.pitch_deg = pitch_deg;
+		plan.roll_deg = roll_deg;
+		plan.set_y = true;
+		plan.set_pitch = true;
+		plan.set_roll = true;
+		rotate(plan);
 	}
 	
-	public void rotate(float yaw_deg, float pitch_deg, float roll_deg, float ryaw_deg, boolean set_yaw, boolean set_pitch, boolean set_roll, boolean set_ryaw) {
+	public void rotate(RotationPlan plan) {
 		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(yaw_deg, pitch_deg, roll_deg, ryaw_deg, set_yaw, set_pitch, set_roll, set_ryaw);
+		rot.rotate(plan);
 	}
 	
 //	public void rotate(float yaw_deg, float pitch_deg, boolean set_yaw, boolean set_pitch) {

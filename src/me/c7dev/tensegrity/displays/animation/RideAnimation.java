@@ -10,6 +10,7 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.util.RotationPlan;
 
 public class RideAnimation extends Animation {
 	
@@ -64,8 +65,18 @@ public class RideAnimation extends Animation {
 				mount.setVelocity(dir);
 				
 				display.teleport(dir);
-				if (look_mode == LookMode.YAW_ONLY) display.rotate(p.getLocation().getYaw(), 0, 0, 0, true, false, false, false);
-				else if (look_mode == LookMode.YAW_PITCH) display.setRotation(p.getLocation().getYaw(), p.getLocation().getPitch(), 0);
+				RotationPlan plan = new RotationPlan();
+				plan.set_y = true;
+				if (look_mode == LookMode.YAW_ONLY) {
+					plan.y_deg = p.getLocation().getYaw();
+					display.rotate(plan);
+				}
+				else if (look_mode == LookMode.YAW_PITCH) {
+					plan.y_deg = p.getLocation().getYaw();
+					plan.pitch_deg = p.getLocation().getPitch();
+					plan.set_pitch = true;
+					display.rotate(plan);
+				}
 				
 			}
 		});

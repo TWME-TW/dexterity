@@ -22,8 +22,8 @@ public class DexRotation {
 	private Location center;
 	private DexterityDisplay d;
 	private Vector3d x = new Vector3d(1, 0, 0), y = new Vector3d(0, 1, 0), z = new Vector3d(0, 0, 1);
-	private Quaterniond q1 = new Quaterniond(0, 0, 0, 1), q_noroll = null;
-	private double base_yaw = 0, base_pitch = 0, base_roll = 0, base_rel_yaw = 0;
+	private Quaterniond q1 = new Quaterniond(0, 0, 0, 1);
+	private double base_x = 0, base_y = 0, base_z = 0, base_pitch = 0, base_roll = 0, base_yaw = 0;
 	
 	public static final double cutoff = 0.0001;
 	
@@ -38,6 +38,15 @@ public class DexRotation {
 		this.z = DexUtils.vectord(z);
 	}
 	
+	public double getX() {
+		return base_x;
+	}
+	public double getY() {
+		return base_y;
+	}
+	public double getZ() {
+		return base_z;
+	}
 	public double getYaw() {
 		return base_yaw;
 	}
@@ -49,35 +58,36 @@ public class DexRotation {
 	}
 	
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
-		rotate(yaw_deg, pitch_deg, roll_deg, 0, false, false, false, false);
+		RotationPlan p = new RotationPlan();
+		p.yaw_deg = yaw_deg;
+		p.pitch_deg = pitch_deg;
+		p.roll_deg = roll_deg;
+		rotate(p);
 	}
 	
-	public void rotate(float yaw_deg, float pitch_deg, float roll_deg, float ryaw_deg, boolean set_yaw, boolean set_pitch, boolean set_roll, boolean set_ryaw) {
-							
-		double del_yaw = set_yaw ? yaw_deg - base_yaw : yaw_deg,
-				del_pitch = set_pitch ? pitch_deg - base_pitch : pitch_deg,
-				del_roll = set_roll ? roll_deg - base_roll : roll_deg,
-				del_ryaw = set_ryaw ? ryaw_deg - base_rel_yaw : ryaw_deg;
+	public void rotate(RotationPlan plan) {
+
+		double del_x = plan.set_x ? plan.x_deg - base_x : plan.x_deg,
+				del_y = plan.set_y ? plan.y_deg - base_y : plan.y_deg,
+				del_z = plan.set_z ? plan.z_deg - base_z : plan.z_deg,
+				del_yaw = plan.set_yaw ? plan.yaw_deg - base_yaw : plan.yaw_deg,
+				del_pitch = plan.set_pitch ? plan.pitch_deg - base_pitch : plan.pitch_deg,
+				del_roll = plan.set_roll ? plan.roll_deg - base_roll : plan.roll_deg;
 		
-		if (del_yaw == 0 && del_pitch == 0 && del_roll == 0 && del_ryaw == 0) return;
+		if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0) return;
 				
 		Quaterniond q = new Quaterniond(0, 0, 0, 1);
-		q_noroll = null;
-		if (del_yaw != 0) {
-			double rads = Math.toRadians(del_yaw) / 2;
-			
-			q = yawQuaternion(Math.toRadians(del_yaw), q);
-			
-			double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
-			q_noroll = new Quaterniond(0, sintheta, 0, costheta);
-		}
-		if (del_ryaw != 0) q = relYawQuaternion(Math.toRadians(del_ryaw), q);
-		if (del_pitch != 0) q = pitchQuaternion(Math.toRadians(del_pitch), q);
+//		q_noroll = null;
+		if (del_z != 0) q = zQuaternion(Math.toRadians(del_z), q);
 		if (del_roll != 0) q = rollQuaternion(Math.toRadians(del_roll), q);
+		if (del_x != 0) q = xQuaternion(Math.toRadians(del_x), q);
+		if (del_pitch != 0) q = pitchQuaternion(Math.toRadians(del_pitch), q);
+		if (del_yaw != 0) q = yawQuaternion(Math.toRadians(del_yaw), q);
+		if (del_y != 0) q = yQuaternion(Math.toRadians(del_y), q);
 		
 		q1 = new Quaterniond();
 		q.invert(q1);
-		
+				
 		executeRot();
 		
 //		d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, 10);
@@ -85,25 +95,34 @@ public class DexRotation {
 //		d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, 10);
 //		d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.BLACK, 6);
 		
-		base_yaw += del_yaw;
-		base_pitch += del_pitch;
-		base_roll += del_roll;
-		base_rel_yaw += del_ryaw;
+		base_y = (base_y + del_y) % 360;
+		base_x = (base_x + del_x) % 360;
+		base_z = (base_z + del_z) % 360;
+		base_yaw = (base_yaw + del_yaw) % 360;
+		base_pitch = (base_pitch + del_pitch) % 360;
+		base_roll = (base_roll + del_roll) % 360;
 	}
 	
-	private Quaterniond yawQuaternion(double rads, Quaterniond src) {
+	private Quaterniond yQuaternion(double rads, Quaterniond src) {
 		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
-		Quaterniond q_yaw = new Quaterniond(0, sintheta, 0, costheta);
-		q_yaw.transformInverse(x);
-		q_yaw.transformInverse(z);
-		return src.mul(q_yaw);
+		Quaterniond q_y = new Quaterniond(0, sintheta, 0, costheta);
+		q_y.transformInverse(x);
+		q_y.transformInverse(z);
+		return src.mul(q_y);
 	}
-	private Quaterniond relYawQuaternion(double rads, Quaterniond src) {
+	private Quaterniond yawQuaternion(double rads, Quaterniond src) {
 		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
 		Quaterniond q_yaw = new Quaterniond(sintheta*y.x, sintheta*y.y, sintheta*y.z, costheta);
 		q_yaw.transformInverse(x);
 		q_yaw.transformInverse(z);
 		return src.mul(q_yaw);
+	}
+	private Quaterniond xQuaternion(double rads, Quaterniond src) {
+		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
+		Quaterniond q_x = new Quaterniond(sintheta, 0, 0, costheta);
+		q_x.transformInverse(z);
+		q_x.transformInverse(y);
+		return src.mul(q_x);
 	}
 	private Quaterniond pitchQuaternion(double rads, Quaterniond src) {
 		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
@@ -111,6 +130,13 @@ public class DexRotation {
 		q_pitch.transformInverse(z);
 		q_pitch.transformInverse(y);
 		return src.mul(q_pitch);
+	}
+	private Quaterniond zQuaternion(double rads, Quaterniond src) {
+		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
+		Quaterniond q_z = new Quaterniond(0, 0, sintheta, costheta);
+		q_z.transformInverse(x);
+		q_z.transformInverse(y);
+		return src.mul(q_z);
 	}
 	private Quaterniond rollQuaternion(double rads, Quaterniond src) {
 		double sintheta = Math.sin(rads / 2), costheta = Math.cos(rads/2);
@@ -131,13 +157,13 @@ public class DexRotation {
 			Vector key = new Vector(db.getEntity().getLocation().getPitch(), db.getEntity().getLocation().getYaw(), db.getRoll());
 			Vector dir = dirs.get(key);
 			if (dir == null) {
-//				AxisPair a = new AxisPair(db); //TODO make another map <dir, AxisPair> to get this for animations
+//				AxisPair a = new AxisPair(db);
 				AxisPair a = axispairs.get(key);
 				if (a == null) a = new AxisPair(db);
 //				else axispairs.remove(key);
 				
-				a.transform(q1, q_noroll);
-				dir = a.getPitchYawRoll(db);
+				a.transform(q1);
+				dir = a.getPitchYawRoll();
 				dirs.put(key, dir);
 				axispairs.put(dir, a);
 			}
