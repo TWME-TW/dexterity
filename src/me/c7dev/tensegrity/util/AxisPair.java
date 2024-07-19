@@ -1,46 +1,34 @@
 package me.c7dev.tensegrity.util;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.util.Vector;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
 public class AxisPair {
 	
-	private Vector3d dir1, dir2, dir2_proj;
-	private Vector res = new Vector(0, 0, 0);
-	private boolean res_set = false;
+	private Vector3d dir1, dir2;
 	
 	public static double PI2 = Math.PI/2;
 	
 	public AxisPair() {
 		dir1 = new Vector3d(0, 0, 1);
 		dir2 = new Vector3d(1, 0, 0);
-		dir2_proj = new Vector3d(1, 0, 0);
 	}
 	
-	public AxisPair(DexBlock db) { //TODO redo
+	public AxisPair(DexBlock db) {
 		this();
-		Bukkit.broadcastMessage("new axis pair from db");
 		Quaterniond q = new Quaterniond();
 		q.rotateZ(-Math.toRadians(db.getRoll()));
 		q.rotateX(-Math.toRadians(db.getEntity().getLocation().getPitch()));
-		double yaw = Math.toRadians(db.getEntity().getLocation().getYaw());
-		q.rotateY(yaw);
+		q.rotateY(Math.toRadians(db.getEntity().getLocation().getYaw()));
 		q.transformInverse(dir1);
 		q.transformInverse(dir2);
-		
-		Quaterniond q2 = new Quaterniond(0, Math.sin(yaw/2), 0, Math.cos(yaw/2));
-		q2.transformInverse(dir2_proj); //dir2_proj should never be rotated by roll, rotating by pitch should do nothing
 	}
 
 	
-	public void transform(Quaterniond q) {
-		q.transform(dir1);
-		q.transform(dir2);
-		
-		res_set = false;
+	public void transform(Quaterniond q1) {
+		q1.transform(dir1);
+		q1.transform(dir2);
 	}
 	
 	
@@ -56,7 +44,7 @@ public class AxisPair {
 //		xz2.normalize();
 //		if (xz2.x == 0 && xz2.y == 0 && xz2.z == 0) {
 //			roll_rad = dir2.y > 0 ? -90 : 90;
-		dir2_proj = new Vector3d(Math.cos(yaw_rad), 0, Math.sin(yaw_rad));
+		Vector3d dir2_proj = new Vector3d(Math.cos(yaw_rad), 0, Math.sin(yaw_rad));
 		double roll_rad = Math.acos(dir2.dot(dir2_proj));
 		if (Double.isNaN(roll_rad) || !Double.isFinite(roll_rad)) roll_rad = 0;
 

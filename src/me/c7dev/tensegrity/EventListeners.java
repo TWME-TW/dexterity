@@ -85,7 +85,7 @@ public class EventListeners implements Listener {
 				clicked_db = plugin.getMappedDisplay(clicked.getBlockDisplay().getUniqueId());
 				if (clicked_db != null) clicked_display = clicked_db.getDexterityDisplay();
 			}
-					
+			
 			//wand click
 			if (hand.getType() == Material.WOODEN_AXE || (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")))) {
 				e.setCancelled(true);
@@ -106,7 +106,7 @@ public class EventListeners implements Listener {
 					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
 					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
 				}
-			} else {
+			} else {				
 				if (clicked == null || clicked_block) return;
 				e.setCancelled(true);
 				
@@ -161,6 +161,7 @@ public class EventListeners implements Listener {
 
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display);
+							new_db.loadRoll();
 							clicked_display.getBlocks().add(new_db);
 							if (session != null) session.pushBlock(new_db, true);
 						}

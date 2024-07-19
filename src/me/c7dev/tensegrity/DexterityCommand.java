@@ -189,14 +189,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equalsIgnoreCase("test")) {
-			p.sendMessage("§7Test message §8and in bold UwU");
-		}
 		else if (args[0].equalsIgnoreCase("test2")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			for (DexBlock db : d.getBlocks()) {
-				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).build());
+				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).setRollOffset(new Vector(0, 0, 0)).build());
+				api.markerPoint(db.getEntity().getLocation(), Color.AQUA, 2);
 			}
 		}
 		else if (args[0].equalsIgnoreCase("test3")) {
@@ -413,18 +411,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.clearLocationSelection();
 				p.sendMessage(plugin.getConfigString("desel-success"));
 			}
-		}
-		
-		else if (args[0].equalsIgnoreCase("path")) { //TODO
-			DexterityDisplay d = getSelected(session, "animation");
-			if (d == null) return true;
-			
-			if (args.length < 2) return true;
-			
-			if (args[0].equalsIgnoreCase("add")) {
-				
-			}
-			
 		}
 		
 		else if (args[0].equalsIgnoreCase("highlight") || args[0].equalsIgnoreCase("h")) {
@@ -645,20 +631,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			boolean set = flags.contains("set");
-			double default_val = Double.MAX_VALUE;
-			if (flags.contains("reset")) {
-				set = true;
-				default_val = 0;
-			}
-			
 			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 			RotationPlan plan = new RotationPlan();
-			plan.yaw_deg = attrs_d.getOrDefault("yaw", default_val);
-			plan.pitch_deg = attrs_d.getOrDefault("pitch", default_val);
-			plan.roll_deg = attrs_d.getOrDefault("roll", default_val);
-			plan.y_deg = attrs_d.getOrDefault("y", default_val);
-			plan.x_deg = attrs_d.getOrDefault("x", default_val);
-			plan.z_deg = attrs_d.getOrDefault("z", default_val);
+			
+			plan.reset = flags.contains("reset");
+			plan.yaw_deg = attrs_d.getOrDefault("yaw", Double.MAX_VALUE);
+			plan.pitch_deg = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
+			plan.roll_deg = attrs_d.getOrDefault("roll", Double.MAX_VALUE);
+			plan.y_deg = attrs_d.getOrDefault("y", Double.MAX_VALUE);
+			plan.x_deg = attrs_d.getOrDefault("x", Double.MAX_VALUE);
+			plan.z_deg = attrs_d.getOrDefault("z", Double.MAX_VALUE);
 			
 			try {
 				switch(Math.min(defs.size(), 6)) {

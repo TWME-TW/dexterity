@@ -19,6 +19,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import me.c7dev.tensegrity.api.DexterityAPI;
@@ -237,6 +238,15 @@ public class Dexterity extends JavaPlugin {
 				for (BlockDisplay bd : blocks) {
 					disp.getBlocks().add(new DexBlock(bd, disp));
 				}
+				
+				new BukkitRunnable() {
+					@Override
+					public void run() {
+						for (DexBlock db : disp.getBlocks()) {
+							db.loadRoll();
+						}
+					}
+				}.runTaskAsynchronously(this);
 				
 				String parent_label = afile.getString(label + ".parent");
 				if (parent_label != null) {
