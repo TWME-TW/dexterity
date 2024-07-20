@@ -325,6 +325,12 @@ public class DexUtils {
 				);
 	}
 	
+	public static boolean isOrthonormal(Vector x, Vector y, Vector z) {
+		double cutoff = 0.00000001;
+		return x.dot(y) < cutoff && y.dot(z) < cutoff && z.dot(x) < cutoff && 
+				x.length() - 1 < cutoff && y.length() - 1 < cutoff && z.length() - 1 < cutoff;
+	}
+	
 	public static Vector nearestPoint(Vector a, Vector b, Vector x) { //nearest point to x on line defined by a, b
 		Vector b_a = b.clone().subtract(a);
 		double theta = b_a.dot(x.clone().subtract(a)) / b_a.lengthSquared();

@@ -1,30 +1,35 @@
-package me.c7dev.tensegrity.util;
+package me.c7dev.tensegrity.api;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
-import org.joml.Matrix3d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
-import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.transaction.RotationTransaction;
+import me.c7dev.tensegrity.util.AxisPair;
+import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.RotationPlan;
 
 public class DexRotation {
 	
-	private HashMap<Double, Matrix3d> rotmats_d = new HashMap<>();
-	private HashMap<Vector, Matrix3d> rotmats_v = new HashMap<>();
 	private HashMap<Vector, Vector> dirs = new HashMap<>();
 	private HashMap<Vector, AxisPair> axispairs = new HashMap<>();
-	private Location center;
 	private DexterityDisplay d;
 	private Vector3d x = new Vector3d(1, 0, 0), y = new Vector3d(0, 1, 0), z = new Vector3d(0, 0, 1);
 	private Quaterniond q1 = new Quaterniond(0, 0, 0, 1);
 	private double base_x = 0, base_y = 0, base_z = 0, base_pitch = 0, base_roll = 0, base_yaw = 0;
+	private List<BlockDisplay> points = new ArrayList<>();
+	private RotationTransaction t = null;
 	
 	public static final double cutoff = 0.000001;
 	
@@ -37,39 +42,18 @@ public class DexRotation {
 		this.d = d;
 		
 		//confirm orthonormality
-		if (x.dot(y) < cutoff && y.dot(z) < cutoff && z.dot(x) < cutoff && x.length() - 1 < cutoff && y.length() < cutoff && z.length() < cutoff) {
+		if (DexUtils.isOrthonormal(x, y, z)) {
 			this.x = DexUtils.vectord(x);
 			this.y = DexUtils.vectord(y);
 			this.z = DexUtils.vectord(z);
 		} else refreshAxis();
 	}
-
-	public void refreshAxis() {
-		
-		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
-		for (DexBlock db : d.getBlocks()) {
-			double yaw = Math.abs(db.getLocation().getYaw()), pitch = Math.abs(db.getLocation().getPitch()), roll = Math.abs(db.getRoll());
-			if (yaw < min_yaw) {
-				min_yaw = yaw;
-				yaw_val = db.getLocation().getYaw();
-			}
-			if (pitch < min_pitch) {
-				min_pitch = pitch;
-				pitch_val = db.getLocation().getPitch();
-			}
-			if (roll < min_roll) {
-				min_roll = roll;
-				roll_val = db.getRoll();
-			}
-		}
-		
-		base_yaw = yaw_val;
-		base_pitch = pitch_val;
-		base_roll = roll_val;
-		
-		Bukkit.broadcastMessage("yaw = " + yaw_val + ", pitch = " + pitch_val + ", roll = " + roll_val);
-		
-		Quaterniond s = new Quaterniond();
+	
+	public DexRotation(DexterityDisplay d, double yaw, double pitch, double roll) {
+		base_yaw = yaw;
+		base_pitch = pitch;
+		base_roll = roll;
+		Quaterniond s = new Quaterniond(0, 0, 0, 1);
 		s.rotateZ(-Math.toRadians(base_roll));
 		s.rotateX(-Math.toRadians(base_pitch));
 		s.rotateY(Math.toRadians(base_yaw));
@@ -80,7 +64,77 @@ public class DexRotation {
 		s.transformInverse(x);
 		s.transformInverse(y);
 		s.transformInverse(z);
+	}
+
+	public void refreshAxis() {
 		
+		clearCached();
+		
+		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
+		for (DexBlock db : d.getBlocks()) {
+			double yaw = Math.abs(db.getLocation().getYaw()), pitch = Math.abs(db.getLocation().getPitch()), roll = Math.abs(db.getRoll());
+			if (yaw < min_yaw && pitch < min_pitch && roll < min_roll) {
+				min_yaw = yaw;
+				yaw_val = db.getLocation().getYaw();
+				min_pitch = pitch;
+				pitch_val = -db.getLocation().getPitch();
+				min_roll = roll;
+				roll_val = -db.getRoll();
+			}
+		}
+		
+		//Alternate method that finds the mode of each axis, rather than the closest to zero
+//		double yaw_mode = 0, pitch_mode = 0, roll_mode = 0;
+//		int yaw_count = 0, pitch_count = 0, roll_count = 0;
+//		for (DexBlock db : d.getBlocks()) {
+//			double yaw = db.getEntity().getLocation().getYaw(), pitch = db.getEntity().getLocation().getPitch(), roll = db.getRoll();
+//			if (yaw == yaw_mode) yaw_count++;
+//			else if (yaw_count <= 0) yaw_mode = yaw;
+//			else yaw_count--;
+//			
+//			if (pitch == pitch_mode) pitch_count++;
+//			else if (pitch_count <= 0) pitch_mode = pitch;
+//			else pitch_count--;
+//			
+//			if (roll == roll_mode) roll_count++;
+//			else if (roll_count <= 0) roll_mode = roll;
+//			else roll_count--;
+//		}
+		
+		base_yaw = yaw_val;
+		base_pitch = pitch_val;
+		base_roll = roll_val;
+		
+		Quaterniond s = new Quaterniond(0, 0, 0, 1);
+		s.rotateZ(-Math.toRadians(base_roll));
+		s.rotateX(-Math.toRadians(base_pitch));
+		s.rotateY(Math.toRadians(base_yaw));
+		
+		x = new Vector3d(1, 0, 0);
+		y = new Vector3d(0, 1, 0);
+		z = new Vector3d(0, 0, 1);
+		s.transformInverse(x);
+		s.transformInverse(y);
+		s.transformInverse(z);		
+	}
+	
+	public Vector getXAxis() {
+		return DexUtils.vector(x);
+	}
+	public Vector getYAxis() {
+		return DexUtils.vector(y);
+	}
+	public Vector getZAxis() {
+		return DexUtils.vector(z);
+	}
+	
+	public void setTransaction(RotationTransaction t2) { //async callback
+		t = t2;
+	}
+	
+	public void clearCached() {
+		dirs.clear();
+		axispairs.clear();
 	}
 	
 	public double getX() {
@@ -102,6 +156,14 @@ public class DexRotation {
 		return base_roll;
 	}
 	
+	public void setAxes(Vector x, Vector y, Vector z) {
+		if (!DexUtils.isOrthonormal(x, y, z)) return; //TODO exception
+		this.x = new Vector3d(x.getX(), x.getY(), x.getZ());
+		this.y = new Vector3d(y.getX(), y.getY(), y.getZ());
+		this.z = new Vector3d(z.getX(), z.getY(), z.getZ());
+		clearCached();
+	}
+	
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
 		RotationPlan p = new RotationPlan();
 		p.yaw_deg = yaw_deg;
@@ -112,18 +174,22 @@ public class DexRotation {
 	
 	public void rotate(RotationPlan plan) {
 		
-		double del_x = plan.set_x ? plan.x_deg - base_x : plan.x_deg,
-				del_y = plan.set_y ? plan.y_deg - base_y : plan.y_deg,
-				del_z = plan.set_z ? plan.z_deg - base_z : plan.z_deg,
-				del_yaw = plan.set_yaw ? plan.yaw_deg - base_yaw : plan.yaw_deg,
-				del_pitch = plan.set_pitch ? plan.pitch_deg - base_pitch : plan.pitch_deg,
-				del_roll = plan.set_roll ? plan.roll_deg - base_roll : plan.roll_deg;
-		
-		if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0 && !plan.reset) return;
-				
+		double del_x, del_y, del_z, del_yaw, del_pitch, del_roll;
+		if (plan.reset) {
+			del_x = plan.x_deg; del_y = plan.y_deg; del_z = plan.z_deg;
+			del_pitch = plan.pitch_deg; del_yaw = plan.yaw_deg; del_roll = plan.roll_deg;
+		} else {
+			del_x = plan.set_x ? plan.x_deg - base_x : plan.x_deg;
+			del_y = plan.set_y ? plan.y_deg - base_y : plan.y_deg;
+			del_z = plan.set_z ? plan.z_deg - base_z : plan.z_deg;
+			del_yaw = plan.set_yaw ? plan.yaw_deg - base_yaw : plan.yaw_deg;
+			del_pitch = plan.set_pitch ? plan.pitch_deg - base_pitch : plan.pitch_deg;
+			del_roll = plan.set_roll ? plan.roll_deg - base_roll : plan.roll_deg;
+			if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0) return;
+		}
+						
 		Quaterniond q = new Quaterniond(0, 0, 0, 1);
-//		q_noroll = null;
-		if (plan.reset) q = resetQuaternion(q);
+		if (plan.reset) q = resetQuaternion();
 		if (del_z != 0) q = zQuaternion(Math.toRadians(del_z), q);
 		if (del_roll != 0) q = rollQuaternion(Math.toRadians(del_roll), q);
 		if (del_x != 0) q = xQuaternion(Math.toRadians(del_x), q);
@@ -136,11 +202,6 @@ public class DexRotation {
 				
 		if (plan.async) rotateAsync(q1, d.getCenter());
 		else rotate(q1, d.getCenter());
-		
-//		d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, 10);
-//		d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(y)), Color.LIME, 10);
-//		d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, 10);
-//		d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.BLACK, 6);
 		
 		base_y = (base_y + del_y) % 360;
 		base_x = (base_x + del_x) % 360;
@@ -198,14 +259,23 @@ public class DexRotation {
 		q_roll.transformInverse(z);
 		return src.mul(q_roll);
 	}
-	private Quaterniond resetQuaternion(Quaterniond src) {
-		Vector3d cross = new Vector3d();
-		y.cross(new Vector3d(0, 1, 0), cross);
-		Quaterniond q_res = new Quaterniond(cross.x, cross.y, cross.z, y.y);
-		q_res.transformInverse(x);
-		q_res.transformInverse(y);
-		q_res.transformInverse(z);
-		return src.mul(q_res);
+	private Quaterniond resetQuaternion() {
+		Vector3d cross = new Vector3d(), cross2 = new Vector3d(),
+				x_tgt = new Vector3d(1, 0, 0), y_tgt = new Vector3d(0, 1, 0);
+		y_tgt.cross(y, cross);
+		Quaterniond q_res_y = new Quaterniond(cross.x, cross.y, cross.z, 1 + y.y);
+		q_res_y.transformInverse(x);
+		q_res_y.transformInverse(y);
+		q_res_y.transformInverse(z);
+		
+		x_tgt.cross(x, cross2);
+		Quaterniond q_res_xz = new Quaterniond(cross2.x, cross2.y, cross2.z, 1 + x.x);
+		q_res_xz.transformInverse(x);
+		q_res_xz.transformInverse(y);
+		q_res_xz.transformInverse(z);
+		
+		Quaterniond r = new Quaterniond(0, 0, 0, 1);
+		return r.mul(q_res_y).mul(q_res_xz);
 	}
 	
 	public void again() {
@@ -244,6 +314,11 @@ public class DexRotation {
 			db.move(offset);
 			db.getEntity().setRotation((float) dir.getY(), (float) dir.getX());
 			db.setRoll((float) dir.getZ());
+		}
+		
+		if (t != null) {
+			t.commit();
+			t = null;
 		}
 	}
 	
@@ -302,6 +377,11 @@ public class DexRotation {
 							db.getEntity().setRotation((float) dir.getY(), (float) dir.getX());
 							db.setRoll((float) dir.getZ());
 						}
+						
+						if (t != null) {
+							t.commit();
+							t = null;
+						}
 					}
 				}.runTask(d.getPlugin());
 				
@@ -309,38 +389,16 @@ public class DexRotation {
 		}.runTaskAsynchronously(d.getPlugin());
 	}
 	
-	//faster function for the case where pitch == 0
-	public void rotateYaw(float yaw_deg, boolean set) {
-		Bukkit.broadcastMessage("using yaw shortcut");
-		if (!d.isZeroPitch() || (!set && Math.abs(yaw_deg) <= cutoff)) return;
-		float base_yaw = (float) d.getYaw(),  base_pitch = (float) d.getPitch(), base_roll = (float) d.getRoll();
-		
-		final Vector centerv = center.toVector();
-		double yaw = Math.toRadians(yaw_deg);
-		for (DexBlock b : d.getBlocks()) {
-			float oldYawDeg = b.getEntity().getLocation().getYaw();
-
-			double deltaYaw = (set ? yaw - Math.toRadians(oldYawDeg) : yaw);
-			if (Math.abs(deltaYaw) < cutoff) continue;
-			Matrix3d rotmat;
-			if (rotmats_d.containsKey(deltaYaw)) rotmat = rotmats_d.get(deltaYaw);
-			else {
-				rotmat = new Matrix3d(
-						Math.cos(deltaYaw), 0f, Math.sin(deltaYaw),
-						0f, 1f, 0f,
-						-Math.sin(deltaYaw), 0f, Math.cos(deltaYaw));
-				rotmats_d.put(deltaYaw, rotmat);
-			}
-			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
-			Vector3f newOffset = new Vector3f();
-			rotmat.transform(oldOffset, newOffset);
-
-			Location loc = DexUtils.location(center.getWorld(), centerv.clone().add(DexUtils.vector(newOffset)));
-			loc.setYaw(set ? yaw_deg : yaw_deg + oldYawDeg);
-			loc.setPitch(b.getEntity().getLocation().getPitch());
-			b.teleport(loc);
+	public void highlightAxes(int seconds) {
+		for (BlockDisplay b : points) {
+			b.remove();
 		}
-//		d.setBaseRotation(set ? yaw_deg : base_yaw + yaw_deg, base_pitch, base_roll);
+		points.clear();
+		
+		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, seconds));
+		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(y)), Color.LIME, seconds));
+		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, seconds));
+		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.SILVER, 6));
 	}
 
 }

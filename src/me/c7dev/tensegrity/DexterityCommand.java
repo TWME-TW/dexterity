@@ -31,6 +31,7 @@ import me.c7dev.tensegrity.transaction.ConvertTransaction;
 import me.c7dev.tensegrity.transaction.DeconvertTransaction;
 import me.c7dev.tensegrity.transaction.RecenterTransaction;
 import me.c7dev.tensegrity.transaction.RemoveTransaction;
+import me.c7dev.tensegrity.transaction.RotationTransaction;
 import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
@@ -630,11 +631,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
-			boolean set = flags.contains("set");
-			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 			RotationPlan plan = new RotationPlan();
+			boolean set = flags.contains("set");
+			if (flags.contains("reset")) {
+				plan.reset = true;
+				set = true;
+			}
+			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 			
-			plan.reset = flags.contains("reset");
 			plan.yaw_deg = attrs_d.getOrDefault("yaw", Double.MAX_VALUE);
 			plan.pitch_deg = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
 			plan.roll_deg = attrs_d.getOrDefault("roll", Double.MAX_VALUE);
@@ -688,17 +692,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				plan.z_deg = 0;
 			} else plan.set_z = set;				
 						
-			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			RotationTransaction t = new RotationTransaction(d);
+			d.getRotationManager(true).setTransaction(t);
 			
 			d.rotate(plan);
 			
-			//TODO toggle messages in session, translate
-//			if (set) {
-//				p.sendMessage(cc + "Set rotation " + (d.getLabel() == null ? "" : "for " + cc2 + d.getLabel() + cc + " ") + "to " + cc2 + DexUtils.round(plan.y_deg, 3) + cc + " yaw, " + cc2 + DexUtils.round(plan.pitch_deg, 3) + cc + " pitch, " + cc2 + DexUtils.round(plan.roll_deg, 3) + cc + " roll!");
-//			} else {
-//				p.sendMessage(cc + "Rotated " + (d.getLabel() == null ? "display" : cc2 + d.getLabel() + cc) + " by " + cc2 + DexUtils.round(plan.y_deg, 3) + cc + " yaw, " + cc2 + DexUtils.round(plan.pitch_deg, 3) + cc + " pitch, " + cc2 + DexUtils.round(plan.roll_deg, 3) + cc + " roll!");
-//			}
-			t.commit(d.getBlocks());
+			//t.commit(); //async, done in callback
 			session.pushTransaction(t);
 		}
 		else if (args[0].equalsIgnoreCase("info")) {

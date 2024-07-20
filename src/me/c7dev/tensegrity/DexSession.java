@@ -192,6 +192,12 @@ public class DexSession {
 			if (count > 0) p.sendMessage(plugin.getConfigString("none-undo"));
 			return;
 		}
+		
+		if (!toUndo.getFirst().isCommitted()) {
+			p.sendMessage(plugin.getConfigString("still-processing"));
+			return;
+		}
+		
 		Transaction undo = toUndo.removeFirst();
 		
 		if (!undo.isPossible()) {

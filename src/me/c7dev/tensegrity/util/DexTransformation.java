@@ -28,6 +28,7 @@ public class DexTransformation {
 		ret.setLeftRotation(new Quaternionf(l.x, l.y, l.z, l.w));
 		ret.setRightRotation(new Quaternionf(r.x, r.y, r.z, r.w));
 		ret.setScale(scale.clone());
+		ret.setRollOffset(disp2.clone());
 		return ret;
 	}
 	
