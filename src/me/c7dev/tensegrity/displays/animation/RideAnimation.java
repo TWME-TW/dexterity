@@ -73,8 +73,8 @@ public class RideAnimation extends Animation {
 				}
 				else if (look_mode == LookMode.YAW_PITCH) {
 					plan.y_deg = p.getLocation().getYaw();
-					plan.pitch_deg = p.getLocation().getPitch();
-					plan.set_pitch = true;
+					plan.x_deg = p.getLocation().getPitch();
+					plan.set_x = true;
 					display.rotate(plan);
 				}
 				

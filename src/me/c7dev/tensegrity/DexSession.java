@@ -302,10 +302,14 @@ public class DexSession {
 	}
 	
 	public void setLocation(Location loc, boolean is_l1) {
-		setContinuousLocation(DexUtils.blockLoc(loc), is_l1, is_l1 ? new Vector(0, 0, 0) : new Vector(1, 1, 1));
+		setLocation(loc, is_l1, true);
 	}
 	
-	public void setContinuousLocation(Location loc, boolean is_l1, Vector scale_offset) {
+	public void setLocation(Location loc, boolean is_l1, boolean msg) {
+		setContinuousLocation(DexUtils.blockLoc(loc), is_l1, is_l1 ? new Vector(0, 0, 0) : new Vector(1, 1, 1), msg);
+	}
+	
+	public void setContinuousLocation(Location loc, boolean is_l1, Vector scale_offset, boolean msg) {
 		
 //		if (scale == null) DexUtils.blockLoc(loc);
 //		else scale.multiply(0.5);
@@ -322,7 +326,7 @@ public class DexSession {
 
 		selectFromLocations();
 		
-		p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
+		if (msg) p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
 	}
 	
 	private void selectFromLocations() {
@@ -346,7 +350,10 @@ public class DexSession {
 							if (mask != null && bd.getBlock().getMaterial() != mask) continue;
 							
 							DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
-							if (db == null) db = new DexBlock(bd, s);
+							if (db == null) {
+								db = new DexBlock(bd, s);
+								db.loadRoll(); //TODO make this async
+							}
 							else if (db.getDexterityDisplay().isListed()) continue;
 							dblocks.add(db);
 						}

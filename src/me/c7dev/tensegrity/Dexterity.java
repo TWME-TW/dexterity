@@ -22,8 +22,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import me.c7dev.tensegrity.api.DexRotation;
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
+import me.c7dev.tensegrity.util.AxisPair;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 import net.md_5.bungee.api.ChatColor;
@@ -232,7 +234,7 @@ public class Dexterity extends JavaPlugin {
 				float base_roll = (float) afile.getDouble(label + ".roll");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
-//				disp.setBaseRotation(base_yaw, base_pitch, base_roll); //TODO
+				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
 				disp.forceSetLabel(label);
 				
 				for (BlockDisplay bd : blocks) {
@@ -287,7 +289,7 @@ public class Dexterity extends JavaPlugin {
 				f.createNewFile();
 			} catch (IOException ex) {
 				ex.printStackTrace();
-				Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose arena data.");
+				Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose data.");
 				return;
 			}
 		}
@@ -303,7 +305,7 @@ public class Dexterity extends JavaPlugin {
 			afile.save(f);
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose arena data.");
+			Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose data.");
 		}
 	}
 	
@@ -312,6 +314,20 @@ public class Dexterity extends JavaPlugin {
 		if (disp.getScale().getX() != 1) afile.set(disp.getLabel() + ".scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set(disp.getLabel() + ".scale-y", disp.getScale().getY());
 		if (disp.getScale().getZ() != 1) afile.set(disp.getLabel() + ".scale-z", disp.getScale().getZ());
+		
+		if (disp.getRotationManager() != null) {
+			try {
+				DexRotation rot = disp.getRotationManager();
+				AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
+				Vector res = a.getPitchYawRoll();
+				if (res.getY() != 0) afile.set(disp.getLabel() + ".yaw", res.getY());
+				if (res.getX() != 0) afile.set(disp.getLabel() + ".pitch", res.getX());
+				if (res.getZ() != 0) afile.set(disp.getLabel() + ".roll", res.getZ());
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+		
 		List<String> uuids = new ArrayList<>();
 		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
 		afile.set(disp.getLabel() + ".uuids", uuids);

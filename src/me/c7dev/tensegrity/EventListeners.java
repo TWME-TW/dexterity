@@ -98,13 +98,14 @@ public class EventListeners implements Listener {
 //					Bukkit.broadcastMessage("clicked block = " + clicked_block+ ", label = " + (clicked_display == null ? "none" : clicked_display.getLabel()));
 //				}
 				
+				boolean msg = hand.getType() != Material.WOODEN_AXE;
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
 					boolean is_l1 = e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK;
 					Vector scale = DexUtils.hadimard(DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()), DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));
-					session.setContinuousLocation(clicked.getDisplayCenterLocation(), is_l1, scale);
+					session.setContinuousLocation(clicked.getDisplayCenterLocation(), is_l1, scale, msg);
 				} else if (e.getClickedBlock() != null) {
-					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true); //pos1
-					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false); //pos2
+					if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true, msg); //pos1
+					else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false, msg); //pos2
 				}
 			} else {				
 				if (clicked == null || clicked_block) return;
@@ -146,6 +147,8 @@ public class EventListeners implements Listener {
 
 						Location fromLoc = clicked.getDisplayCenterLocation();
 						if (clicked.getBlockFace() != BlockFace.UP && clicked.getBlockFace() != BlockFace.DOWN) fromLoc.add(clicked.getUpDir().multiply((blockscale.getY()/2)*(1 - blockdimensions.getY())));
+//						plugin.getAPI().markerPoint(fromLoc, Color.AQUA, 6);
+//						plugin.getAPI().markerPoint(fromLoc.clone().add(dir), Color.LIME, 6);
 						
 						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.clone().add(delta), BlockDisplay.class, a -> {
 							a.setBlock(bdata);
@@ -160,8 +163,9 @@ public class EventListeners implements Listener {
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 
 						if (clicked_display != null) {
-							DexBlock new_db = new DexBlock(b, clicked_display);
-							new_db.loadRoll();
+							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
+							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(clicked_db.getTransformation().getRollOffset()));
+							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffset().clone());
 							clicked_display.getBlocks().add(new_db);
 							if (session != null) session.pushBlock(new_db, true);
 						}

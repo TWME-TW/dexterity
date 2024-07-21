@@ -18,6 +18,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
+import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 
@@ -229,6 +231,12 @@ public class DexUtils {
 	public static Location location(World w, Vector v) {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
 	}
+	public static Quaternionf cloneQ(Quaternionf r) {
+		return new Quaternionf(r.x, r.y, r.z, r.w);
+	}
+	public static Quaterniond cloneQ(Quaterniond r) {
+		return new Quaterniond(r.x, r.y, r.z, r.w);
+	}
 	
 	public static int maxPage(int size, int pagelen) {
 		return (size/pagelen) + (size % pagelen > 0 ? 1 : 0);
@@ -325,10 +333,15 @@ public class DexUtils {
 				);
 	}
 	
+	public static boolean isOrthonormal(Vector x, Vector y) {
+		double epsilon = 0.00000001;
+		return x.dot(y) < epsilon && x.length() - 1 < epsilon && y.length() - 1 < epsilon;
+	}
+	
 	public static boolean isOrthonormal(Vector x, Vector y, Vector z) {
-		double cutoff = 0.00000001;
-		return x.dot(y) < cutoff && y.dot(z) < cutoff && z.dot(x) < cutoff && 
-				x.length() - 1 < cutoff && y.length() - 1 < cutoff && z.length() - 1 < cutoff;
+		double epsilon = 0.00000001;
+		return x.dot(y) < epsilon && y.dot(z) < epsilon && z.dot(x) < epsilon && 
+				x.length() - 1 < epsilon && y.length() - 1 < epsilon && z.length() - 1 < epsilon;
 	}
 	
 	public static Vector nearestPoint(Vector a, Vector b, Vector x) { //nearest point to x on line defined by a, b

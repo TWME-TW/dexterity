@@ -367,7 +367,7 @@ public class DexterityDisplay {
 	}
 		
 	public void scale(Vector v) {
-		if (v.getX() == 0 || v.getY() == 0 || v.getZ() == 0) return;
+		if (v.getX() == 0 || v.getY() == 0 || v.getZ() == 0) throw new IllegalArgumentException("Scale cannot be zero!");
 		Vector sd = v.clone().add(new Vector(-1, -1, -1));
 		for (DexBlock db : blocks) {
 			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
@@ -447,6 +447,11 @@ public class DexterityDisplay {
 		plan.set_pitch = true;
 		plan.set_roll = true;
 		rotate(plan);
+	}
+	
+	public void setBaseRotation(float y, float pitch, float roll) {
+		if (rot == null) rot = new DexRotation(this, y, pitch, roll);
+		else rot.setAxes(y, pitch, roll);
 	}
 	
 	public DexRotation getRotationManager() {

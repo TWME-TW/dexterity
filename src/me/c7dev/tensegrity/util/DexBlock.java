@@ -1,6 +1,7 @@
 package me.c7dev.tensegrity.util;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -21,7 +22,6 @@ public class DexBlock {
 	
 	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
 	
-	private static final double ROOT2INV = (Math.sqrt(2)/2), PI4 = Math.PI/4;
 	private static final int TELEPORT_DURATION = 2;
 	
 	public DexBlock(Block display, DexterityDisplay d) {
@@ -36,8 +36,14 @@ public class DexBlock {
 		display.setType(Material.AIR);
 	}
 	public DexBlock(BlockDisplay bd, DexterityDisplay d) {
+		this(bd, d, 0f);
+	}
+	
+	@Deprecated //must manually subtract roll offset, used in placing db for efficiency
+	public DexBlock(BlockDisplay bd, DexterityDisplay d, float roll) {
 		entity = bd;
 		disp = d;
+		this.roll = roll;
 		bd.setTeleportDuration(TELEPORT_DURATION);
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
@@ -61,11 +67,10 @@ public class DexBlock {
 		Quaternionf r = trans.getLeftRotation();
 		if (r.w != 0) {
 			if (r.x == 0 && r.y == 0 && r.z != 0) {
-				double frad = Math.acos(-r.w) * 2;
-				roll = (float) Math.toDegrees(frad);
-				Vector offset = new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0);
-				trans.setRollOffset(offset);
-				trans.getDisplacement().subtract(offset);
+				RollOffset c = new RollOffset(r);
+				trans.setRollOffset(c.getOffset());
+				trans.getDisplacement().subtract(c.getOffset());
+				roll = c.getRoll();
 			}
 		}
 	}
@@ -85,11 +90,10 @@ public class DexBlock {
 	
 	public void setRoll(float f) { //TODO potential optimization is to store same vec, quaternion ref for many db
 		if (Math.abs(f - roll) < 0.0000001) return;
+		RollOffset c = new RollOffset(f);
+		trans.setLeftRotation(c.getQuaternion());
+		trans.setRollOffset(c.getOffset());
 		roll = f;
-		float frad = (float) Math.toRadians(f);
-		Quaternionf ql = new Quaternionf(new AxisAngle4f(frad, 0f, 0f, 1f));
-		trans.setLeftRotation(ql);
-		trans.setRollOffset(new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0));
 		updateTransformation();
 	}
 	

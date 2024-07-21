@@ -22,6 +22,7 @@ import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
 import org.joml.Matrix3f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import me.c7dev.tensegrity.DexSession;
@@ -32,6 +33,7 @@ import me.c7dev.tensegrity.util.ClickedBlock;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.OrientationKey;
 import me.c7dev.tensegrity.util.SavedBlockState;
 
 public class DexterityAPI {
@@ -138,17 +140,25 @@ public class DexterityAPI {
 		return basis_vecs;
 	}
 	
+	private Vector[][] getBasisVecs(Vector a, Vector b, Vector c){
+		Vector[][] basis_vecs = {{a, c}, {a, c}, {a, b}, {a.clone().multiply(-1), b}, {c.clone().multiply(-1), b}, {c, b}};
+		return basis_vecs;
+	}
+	
 	//get the block display that the player is looking at
 	//avg 0.011371 milliseconds per block on a potato pc :D
 	public ClickedBlockDisplay getLookingAt(Player p) {
+		if (p == null) throw new IllegalArgumentException("Player cannot be null!");
 		List<Entity> near = p.getNearbyEntities(4.5, 4.5, 4.5);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
 		double mindist = Double.MAX_VALUE;
 		ClickedBlockDisplay nearest = null;
 				
-		HashMap<Vector, Vector[][]> basis = new HashMap<>();
-		HashMap<Vector, Matrix3d> rot_matrices = new HashMap<>();
+//		HashMap<Vector, Vector[][]> basis = new HashMap<>();
+//		HashMap<Vector, Matrix3d> rot_matrices = new HashMap<>();
+//		HashMap<Float, RollOffset> roll_offsets = new HashMap<>();
+		HashMap<OrientationKey, Vector[]> axes = new HashMap<>();
 				
 		Vector[][] basis_vecs_norot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
 		Vector east_unit = new Vector(1, 0, 0), up_unit = new Vector(0, 1, 0), south_unit = new Vector(0, 0, 1);
@@ -165,27 +175,63 @@ public class DexterityAPI {
 			//check if the player is looking in the general direction of the block, accounting for scale
 			Vector diff = e.getLocation().toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
-			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.1 : -0.4)) continue;
+			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.3 : -0.4)) continue;
 			
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
 			DexBlock db = plugin.getMappedDisplay(e.getUniqueId());
-			float roll = db == null ? 0 : db.getRoll();
-			boolean rotated = e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || roll != 0;
 			
-			if (rotated) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
-				Vector key = new Vector(e.getLocation().getYaw(), e.getLocation().getPitch(), roll);
-				Matrix3d rotmat = rot_matrices.get(key);
-				if (rotmat == null) {
-					rotmat = DexUtils.rotMatDeg(e.getLocation().getPitch(), e.getLocation().getYaw(), roll);
-					rot_matrices.put(key, rotmat);
-					basis_vecs = getBasisVecs(rotmat);
-					basis.put(key, basis_vecs);		
-				} else basis_vecs = basis.get(key);
-				east_dir = new Vector(rotmat.m00, rotmat.m01, rotmat.m02);
-				up_dir = new Vector(rotmat.m10, rotmat.m11, rotmat.m12);
-				south_dir = new Vector(rotmat.m20, rotmat.m21, rotmat.m22).multiply(scale.getZ());
+			Vector displacement;
+			//calculate roll and its offset
+			if (db == null) {
+				float key = e.getTransformation().getLeftRotation().w;
+				if (key == 0) {
+					displacement = DexUtils.vector(e.getTransformation().getTranslation());
+//					roll = 0;
+				} else {
+//					RollOffset c = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
+//					if (c == null) {
+//						c = new RollOffset(e.getTransformation().getLeftRotation());
+//						roll_offsets.put(key, c);
+//					}
+//					roll = c.getRoll();
+//					plugin.getAPI().markerPoint(e.getLocation().add(DexUtils.vector(e.getTransformation().getTranslation())), Color.NAVY, 6);
+					displacement = DexUtils.vector(e.getTransformation().getTranslation());//.subtract(c.getOffset());
+				}
+			} else {
+//				roll = db.getRoll();
+				displacement = db.getTransformation().getDisplacement().clone();
+			}
+			
+			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 0) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
 				
+				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), e.getTransformation().getLeftRotation());
+				Vector[] res = axes.get(key);
+				if (res == null) {
+					Vector3f east_dir_d = new Vector3f(1, 0, 0), up_dir_d = new Vector3f(0, 1, 0), south_dir_d = new Vector3f(0, 0, 1);
+					Quaternionf q = DexUtils.cloneQ(e.getTransformation().getLeftRotation());
+					q.z = -q.z;
+					q.rotateX((float) -Math.toRadians(e.getLocation().getPitch()));
+					q.rotateY((float) Math.toRadians(e.getLocation().getYaw()));
+
+					q.transformInverse(east_dir_d);
+					q.transformInverse(up_dir_d);
+					q.transformInverse(south_dir_d);
+
+					east_dir = DexUtils.vector(east_dir_d);
+					up_dir = DexUtils.vector(up_dir_d);
+					south_dir = DexUtils.vector(south_dir_d);
+					basis_vecs = getBasisVecs(east_dir, up_dir, south_dir);
+					
+					Vector[] res2 = {east_dir, up_dir, south_dir};
+					axes.put(key, res2);
+					
+				} else {
+					east_dir = res[0];
+					up_dir = res[1];
+					south_dir = res[2];
+					basis_vecs = getBasisVecs(east_dir, up_dir, south_dir);
+				}
 			} else {
 				east_dir = east_unit;
 				up_dir = up_unit;
@@ -194,22 +240,26 @@ public class DexterityAPI {
 			}
 
 			//calculate location of visual display accounting for axis asymmetry
-			Location loc = e.getLocation().add(db == null ? DexUtils.vector(e.getTransformation().getTranslation()) : db.getTransformation().getDisplacement().clone()).add(scale_raw);
+			Location loc = e.getLocation().add(displacement).add(scale_raw);
 			loc.add(up_dir.clone().multiply(scale.getY() - scale_raw.getY()));
 			Vector locv = loc.toVector();
-									
+//			plugin.getAPI().markerPoint(loc, Color.ORANGE, 6);
+
 			//block face centers
-			Vector up = locv.clone().add(up_dir.clone().multiply(scale.getY())), down = locv.clone().add(up_dir.clone().multiply(-scale.getY()));
-			Vector south = locv.clone().add(south_dir.clone().multiply(scale.getZ())), north = locv.clone().add(south_dir.clone().multiply(-scale.getZ()));
-			Vector east = locv.clone().add(east_dir.clone().multiply(scale.getX())), west = locv.clone().add(east_dir.clone().multiply(-scale.getX()));
-			
+			Vector up = locv.clone().add(up_dir.clone().multiply(scale.getY())), 
+					down = locv.clone().add(up_dir.clone().multiply(-scale.getY())),
+					south = locv.clone().add(south_dir.clone().multiply(scale.getZ())), 
+					north = locv.clone().add(south_dir.clone().multiply(-scale.getZ())),
+					east = locv.clone().add(east_dir.clone().multiply(scale.getX())), 
+					west = locv.clone().add(east_dir.clone().multiply(-scale.getX()));
+
 			Vector[] locs = {up, down, south, north, east, west};
 						
 			for (int i = 0; i < locs.length; i++) {
-																
+																		
 				Vector basis1 = basis_vecs[i][0];
 				Vector basis2 = basis_vecs[i][1];
-				
+								
 				// Solve `(FaceCenter) + a(basis1) + b(basis2) = c(dir) + (EyeLoc)` to find intersection of block face plane
 				Vector L = eye_loc.clone().subtract(locs[i]);
 				Matrix3f matrix = new Matrix3f(
@@ -250,10 +300,9 @@ public class DexterityAPI {
 					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), 
 							loc, up_dir, east_dir, south_dir, dist);
 				}
-			}
-			
+			}	
 		}
-		
+				
 		return nearest;
 	}
 	

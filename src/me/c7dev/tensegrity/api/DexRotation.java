@@ -34,22 +34,23 @@ public class DexRotation {
 	public static final double cutoff = 0.000001;
 	
 	public DexRotation(DexterityDisplay d) {
+		if (d == null) throw new IllegalArgumentException("Arguments cannot be null");
 		this.d = d;
 		refreshAxis();
 	}
 	
 	public DexRotation(DexterityDisplay d, Vector x, Vector y, Vector z) {
+		if (d == null || x == null || y == null || z == null) throw new IllegalArgumentException("Arguments cannot be null");
+		if (!DexUtils.isOrthonormal(x, y, z)) throw new IllegalArgumentException("Axes are not orthnomormal!");
 		this.d = d;
-		
-		//confirm orthonormality
-		if (DexUtils.isOrthonormal(x, y, z)) {
-			this.x = DexUtils.vectord(x);
-			this.y = DexUtils.vectord(y);
-			this.z = DexUtils.vectord(z);
-		} else refreshAxis();
+		this.x = DexUtils.vectord(x);
+		this.y = DexUtils.vectord(y);
+		this.z = DexUtils.vectord(z);
 	}
 	
 	public DexRotation(DexterityDisplay d, double yaw, double pitch, double roll) {
+		if (d == null) throw new IllegalArgumentException("Arguments cannot be null");
+		this.d = d;
 		base_yaw = yaw;
 		base_pitch = pitch;
 		base_roll = roll;
@@ -157,11 +158,30 @@ public class DexRotation {
 	}
 	
 	public void setAxes(Vector x, Vector y, Vector z) {
-		if (!DexUtils.isOrthonormal(x, y, z)) return; //TODO exception
+		if (x == null || y == null || z == null) throw new IllegalArgumentException("Axes cannot be null!");
+		if (!DexUtils.isOrthonormal(x, y, z)) throw new IllegalArgumentException("Axes are not orthonormal!");
 		this.x = new Vector3d(x.getX(), x.getY(), x.getZ());
 		this.y = new Vector3d(y.getX(), y.getY(), y.getZ());
 		this.z = new Vector3d(z.getX(), z.getY(), z.getZ());
 		clearCached();
+	}
+	
+	public void setAxes(float yaw, float pitch, float roll) {
+		Quaterniond s = new Quaterniond(0, 0, 0, 1);
+		s.rotateZ(-Math.toRadians(yaw));
+		s.rotateX(-Math.toRadians(pitch));
+		s.rotateY(Math.toRadians(roll));
+		
+		base_yaw = yaw;
+		base_pitch = pitch;
+		base_roll = roll;
+		
+		x = new Vector3d(1, 0, 0);
+		y = new Vector3d(0, 1, 0);
+		z = new Vector3d(0, 0, 1);
+		s.transformInverse(x);
+		s.transformInverse(y);
+		s.transformInverse(z);		
 	}
 	
 	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
@@ -178,6 +198,8 @@ public class DexRotation {
 		if (plan.reset) {
 			del_x = plan.x_deg; del_y = plan.y_deg; del_z = plan.z_deg;
 			del_pitch = plan.pitch_deg; del_yaw = plan.yaw_deg; del_roll = plan.roll_deg;
+			base_y = 0; base_x = 0; base_z = 0;
+			base_yaw = 0; base_pitch = 0; base_roll = 0;
 		} else {
 			del_x = plan.set_x ? plan.x_deg - base_x : plan.x_deg;
 			del_y = plan.set_y ? plan.y_deg - base_y : plan.y_deg;
@@ -202,7 +224,7 @@ public class DexRotation {
 				
 		if (plan.async) rotateAsync(q1, d.getCenter());
 		else rotate(q1, d.getCenter());
-		
+
 		base_y = (base_y + del_y) % 360;
 		base_x = (base_x + del_x) % 360;
 		base_z = (base_z + del_z) % 360;
@@ -288,9 +310,10 @@ public class DexRotation {
 	
 	//avg 0.00048400 ms per block :D
 	public void rotate(Quaterniond q1, Location center) {
-		if (d == null) return;
+		if (d == null || center == null) throw new IllegalArgumentException("Quaternion and center cannot be null!");
 		
 		dirs.clear();
+		this.q1 = q1;
 		
 		Vector centerv = center.toVector();
 		for (DexBlock db : d.getBlocks()) {
@@ -398,7 +421,7 @@ public class DexRotation {
 		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, seconds));
 		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(y)), Color.LIME, seconds));
 		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, seconds));
-		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.SILVER, 6));
+		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.SILVER, seconds));
 	}
 
 }
