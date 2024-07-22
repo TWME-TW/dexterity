@@ -32,6 +32,7 @@ import me.c7dev.tensegrity.transaction.DeconvertTransaction;
 import me.c7dev.tensegrity.transaction.RecenterTransaction;
 import me.c7dev.tensegrity.transaction.RemoveTransaction;
 import me.c7dev.tensegrity.transaction.RotationTransaction;
+import me.c7dev.tensegrity.transaction.ScaleTransaction;
 import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
@@ -777,12 +778,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			boolean set = flags.contains("set");
 			
-			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			ScaleTransaction t = new ScaleTransaction(d);
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
 				float sx = attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue();
 				float sy = attrsd.getOrDefault("y", set ? d.getScale().getY() : 1).floatValue();
 				float sz = attrsd.getOrDefault("z", set ? d.getScale().getZ() : 1).floatValue();
+				
+				if (sx == 0 || sy == 0 || sz == 0) {
+					p.sendMessage(getConfigString("must-send-number", session));
+					return true;
+				}
 				
 				String scale_str = sx + ", " + sy + ", " + sz;
 				if (set) {
@@ -811,7 +817,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
 				}
 			}
-			t.commit(d.getBlocks());
+			t.commit();
 			session.pushTransaction(t);
 		}
 		else if (args[0].equalsIgnoreCase("merge")) {

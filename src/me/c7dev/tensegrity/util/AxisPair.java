@@ -1,5 +1,8 @@
 package me.c7dev.tensegrity.util;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -9,6 +12,12 @@ public class AxisPair {
 	private Vector3d dir1, dir2;
 	
 	public static double PI2 = Math.PI/2;
+	
+	public void highlight(DexBlock db, int seconds) {
+		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation().add(DexUtils.vector(dir1)), Color.LIME, seconds);
+		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation().add(DexUtils.vector(dir2)), Color.ORANGE, seconds);
+		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation(), Color.BLACK, seconds);
+	}
 	
 	public AxisPair() {
 		dir1 = new Vector3d(0, 0, 1);

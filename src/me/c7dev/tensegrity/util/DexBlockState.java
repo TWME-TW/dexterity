@@ -17,7 +17,7 @@ public class DexBlockState {
 	private float roll;
 	
 	public DexBlockState(DexBlock db) {
-		loc = db.getLocation().clone();
+		loc = db.getEntity().getLocation().clone();
 		uuid = db.getEntity().getUniqueId();
 		trans = db.getTransformation().clone();
 		block = db.getEntity().getBlock();

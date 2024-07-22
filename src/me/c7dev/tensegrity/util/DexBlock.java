@@ -150,7 +150,7 @@ public class DexBlock {
 	}
 	
 	public Location getLocation() {
-		return entity.getLocation();
+		return entity.getLocation().add(trans.getDisplacement()).add(trans.getScale().clone().multiply(0.5));
 	}
 
 }

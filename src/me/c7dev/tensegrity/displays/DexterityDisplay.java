@@ -80,7 +80,7 @@ public class DexterityDisplay {
 			n = 1;
 		}
 		else {
-			w = blocks.get(0).getLocation().getWorld();
+			w = blocks.get(0).getEntity().getLocation().getWorld();
 			n = blocks.size();
 			double scalex = -1, scaley = -1, scalez = -1;
 			for (DexBlock db : blocks) {
@@ -208,7 +208,7 @@ public class DexterityDisplay {
 		for (DexBlock b : subdisplay.getBlocks()) {
 			b.setDexterityDisplay(this);
 			blocks.add(b);
-			if (zero_pitch && b.getLocation().getPitch() != 0) zero_pitch = false;
+			if (zero_pitch && b.getEntity().getLocation().getPitch() != 0) zero_pitch = false;
 		}
 		for (DexterityDisplay subdisp : subdisplay.getSubdisplays()) {
 			subdisp.merge(this, null);
@@ -370,19 +370,28 @@ public class DexterityDisplay {
 		if (v.getX() == 0 || v.getY() == 0 || v.getZ() == 0) throw new IllegalArgumentException("Scale cannot be zero!");
 		Vector sd = v.clone().add(new Vector(-1, -1, -1));
 		for (DexBlock db : blocks) {
-			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
+			
+//			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
+			Vector disp = db.getLocation().toVector().subtract(center.toVector());
 			Vector diff = DexUtils.hadimard(disp, sd);
 			Vector block_scale = DexUtils.hadimard(v, db.getTransformation().getScale());
+			Vector roll_offset = DexUtils.hadimard(v, db.getTransformation().getRollOffset());
 			
 			db.move(diff);
 			
 			db.getTransformation()
 					.setDisplacement(block_scale.clone().multiply(-0.5))
-					.setScale(block_scale);
+					.setScale(block_scale)
+					.setRollOffset(roll_offset);
 			db.updateTransformation();
 		}
 		scale = DexUtils.hadimard(scale, v);
 		for (DexterityDisplay sub : subdisplays) sub.setScale(v);
+	}
+	
+	@Deprecated
+	public void resetScale(Vector v) {
+		scale = v.clone();
 	}
 	
 	public void align() { //TODO add -from_center

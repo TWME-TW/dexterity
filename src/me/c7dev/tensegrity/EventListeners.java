@@ -4,10 +4,8 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
@@ -195,6 +193,7 @@ public class EventListeners implements Listener {
 			}
 		}
 	}
+	
 	
 	@EventHandler
 	public void onMove(PlayerMoveEvent e) {

@@ -5,14 +5,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
-import org.bukkit.Location;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
+import me.c7dev.tensegrity.api.events.DisplayRotationEvent;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.transaction.RotationTransaction;
 import me.c7dev.tensegrity.util.AxisPair;
@@ -73,12 +74,12 @@ public class DexRotation {
 		
 		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
 		for (DexBlock db : d.getBlocks()) {
-			double yaw = Math.abs(db.getLocation().getYaw()), pitch = Math.abs(db.getLocation().getPitch()), roll = Math.abs(db.getRoll());
+			double yaw = Math.abs(db.getEntity().getLocation().getYaw()), pitch = Math.abs(db.getEntity().getLocation().getPitch()), roll = Math.abs(db.getRoll());
 			if (yaw < min_yaw && pitch < min_pitch && roll < min_roll) {
 				min_yaw = yaw;
-				yaw_val = db.getLocation().getYaw();
+				yaw_val = db.getEntity().getLocation().getYaw();
 				min_pitch = pitch;
-				pitch_val = -db.getLocation().getPitch();
+				pitch_val = -db.getEntity().getLocation().getPitch();
 				min_roll = roll;
 				roll_val = -db.getRoll();
 			}
@@ -107,8 +108,8 @@ public class DexRotation {
 		base_roll = roll_val;
 		
 		Quaterniond s = new Quaterniond(0, 0, 0, 1);
-		s.rotateZ(-Math.toRadians(base_roll));
-		s.rotateX(-Math.toRadians(base_pitch));
+		s.rotateZ(Math.toRadians(base_roll));
+		s.rotateX(Math.toRadians(base_pitch));
 		s.rotateY(Math.toRadians(base_yaw));
 		
 		x = new Vector3d(1, 0, 0);
@@ -184,9 +185,13 @@ public class DexRotation {
 		s.transformInverse(z);		
 	}
 	
-	public void rotate(float yaw_deg, float pitch_deg, float roll_deg) {
+	public void rotate(float y_deg) {
+		rotate(y_deg, 0, 0);
+	}
+	
+	public void rotate(float y_deg, float pitch_deg, float roll_deg) {
 		RotationPlan p = new RotationPlan();
-		p.yaw_deg = yaw_deg;
+		p.y_deg = y_deg;
 		p.pitch_deg = pitch_deg;
 		p.roll_deg = roll_deg;
 		rotate(p);
@@ -221,10 +226,10 @@ public class DexRotation {
 		
 		q1 = new Quaterniond();
 		q.invert(q1);
-				
-		if (plan.async) rotateAsync(q1, d.getCenter());
-		else rotate(q1, d.getCenter());
-
+		
+		if (plan.async) rotateAsync(q1);
+		else rotate(q1);
+		
 		base_y = (base_y + del_y) % 360;
 		base_x = (base_x + del_x) % 360;
 		base_z = (base_z + del_z) % 360;
@@ -301,21 +306,21 @@ public class DexRotation {
 	}
 	
 	public void again() {
-		rotate(q1, d.getCenter());
-	}
-	
-	public void rotate(Quaterniond q1) {
-		rotate(q1, d.getCenter());
+		rotate(q1);
 	}
 	
 	//avg 0.00048400 ms per block :D
-	public void rotate(Quaterniond q1, Location center) {
-		if (d == null || center == null) throw new IllegalArgumentException("Quaternion and center cannot be null!");
+	public void rotate(Quaterniond q1) {
+		if (d == null) throw new IllegalArgumentException("Quaternion cannot be null!");
+		
+		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) return;
 		
 		dirs.clear();
 		this.q1 = q1;
 		
-		Vector centerv = center.toVector();
+		Vector centerv = d.getCenter().toVector();
 		for (DexBlock db : d.getBlocks()) {
 			Vector key = new Vector(db.getEntity().getLocation().getPitch(), db.getEntity().getLocation().getYaw(), db.getRoll());
 			Vector dir = dirs.get(key);
@@ -329,7 +334,7 @@ public class DexRotation {
 				axispairs.put(dir, a);
 			}
 			
-			Vector r = db.getLocation().toVector().subtract(centerv);
+			Vector r = db.getEntity().getLocation().toVector().subtract(centerv);
 			Vector3d r_trans = DexUtils.vectord(r);
 			q1.transform(r_trans);
 			
@@ -346,19 +351,21 @@ public class DexRotation {
 	}
 	
 	public void againAsync() {
-		rotateAsync(q1, d.getCenter());
+		rotateAsync(q1);
 	}
+
 	
 	public void rotateAsync(Quaterniond q1) {
-		rotateAsync(q1, d.getCenter());
-	}
-	
-	public void rotateAsync(Quaterniond q1, Location center) {
-		if (d == null) return;
+		if (d == null) throw new IllegalArgumentException("Quaternion cannot be null!");
+		
+		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) return;
 		
 		dirs.clear();
+		this.q1 = q1;
 		
-		Vector centerv = center.toVector();
+		Vector centerv = d.getCenter().toVector();
 		new BukkitRunnable() {
 			@Override
 			public void run() {
@@ -378,7 +385,7 @@ public class DexRotation {
 						axispairs.put(dir, a);
 					}
 					
-					Vector r = db.getLocation().toVector().subtract(centerv);
+					Vector r = db.getEntity().getLocation().toVector().subtract(centerv);
 					Vector3d r_trans = DexUtils.vectord(r);
 					q1.transform(r_trans);
 					Vector offset = DexUtils.vector(r_trans).subtract(r);

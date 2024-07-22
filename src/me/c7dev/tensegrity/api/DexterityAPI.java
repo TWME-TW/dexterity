@@ -347,7 +347,10 @@ public class DexterityAPI {
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
 		float size = 0.04f;
-		BlockDisplay disp = loc.getWorld().spawn(loc, BlockDisplay.class, a -> {
+		Location loc_ = loc.clone();
+		loc_.setPitch(0);
+		loc_.setYaw(0);
+		BlockDisplay disp = loc.getWorld().spawn(loc_, BlockDisplay.class, a -> {
 			a.setBlock(Bukkit.createBlockData(Material.WHITE_CONCRETE));
 			if (glow != null) {
 				a.setGlowColorOverride(glow);

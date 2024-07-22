@@ -21,7 +21,7 @@ public class RollOffset {
 	
 	public RollOffset(Quaternionf r) {
 		q = r;
-		double frad = Math.acos(-r.w) * 2;
+		double frad = -Math.acos(-r.w) * 2;
 		roll_deg = (float) Math.toDegrees(frad);
 		offset = new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0);
 	}
