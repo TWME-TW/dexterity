@@ -23,13 +23,13 @@ public class RecenterTransaction implements Transaction {
 	
 	public DexterityDisplay undo() {
 		disp.setCenter(old_loc);
-		disp.getPlugin().getAPI().markerPoint(old_loc, Color.AQUA, 4);
+		disp.getPlugin().api().markerPoint(old_loc, Color.AQUA, 4);
 		return null;
 	}
 	
 	public void redo() {
 		disp.setCenter(new_loc);
-		disp.getPlugin().getAPI().markerPoint(new_loc, Color.AQUA, 4);
+		disp.getPlugin().api().markerPoint(new_loc, Color.AQUA, 4);
 	}
 	
 	public boolean isPossible() {

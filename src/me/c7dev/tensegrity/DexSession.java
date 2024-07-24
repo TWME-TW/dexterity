@@ -1,18 +1,17 @@
 package me.c7dev.tensegrity;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -22,6 +21,8 @@ import me.c7dev.tensegrity.transaction.RemoveTransaction;
 import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.OrientationKey;
+import me.c7dev.tensegrity.util.RollOffset;
 
 public class DexSession {
 	
@@ -102,7 +103,7 @@ public class DexSession {
 		selected = o;
 		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(plugin.getConfigString("selected").replaceAll("\\Q%label%\\E", o.getLabel()));
-			if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.getAPI().tempHighlight(o, 15);
+			if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.api().tempHighlight(o, 15);
 		}
 	}
 	
@@ -171,6 +172,18 @@ public class DexSession {
 		}
 	}
 	
+	public void redo() {
+		executeRedo(1);
+	}
+	
+	public void redo(int count) {
+		if (count < 1) return;
+		count = Math.max(Math.min(count, toRedo.size()), 1);
+		for (int i = 0; i < count; i++) {
+			executeRedo(i == count - 1 ? count : 0);
+		}
+	}
+	
 	private void trimToSize() {
 		int max = plugin.getConfig().getInt("session-history-size");
 		if (max <= 0) {
@@ -215,18 +228,6 @@ public class DexSession {
 		if (count > 0) {
 			String msg = plugin.getConfigString("undo-success").replaceAll("\\Q%number%\\E", "" + count).replaceAll("\\Q(s)\\E", count == 1 ? "" : "s");
 			p.sendMessage(msg);
-		}
-	}
-	
-	public void redo() {
-		executeRedo(1);
-	}
-	
-	public void redo(int count) {
-		if (count < 1) return;
-		count = Math.max(Math.min(count, toRedo.size()), 1);
-		for (int i = 0; i < count; i++) {
-			redo(i == count - 1 ? count : 0);
 		}
 	}
 	
@@ -335,39 +336,42 @@ public class DexSession {
 				if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
 				if (l2_scale_offset == null) l2_scale_offset = new Vector(1, 1, 1);
 				
-				double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
-				double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
-				double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
+//				double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
+//				double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
+//				double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
+//
+//				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
 
-				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
+//				if (volume <= plugin.getMaxVolume()) { //set selected
+				int maxvol = plugin.getMaxVolume();
+				List<BlockDisplay> blocks = plugin.api().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
+				if (blocks.size() > 0) {
+					DexterityDisplay s = new DexterityDisplay(plugin);
+					List<DexBlock> dblocks = new ArrayList<>();
+					HashMap<OrientationKey, RollOffset> roll_cache = new HashMap<>();
+					
+					for (BlockDisplay bd : blocks) {
+						if (mask != null && bd.getBlock().getMaterial() != mask) continue;
 
-				if (volume <= plugin.getMaxVolume()) { //set selected
-					List<BlockDisplay> blocks = plugin.getAPI().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
-					if (blocks.size() > 0) {
-						DexterityDisplay s = new DexterityDisplay(plugin);
-						List<DexBlock> dblocks = new ArrayList<>();
-						for (BlockDisplay bd : blocks) {
-							if (mask != null && bd.getBlock().getMaterial() != mask) continue;
-							
-							DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
-							if (db == null) {
-								db = new DexBlock(bd, s);
-								db.loadRoll(); //TODO make this async
-							}
-							else if (db.getDexterityDisplay().isListed()) continue;
-							dblocks.add(db);
+						DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
+						if (db == null) {
+							db = new DexBlock(bd, s);
+							db.loadRoll(roll_cache); //TODO possibly make this async
 						}
-						
-						if (dblocks.size() == 0) {
-							setSelected(null, false);
-							return;
-						}
-						
-						s.setEntities(dblocks, true);
-
-						highlightSelected(s);
-						selected = s;
+						else if (db.getDexterityDisplay().isListed()) continue;
+						dblocks.add(db);
+						if (dblocks.size() >= maxvol) break;
 					}
+
+					if (dblocks.size() == 0) {
+						setSelected(null, false);
+						return;
+					}
+
+					s.setEntities(dblocks, true);
+
+					highlightSelected(s);
+					selected = s;
 				}
 			} else volume = Integer.MAX_VALUE;
 		}
@@ -377,10 +381,10 @@ public class DexSession {
 		if (!plugin.getConfig().getBoolean("highlight-display-on-select")) return;
 		if (selected != null) {
 			for (DexBlock db : selected.getBlocks()) {
-				if (plugin.getAPI().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
+				if (plugin.api().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
 			}
 		}
-		plugin.getAPI().tempHighlight(new_disp, 30);
+		plugin.api().tempHighlight(new_disp, 30);
 	}
 	
 	public void setMask(Material mat) {

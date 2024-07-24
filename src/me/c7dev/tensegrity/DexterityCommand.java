@@ -45,29 +45,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
 	private DexterityAPI api;
-	String noperm, cc, cc2, cc3, usage_format;
+	String noperm, cc, cc2, cc3, usage_format, selected_str;
 	
-	public String[] commands = {
-		"align", "animation", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
-		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "wand"
+	private String[] commands = {
+		"align", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
+		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "unsave", "wand"
 	};
-	public List<String> materials = new ArrayList<>();
-	public String[] descriptions = new String[commands.length];
-	public String[] command_strs = new String[commands.length];
+	private String[] descriptions = new String[commands.length];
+	private String[] command_strs = new String[commands.length];
 	
 	public DexterityCommand(Dexterity plugin) {
 		this.plugin= plugin;
 		cc = plugin.getChatColor();
 		cc2 = plugin.getChatColor2();
 		cc3 = plugin.getChatColor3();
-		api = plugin.getAPI();
+		api = plugin.api();
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission");
 		usage_format = plugin.getConfigString("usage-format");
-				
-		for (Material mat : Material.values()) {
-			materials.add(mat.toString().toLowerCase());
-		}
+		selected_str = plugin.getConfigString("selected");
 		
 		for (int i = 0; i < commands.length; i++) {
 			descriptions[i] = plugin.getConfigString(commands[i] + "-description");
@@ -137,7 +133,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			String label = cc2 + session.getSelected().getLabel() + cc;
 			s = s.replaceAll("\\Q%label%\\E", label).replaceAll("\\Q%loclabel%\\E", label); //regex substr selector isn't working, idk
 		} else {
-			s = s.replaceAll("\\Q%label%\\E", "selected");
+			s = s.replaceAll("\\Q%label%\\E", selected_str);
 			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", "at " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0));
 			else s = s.replaceAll("\\Q%loclabel%\\E", "");
 		}
@@ -191,45 +187,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equalsIgnoreCase("test2")) {
-			DexterityDisplay d = getSelected(session, null);
-			if (d == null) return true;
-			for (DexBlock db : d.getBlocks()) {
-				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).setRollOffset(new Vector(0, 0, 0)).build());
-				api.markerPoint(db.getEntity().getLocation(), Color.AQUA, 2);
-			}
-		}
-		else if (args[0].equalsIgnoreCase("test3")) {
-			DexterityDisplay d = getSelected(session, null);
-			if (d == null) return true;
-			DexBlock db = d.getBlocks().get(0);
-//			Quaternionf zero = new Quaternionf(0f, 0f, 0f, 1f);
-//			db.getTransformation().setDisplacement(new Vector(-0.5f, -0.5f, -0.5f))
-//				.setLeftRotation(zero).setRightRotation(zero);
-//			db.updateTransformation();
-//			d.rotate(0, -45f);
-//			db.getEntity().setRotation(Float.parseFloat(args[1]), Float.parseFloat(args[2]));
-			
-			new BukkitRunnable() {
-				float deg = 0;
-				public void run() {
-					double rad = Math.toRadians(deg) / 4;
-					double a = Math.cos(rad);
-					double s = Math.sin(rad);
-					Vector v = new Vector(0, 0, 1).normalize();
-					v.multiply(s);
-					
-					Quaternionf ql = new Quaternionf(v.getX(), v.getY(), v.getZ(), a);
-//					Quaternionf qr = new Quaternionf(v.getX(), v.getY(), v.getZ(), a);
-					db.getTransformation().setLeftRotation(ql).setRightRotation(ql);
-//					.setDisplacement(new Vector(s - 0.5, -a - 0.5, -0.5));
-					
-					db.updateTransformation();
-					deg++;
-					//if (deg > 360) this.cancel();
-				}
-			}.runTaskTimer(plugin, 0, 1l);
-		}
 //		else if (args[0].equalsIgnoreCase("animtest")) {
 //			DexterityDisplay d = getSelected(session);
 //			if (d == null) return true;
@@ -242,24 +199,39 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			d.getAnimations().add(a1);
 //			a1.start();
 //		}
-		else if (args[0].equalsIgnoreCase("animtest2")) {
+//		else if (args[0].equalsIgnoreCase("animtest2")) {
+//			DexterityDisplay d = getSelected(session, null);
+//			if (d == null) return true;
+//			d.getAnimations().clear();
+//			RideAnimation r = new RideAnimation(d, plugin);
+//			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
+//			//r.setSeatOffset(new Vector(0, -0.7, 0));
+//			r.setSpeed(10);
+//			r.setLookingMode(LookMode.YAW_ONLY);
+//			r.mount(p);
+//			r.start();
+//		}
+		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
-			d.getAnimations().clear();
-			RideAnimation r = new RideAnimation(d, plugin);
-			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
-			//r.setSeatOffset(new Vector(0, -0.7, 0));
-			r.setSpeed(10);
-			r.setLookingMode(LookMode.YAW_ONLY);
-			r.mount(p);
-			r.start();
+			for (DexBlock db : d.getBlocks()) {
+				api.markerPoint(db.getLocation(), Math.abs(db.getRoll()) < 0.000001 ? Color.LIME : Color.AQUA, 6);
+			}
 		}
-		else if (args[0].equalsIgnoreCase("testnear")) {
+		else if (args[0].equalsIgnoreCase("debug:removetransformation") && p.hasPermission("dexterity.admin")) {
+			DexterityDisplay d = getSelected(session, null);
+			if (d == null) return true;
+			for (DexBlock db : d.getBlocks()) {
+				db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).setRollOffset(new Vector(0, 0, 0)).build());
+				api.markerPoint(db.getEntity().getLocation(), Color.AQUA, 2);
+			}
+		}
+		else if (args[0].equalsIgnoreCase("debug:testnear") && p.hasPermission("dexterity.admin")) {
 			ClickedBlockDisplay b = api.getLookingAt(p);
-			if (b == null) p.sendMessage("None in range");
+			if (b == null) p.sendMessage(cc + "None in range");
 			else {
 				api.markerPoint(b.getClickLocation(), Color.RED, 4);
-				p.sendMessage("Clicked " + b.getBlockFace() + ", disp = " + DexUtils.vectorString(b.getOffsetFromFaceCenter(), 3));
+				p.sendMessage(cc + "Clicked " + b.getBlockFace() + ", " + b.getBlockDisplay().getBlock().getMaterial());
 			}
 		}
 		
@@ -487,35 +459,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
 		}
 		
-		else if (args[0].equalsIgnoreCase("animation") || args[0].equalsIgnoreCase("a")) {
-			DexterityDisplay d = getSelected(session, "animation");
-			if (d == null) return true;
-			if (d.getLabel() == null) {
-				p.sendMessage(plugin.getConfigString("must-save-display"));
-				return true;
-			}
-			if (args.length == 1) {
-				//TODO
-			}
-			else if (args[1].equalsIgnoreCase("start") || args[1].equalsIgnoreCase("unpause")) {
-				d.startAnimations();
-				p.sendMessage(cc + "Started animations on " + cc2 + d.getLabel() + cc + "!");
-			}
-			else if (args[1].equalsIgnoreCase("pause") || args[1].equalsIgnoreCase("stop")) {
-				d.stopAnimations(args[1].equalsIgnoreCase("pause"));
-				p.sendMessage(cc + "Stopped animations on " + cc2 + d.getLabel() + cc + "!");
-			}
-			else if (args[1].equalsIgnoreCase("reset")) {
-				
-			}
-			else if (args[1].equalsIgnoreCase("edit")) {
-//				session.openAnimationEditor();
-			}
-			else {
-				p.sendMessage(plugin.getConfigString("unknown-subcommand"));
-			}
-		}
-		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (!withPermission(p, "convert") || testInEdit(session)) return true;
 			if (session.getLocation1() != null && session.getLocation2() != null) {
@@ -565,8 +508,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else loc = d.getCenter();
 						
 			HashMap<String,Double> attr_d = DexUtils.getAttributesDoubles(args);
+//			if (defs.contains("west")) loc.add(-1, 0, 0); //alias will not pick these up
 			if (attr_d.containsKey("x")) loc.add(attr_d.get("x"), 0, 0);
+			
+//			if (defs.contains("down")) loc.add(0, -1, 0);
 			if (attr_d.containsKey("y")) loc.add(0, attr_d.get("y"), 0);
+			
+//			if (defs.contains("south")) loc.add(0, 0, -1);
 			if (attr_d.containsKey("z")) loc.add(0, 0, attr_d.get("z"));
 			
 						
@@ -602,6 +550,29 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			int count = attrs.getOrDefault("count", -1);
 			if (count < 2) session.redo();
 			else session.redo(count);
+		}
+		
+		else if (args[0].equalsIgnoreCase("unsave")) {
+			DexterityDisplay d;
+			if (def != null) {
+				d = plugin.getDisplay(def.toLowerCase());
+				if (d == null) {
+					p.sendMessage(getConfigString("display-not-found", session).replaceAll("\\Q%input%\\E", def));
+					return true;
+				}
+			} else {
+				d = getSelected(session, "unsave");
+				if (d == null) return true;
+				if (!d.isListed()) {
+					p.sendMessage(getConfigString("not-saved", session));
+					return true;
+				}
+			}
+			
+			
+			String msg = getConfigString("unsave-success", session);
+			d.unregister();
+			p.sendMessage(msg);
 		}
 		
 		else if (args[0].equalsIgnoreCase("mask")) {
@@ -691,12 +662,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (plan.z_deg == Double.MAX_VALUE) {
 				plan.set_z = false;
 				plan.z_deg = 0;
-			} else plan.set_z = set;				
-						
+			} else plan.set_z = set;
+									
 			RotationTransaction t = new RotationTransaction(d);
 			d.getRotationManager(true).setTransaction(t);
 			
-			d.rotate(plan);
+			if (d.rotate(plan) == null) {
+				p.sendMessage(getConfigString("must-send-number", session));
+				return true;
+			}
 			
 			//t.commit(); //async, done in callback
 			session.pushTransaction(t);
@@ -781,9 +755,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ScaleTransaction t = new ScaleTransaction(d);
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
-				float sx = attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue();
-				float sy = attrsd.getOrDefault("y", set ? d.getScale().getY() : 1).floatValue();
-				float sz = attrsd.getOrDefault("z", set ? d.getScale().getZ() : 1).floatValue();
+				float sx = Math.abs(attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue());
+				float sy = Math.abs(attrsd.getOrDefault("y", set ? d.getScale().getY() : 1).floatValue());
+				float sz = Math.abs(attrsd.getOrDefault("z", set ? d.getScale().getZ() : 1).floatValue());
 				
 				if (sx == 0 || sy == 0 || sz == 0) {
 					p.sendMessage(getConfigString("must-send-number", session));
@@ -925,14 +899,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			add_labels = true;
 		}
 		else if (argsr[0].equalsIgnoreCase("replace") || argsr[0].equalsIgnoreCase("rep")) {
-			if (argsr.length <= 3) {
-				ret = materials;
-				finalized = true;
+			if (argsr.length <= 3 && argsr[argsr.length - 1].length() >= 2) {
+				ret = DexUtils.materials(argsr[argsr.length - 1]);
 			}
 		}
 		else if (argsr[0].equalsIgnoreCase("mask")) {
-			if (argsr.length <= 2) {
-				ret.add("-none"); //TODO add mats
+			if (argsr.length <= 2 && argsr[argsr.length - 1].length() >= 2) {
+				ret = DexUtils.materials(argsr[argsr.length - 1]);
+				ret.add("-none");
 			}
 		}
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
@@ -977,14 +951,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equalsIgnoreCase("undo") || argsr[0].equalsIgnoreCase("u") || argsr[0].equalsIgnoreCase("redo")) {
 			ret.add("count=");
 		}
-		else if (argsr[0].equalsIgnoreCase("animation") || argsr[0].equalsIgnoreCase("a")) {
-			ret.add("start");
-			ret.add("stop");
-			ret.add("pause");
-			ret.add("unpause");
-			ret.add("reset");
-			ret.add("edit");
-		}
 		else if (argsr[0].equalsIgnoreCase("rotate") || argsr[0].equalsIgnoreCase("r")) {
 //			if (!params.contains("plane")) ret.add("plane=");
 //			else if (params.size() == 2) {
@@ -1001,9 +967,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("-set");
 			ret.add("-reset");
 		}
-		if (!finalized) {
-			if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
-		}
+		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
 		return ret;
 	}
 

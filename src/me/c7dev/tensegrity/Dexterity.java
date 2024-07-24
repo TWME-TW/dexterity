@@ -28,6 +28,8 @@ import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.util.AxisPair;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.OrientationKey;
+import me.c7dev.tensegrity.util.RollOffset;
 import net.md_5.bungee.api.ChatColor;
 
 public class Dexterity extends JavaPlugin {
@@ -71,8 +73,13 @@ public class Dexterity extends JavaPlugin {
 		//TODO wand item type
 	}
 	
-	public DexterityAPI getAPI() {
+	public DexterityAPI api() {
 		return api;
+	}
+	
+	public DexterityAPI getAPI() {
+		Dexterity plugin = Dexterity.getPlugin(Dexterity.class);
+		return plugin.api();
 	}
 	
 	public String getChatColor() {
@@ -244,8 +251,9 @@ public class Dexterity extends JavaPlugin {
 				new BukkitRunnable() {
 					@Override
 					public void run() {
+						HashMap<OrientationKey, RollOffset> cache = new HashMap<>();
 						for (DexBlock db : disp.getBlocks()) {
-							db.loadRoll();
+							db.loadRoll(cache);
 						}
 					}
 				}.runTaskAsynchronously(this);

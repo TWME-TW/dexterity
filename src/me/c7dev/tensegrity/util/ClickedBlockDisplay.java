@@ -12,6 +12,7 @@ public class ClickedBlockDisplay {
 	private Vector offset_, normal_, up_dir_, east_dir_, south_dir_;
 	private Location loc_, center_;
 	private double dist_;
+	private RollOffset ro = null;
 	
 	private Vector getNormal(BlockFace f, Vector up, Vector east, Vector south) {
 		switch(f) {
@@ -37,6 +38,10 @@ public class ClickedBlockDisplay {
 		south_dir_ = south_dir.normalize();
 		normal_ = getNormal(blockFace, up_dir, east_dir, south_dir);
 		dist_ = dist;
+	}
+	
+	public void setRollOffset(RollOffset ro) {
+		this.ro = ro;
 	}
 	
 	public BlockDisplay getBlockDisplay() {
@@ -77,6 +82,10 @@ public class ClickedBlockDisplay {
 	
 	public double getDistance() {
 		return dist_;
+	}
+	
+	public RollOffset getRollOffset() {
+		return ro;
 	}
 
 }

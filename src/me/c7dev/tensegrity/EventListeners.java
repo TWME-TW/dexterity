@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -41,7 +42,7 @@ public class EventListeners implements Listener {
 	}
 	
 	public boolean clickDelay(UUID u) {
-		int delay = 100;
+		int delay = 200;
 		if (System.currentTimeMillis() - click_delay.getOrDefault(u, 0l) < delay) return true;
 		final long newdelay = System.currentTimeMillis() + delay;
 		click_delay.put(u, newdelay);
@@ -63,16 +64,19 @@ public class EventListeners implements Listener {
 		if (e.getPlayer().hasPermission("dexterity.build")) {	
 			
 			if (clickDelay(e.getPlayer().getUniqueId())) return;
+			boolean right_click = e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK;
 			
 			//calculate if player clicked a block display
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
-			ClickedBlockDisplay clicked = (hand.getType() == Material.BARRIER && (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK))
-					? null : plugin.getAPI().getLookingAt(e.getPlayer());
+			if (hand.getType() == Material.AIR && right_click) return;
+			
+			ClickedBlockDisplay clicked = (hand.getType() == Material.BARRIER && right_click)
+					? null : plugin.api().getLookingAt(e.getPlayer());
 			
 			boolean clicked_block;
-			if (clicked == null) clicked_block = e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_BLOCK;
+			if (clicked == null) clicked_block = right_click;
 			else {
-				ClickedBlock clicked_block_data = plugin.getAPI().getBlockLookingAtRaw(e.getPlayer(), 0.1, clicked.getDistance());
+				ClickedBlock clicked_block_data = plugin.api().getPhysicalBlockLookingAtRaw(e.getPlayer(), 0.1, clicked.getDistance());
 				clicked_block = clicked_block_data != null && clicked_block_data.getDistance() < clicked.getDistance();
 			}
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
@@ -92,13 +96,11 @@ public class EventListeners implements Listener {
 				if (!clicked_block && clicked_display != null && clicked_display.getLabel() != null) {
 					session.setSelected(clicked_display, true);
 					return;
-				}// else {
-//					Bukkit.broadcastMessage("clicked block = " + clicked_block+ ", label = " + (clicked_display == null ? "none" : clicked_display.getLabel()));
-//				}
+				}
 				
 				boolean msg = hand.getType() != Material.WOODEN_AXE;
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
-					boolean is_l1 = e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK;
+					boolean is_l1 = !right_click;
 					Vector scale = DexUtils.hadimard(DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()), DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));
 					session.setContinuousLocation(clicked.getDisplayCenterLocation(), is_l1, scale, msg);
 				} else if (e.getClickedBlock() != null) {
@@ -115,7 +117,7 @@ public class EventListeners implements Listener {
 				if (click_event.isCancelled()) return;
 								
 				//place a block display
-				if (e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR) {
+				if (right_click) {
 					if (hand.getType() != Material.AIR) {
 						
 						BlockData bdata = Bukkit.createBlockData(hand.getType() == Material.NETHER_STAR ? Material.NETHER_PORTAL : hand.getType());
@@ -145,25 +147,21 @@ public class EventListeners implements Listener {
 
 						Location fromLoc = clicked.getDisplayCenterLocation();
 						if (clicked.getBlockFace() != BlockFace.UP && clicked.getBlockFace() != BlockFace.DOWN) fromLoc.add(clicked.getUpDir().multiply((blockscale.getY()/2)*(1 - blockdimensions.getY())));
-//						plugin.getAPI().markerPoint(fromLoc, Color.AQUA, 6);
-//						plugin.getAPI().markerPoint(fromLoc.clone().add(dir), Color.LIME, 6);
 						
 						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.clone().add(delta), BlockDisplay.class, a -> {
 							a.setBlock(bdata);
 							trans.setScale(blockscale);
-							trans.setDisplacement(blockscale.clone().multiply(-0.5));
+							if (clicked.getRollOffset() == null) trans.setDisplacement(blockscale.clone().multiply(-0.5));
+							else trans.setDisplacement(blockscale.clone().multiply(-0.5).add(clicked.getRollOffset().getOffset()));
 							a.setTransformation(trans.build());
 						});
-						
-//						plugin.getAPI().markerPoint(clicked.getDisplayCenterLocation().add(dir.clone().multiply(blockdimensions.getY()/2)), Color.AQUA, 6);
-//						plugin.getAPI().markerPoint(b.getLocation(), Color.LIME, 6);
 						
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
-							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(clicked_db.getTransformation().getRollOffset()));
-							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffset().clone());
+							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(clicked_db.getTransformation().getRollOffsetRaw()));
+							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffsetRaw().clone());
 							clicked_display.getBlocks().add(new_db);
 							if (session != null) session.pushBlock(new_db, true);
 						}

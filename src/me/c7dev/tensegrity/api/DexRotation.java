@@ -189,30 +189,30 @@ public class DexRotation {
 		rotate(y_deg, 0, 0);
 	}
 	
-	public void rotate(float y_deg, float pitch_deg, float roll_deg) {
+	public Quaterniond rotate(float y_deg, float pitch_deg, float roll_deg) {
 		RotationPlan p = new RotationPlan();
 		p.y_deg = y_deg;
 		p.pitch_deg = pitch_deg;
 		p.roll_deg = roll_deg;
-		rotate(p);
+		return rotate(p);
 	}
 	
-	public void rotate(RotationPlan plan) {
+	public Quaterniond rotate(RotationPlan plan) {
 		
 		double del_x, del_y, del_z, del_yaw, del_pitch, del_roll;
 		if (plan.reset) {
-			del_x = plan.x_deg; del_y = plan.y_deg; del_z = plan.z_deg;
+			del_x = -plan.x_deg; del_y = -plan.y_deg; del_z = -plan.z_deg;
 			del_pitch = plan.pitch_deg; del_yaw = plan.yaw_deg; del_roll = plan.roll_deg;
 			base_y = 0; base_x = 0; base_z = 0;
 			base_yaw = 0; base_pitch = 0; base_roll = 0;
 		} else {
-			del_x = plan.set_x ? plan.x_deg - base_x : plan.x_deg;
-			del_y = plan.set_y ? plan.y_deg - base_y : plan.y_deg;
-			del_z = plan.set_z ? plan.z_deg - base_z : plan.z_deg;
+			del_x = plan.set_x ? -plan.x_deg - base_x : -plan.x_deg; //right hand rule
+			del_y = plan.set_y ? -plan.y_deg - base_y : -plan.y_deg;
+			del_z = plan.set_z ? -plan.z_deg - base_z : -plan.z_deg;
 			del_yaw = plan.set_yaw ? plan.yaw_deg - base_yaw : plan.yaw_deg;
 			del_pitch = plan.set_pitch ? plan.pitch_deg - base_pitch : plan.pitch_deg;
 			del_roll = plan.set_roll ? plan.roll_deg - base_roll : plan.roll_deg;
-			if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0) return;
+			if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0) return null;
 		}
 						
 		Quaterniond q = new Quaterniond(0, 0, 0, 1);
@@ -236,6 +236,8 @@ public class DexRotation {
 		base_yaw = (base_yaw + del_yaw) % 360;
 		base_pitch = (base_pitch + del_pitch) % 360;
 		base_roll = (base_roll + del_roll) % 360;
+		
+		return DexUtils.cloneQ(q1);
 	}
 	
 	private Quaterniond yQuaternion(double rads, Quaterniond src) {
@@ -347,7 +349,7 @@ public class DexRotation {
 		if (t != null) {
 			t.commit();
 			t = null;
-		}
+		} else Bukkit.broadcastMessage("t null");
 	}
 	
 	public void againAsync() {
@@ -411,7 +413,7 @@ public class DexRotation {
 						if (t != null) {
 							t.commit();
 							t = null;
-						}
+						} else Bukkit.broadcastMessage("t null");
 					}
 				}.runTask(d.getPlugin());
 				
@@ -425,10 +427,10 @@ public class DexRotation {
 		}
 		points.clear();
 		
-		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, seconds));
-		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(y)), Color.LIME, seconds));
-		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, seconds));
-		points.add(d.getPlugin().getAPI().markerPoint(d.getCenter(), Color.SILVER, seconds));
+		points.add(d.getPlugin().api().markerPoint(d.getCenter().add(DexUtils.vector(x)), Color.RED, seconds));
+		points.add(d.getPlugin().api().markerPoint(d.getCenter().add(DexUtils.vector(y)), Color.LIME, seconds));
+		points.add(d.getPlugin().api().markerPoint(d.getCenter().add(DexUtils.vector(z)), Color.BLUE, seconds));
+		points.add(d.getPlugin().api().markerPoint(d.getCenter(), Color.SILVER, seconds));
 	}
 
 }

@@ -14,9 +14,9 @@ public class AxisPair {
 	public static double PI2 = Math.PI/2;
 	
 	public void highlight(DexBlock db, int seconds) {
-		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation().add(DexUtils.vector(dir1)), Color.LIME, seconds);
-		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation().add(DexUtils.vector(dir2)), Color.ORANGE, seconds);
-		db.getDexterityDisplay().getPlugin().getAPI().markerPoint(db.getLocation(), Color.BLACK, seconds);
+		db.getDexterityDisplay().getPlugin().api().markerPoint(db.getLocation().add(DexUtils.vector(dir1)), Color.LIME, seconds);
+		db.getDexterityDisplay().getPlugin().api().markerPoint(db.getLocation().add(DexUtils.vector(dir2)), Color.ORANGE, seconds);
+		db.getDexterityDisplay().getPlugin().api().markerPoint(db.getLocation(), Color.BLACK, seconds);
 	}
 	
 	public AxisPair() {

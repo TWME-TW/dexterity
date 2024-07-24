@@ -5,31 +5,32 @@ import org.joml.Quaternionf;
 public class OrientationKey {
 	
 	private Quaternionf q;
-	private double yaw, pitch;
+	private double x, y, z;
 	
 	public static final double epsilon = 0.000001;
 	
-	public OrientationKey(double yaw, double pitch, Quaternionf q) {
+	public OrientationKey(double yaw, double pitch, double roll, Quaternionf q) {
 		this.q = q;
-		this.yaw = yaw;
-		this.pitch = pitch;
+		this.x = yaw;
+		this.y = pitch;
+		this.z = roll;
 	}
 	
 	public Quaternionf getQuaternion() {
 		return q;
 	}
 	public double getYaw() {
-		return yaw;
+		return x;
 	}
 	public double getPitch() {
-		return pitch;
+		return y;
 	}
 	
 	@Override
 	public boolean equals(Object obj) {
 		if (!(obj instanceof OrientationKey)) return false;
 		OrientationKey k = (OrientationKey) obj;
-		return Math.abs(k.getYaw() - yaw) < epsilon && Math.abs(k.getPitch() - pitch) < epsilon
+		return Math.abs(k.getYaw() - x) < epsilon && Math.abs(k.getPitch() - y) < epsilon
 				&& Math.abs(k.getQuaternion().w - q.w) < epsilon && Math.abs(k.getQuaternion().z - q.z) < epsilon
 				&& Math.abs(k.getQuaternion().x - q.x) < epsilon && Math.abs(k.getQuaternion().y - q.y) < epsilon; 
 	}
@@ -37,8 +38,9 @@ public class OrientationKey {
 	public int hashCode() {
 		int hash = 7;
 		
-		hash = 31 * hash + (int) (Double.doubleToLongBits(yaw) ^ (Double.doubleToLongBits(yaw) >>> 32));
-		hash = 31 * hash + (int) (Double.doubleToLongBits(pitch) ^ (Double.doubleToLongBits(pitch) >>> 32));
+		hash = 31 * hash + (int) (Double.doubleToLongBits(x) ^ (Double.doubleToLongBits(x) >>> 32));
+		hash = 31 * hash + (int) (Double.doubleToLongBits(y) ^ (Double.doubleToLongBits(y) >>> 32));
+		hash = 31 * hash + (int) (Double.doubleToLongBits(z) ^ (Double.doubleToLongBits(z) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.x) ^ (Double.doubleToLongBits(q.x) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.y) ^ (Double.doubleToLongBits(q.y) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.z) ^ (Double.doubleToLongBits(q.z) >>> 32));

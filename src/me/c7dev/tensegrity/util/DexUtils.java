@@ -93,6 +93,9 @@ public class DexUtils {
 		case "n": return 0;
 		case "unfilled": return 0;
 		case "f": return 0;
+		case "down": return -1;
+		case "west": return -1;
+		case "north": return -1;
 		default: 
 			try {
 				return Integer.parseInt(s);
@@ -147,7 +150,7 @@ public class DexUtils {
 				try {
 					double d = Double.parseDouble(argsplit[argsplit.length-1]);
 					
-					if (argsplit[0].equalsIgnoreCase("down") || argsplit[0].equalsIgnoreCase("west") || argsplit[0].equalsIgnoreCase("north")) d*=-1;
+					if (argsplit[0].equalsIgnoreCase("down") || argsplit[0].equalsIgnoreCase("west") || argsplit[0].equalsIgnoreCase("south")) d*=-1;
 					
 					attr.put(alias, d);
 				} catch (Exception ex) {
@@ -312,6 +315,15 @@ public class DexUtils {
 		case COMPARATOR: return new Vector(1, 7.0/16, 1);
 		default: return new Vector(1, 1, 1);
 		}
+	}
+	
+	public static List<String> materials(String start) {
+		List<String> r = new ArrayList<>();
+		start = start.toUpperCase();
+		for (Material m : Material.values()) { 
+			if (m.toString().startsWith(start)) r.add(m.toString().toLowerCase());
+		}
+		return r;
 	}
 	
 	public static Matrix3d rotMatDeg(double xdeg, double ydeg, double zdeg) {

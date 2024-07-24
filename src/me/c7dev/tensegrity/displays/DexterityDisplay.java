@@ -9,13 +9,14 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
+import org.joml.Quaterniond;
 
 import me.c7dev.tensegrity.Dexterity;
 import me.c7dev.tensegrity.api.DexRotation;
 import me.c7dev.tensegrity.displays.animation.Animation;
 import me.c7dev.tensegrity.util.DexBlock;
-import me.c7dev.tensegrity.util.RotationPlan;
 import me.c7dev.tensegrity.util.DexUtils;
+import me.c7dev.tensegrity.util.RotationPlan;
 
 public class DexterityDisplay {
 	
@@ -118,10 +119,15 @@ public class DexterityDisplay {
 	}
 	
 	public boolean setLabel(String s) {
-		if (s == null || plugin.getDisplayLabels().contains(s)) return false;
+		if (s == null) {
+			unregister();
+			return true;
+		}
+		s = s.toLowerCase();
+		if (plugin.getDisplayLabels().contains(s)) return false;
 		if (label != null) plugin.unregisterDisplay(this);
-		plugin.registerDisplay(s, this);
 		label = s;
+		plugin.registerDisplay(s, this);
 		for (DexBlock db : blocks) {
 			if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isListed()) db.setDexterityDisplay(this);
 		}
@@ -131,6 +137,14 @@ public class DexterityDisplay {
 		
 	public boolean isListed() {
 		return label != null;
+	}
+	
+	public void unregister() {
+		if (!isListed()) return;
+		plugin.unregisterDisplay(this, false);
+		label = null;
+		for (DexterityDisplay sub : subdisplays) sub.unregister();
+		plugin.saveDisplays();
 	}
 	
 	public List<DexBlock> getBlocks(){
@@ -439,15 +453,15 @@ public class DexterityDisplay {
 //		}
 //	}
 	
-	public void rotate(float y_deg, float pitch_deg, float roll_deg) {
+	public Quaterniond rotate(float y_deg, float pitch_deg, float roll_deg) {
 		RotationPlan plan = new RotationPlan();
 		plan.y_deg = y_deg;
 		plan.pitch_deg = pitch_deg;
 		plan.roll_deg = roll_deg;
-		rotate(plan);
+		return rotate(plan);
 	}
 	
-	public void setRotation(float y_deg, float pitch_deg, float roll_deg) {
+	public Quaterniond setRotation(float y_deg, float pitch_deg, float roll_deg) {
 		RotationPlan plan = new RotationPlan();
 		plan.y_deg = y_deg;
 		plan.pitch_deg = pitch_deg;
@@ -455,7 +469,7 @@ public class DexterityDisplay {
 		plan.set_y = true;
 		plan.set_pitch = true;
 		plan.set_roll = true;
-		rotate(plan);
+		return rotate(plan);
 	}
 	
 	public void setBaseRotation(float y, float pitch, float roll) {
@@ -472,9 +486,9 @@ public class DexterityDisplay {
 		return rot;
 	}
 	
-	public void rotate(RotationPlan plan) {
+	public Quaterniond rotate(RotationPlan plan) {
 		if (rot == null) rot = new DexRotation(this);
-		rot.rotate(plan);
+		return rot.rotate(plan);
 	}
 
 }

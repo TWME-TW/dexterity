@@ -1,13 +1,12 @@
 package me.c7dev.tensegrity.util;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
+import java.util.HashMap;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Vector;
-import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 
 import me.c7dev.tensegrity.displays.DexterityDisplay;
@@ -63,11 +62,36 @@ public class DexBlock {
 		}
 	}
 	
+	public void loadRoll(HashMap<OrientationKey, RollOffset> cache) {
+		Quaternionf r = trans.getLeftRotation();
+		
+		OrientationKey key = new OrientationKey(trans.getScale().getX(), trans.getScale().getY(), trans.getScale().getZ(), r);
+		RollOffset cached = cache.get(key);
+		if (cached != null) {
+			trans.setRollOffset(cached.getOffset());
+			trans.getDisplacement().subtract(cached.getOffset());
+			roll = cached.getRoll();
+		} else {
+			if (r.w != 0) {
+				if (r.x == 0 && r.y == 0 && r.z != 0) {
+					RollOffset c = new RollOffset(r);
+					c.hadimardOffset(trans.getScale());
+					trans.setRollOffset(c.getOffset());
+					trans.getDisplacement().subtract(c.getOffset());
+					roll = c.getRoll();
+					cache.put(key, c);
+				}
+			}
+		}
+	}
+	
 	public void loadRoll() { //async
 		Quaternionf r = trans.getLeftRotation();
+		
 		if (r.w != 0) {
 			if (r.x == 0 && r.y == 0 && r.z != 0) {
 				RollOffset c = new RollOffset(r);
+				c.hadimardOffset(trans.getScale());
 				trans.setRollOffset(c.getOffset());
 				trans.getDisplacement().subtract(c.getOffset());
 				roll = c.getRoll();
@@ -81,6 +105,7 @@ public class DexBlock {
 	
 	@Deprecated
 	public void setDexterityDisplay(DexterityDisplay d) {
+		if (d == null) return;
 		disp = d;
 	}
 	

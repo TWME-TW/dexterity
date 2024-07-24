@@ -34,6 +34,7 @@ import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.DexBlock;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.OrientationKey;
+import me.c7dev.tensegrity.util.RollOffset;
 import me.c7dev.tensegrity.util.SavedBlockState;
 
 public class DexterityAPI {
@@ -64,7 +65,7 @@ public class DexterityAPI {
 	}
 
 	public static DexterityAPI getInstance() {
-		return Dexterity.getPlugin(Dexterity.class).getAPI();
+		return Dexterity.getPlugin(Dexterity.class).api();
 	}
 	
 	public Set<String> getDisplayLabels() {
@@ -155,9 +156,7 @@ public class DexterityAPI {
 		double mindist = Double.MAX_VALUE;
 		ClickedBlockDisplay nearest = null;
 				
-//		HashMap<Vector, Vector[][]> basis = new HashMap<>();
-//		HashMap<Vector, Matrix3d> rot_matrices = new HashMap<>();
-//		HashMap<Float, RollOffset> roll_offsets = new HashMap<>();
+		HashMap<Float, RollOffset> roll_offsets = new HashMap<>();
 		HashMap<OrientationKey, Vector[]> axes = new HashMap<>();
 				
 		Vector[][] basis_vecs_norot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
@@ -175,37 +174,36 @@ public class DexterityAPI {
 			//check if the player is looking in the general direction of the block, accounting for scale
 			Vector diff = e.getLocation().toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
-			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0.3 : -0.4)) continue;
+			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0 : -0.4)) continue;
 			
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
 			DexBlock db = plugin.getMappedDisplay(e.getUniqueId());
 			
-			Vector displacement;
+			RollOffset ro = null;
+			Location loc;// = e.getLocation().add(displacement).add(scale_raw);
 			//calculate roll and its offset
 			if (db == null) {
 				float key = e.getTransformation().getLeftRotation().w;
-				if (key == 0) {
-					displacement = DexUtils.vector(e.getTransformation().getTranslation());
-//					roll = 0;
-				} else {
-//					RollOffset c = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
-//					if (c == null) {
-//						c = new RollOffset(e.getTransformation().getLeftRotation());
-//						roll_offsets.put(key, c);
-//					}
-//					roll = c.getRoll();
-//					plugin.getAPI().markerPoint(e.getLocation().add(DexUtils.vector(e.getTransformation().getTranslation())), Color.NAVY, 6);
-					displacement = DexUtils.vector(e.getTransformation().getTranslation());//.subtract(c.getOffset());
+				Vector displacement = DexUtils.vector(e.getTransformation().getTranslation());
+				if (key != 0) {
+					ro = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
+					if (ro == null) {
+						ro = new RollOffset(e.getTransformation().getLeftRotation());
+						ro.hadimardOffset(DexUtils.vector(e.getTransformation().getScale()));
+						roll_offsets.put(key, ro);
+					}
+					displacement.subtract(ro.getOffset());
 				}
+				loc = e.getLocation().add(displacement).add(scale_raw);
 			} else {
-//				roll = db.getRoll();
-				displacement = db.getTransformation().getDisplacement().clone();
+				loc = db.getLocation();
+//				plugin.getAPI().markerPoint(db.getLocation(), Color.AQUA, 4); //TODO center not working for scaled blocks
 			}
 			
 			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 0) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
 				
-				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), e.getTransformation().getLeftRotation());
+				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), 0, e.getTransformation().getLeftRotation());
 				Vector[] res = axes.get(key);
 				if (res == null) {
 					Vector3f east_dir_d = new Vector3f(1, 0, 0), up_dir_d = new Vector3f(0, 1, 0), south_dir_d = new Vector3f(0, 0, 1);
@@ -240,10 +238,8 @@ public class DexterityAPI {
 			}
 
 			//calculate location of visual display accounting for axis asymmetry
-			Location loc = e.getLocation().add(displacement).add(scale_raw);
 			loc.add(up_dir.clone().multiply(scale.getY() - scale_raw.getY()));
 			Vector locv = loc.toVector();
-//			plugin.getAPI().markerPoint(loc, Color.ORANGE, 6);
 
 			//block face centers
 			Vector up = locv.clone().add(up_dir.clone().multiply(scale.getY())), 
@@ -255,8 +251,12 @@ public class DexterityAPI {
 
 			Vector[] locs = {up, down, south, north, east, west};
 						
+//			plugin.api().markerPoint(loc, Color.AQUA, 4);
+			
 			for (int i = 0; i < locs.length; i++) {
-																		
+				
+//				plugin.api().markerPoint(DexUtils.location(loc.getWorld(), locs[i]), Color.LIME, 4);
+				
 				Vector basis1 = basis_vecs[i][0];
 				Vector basis2 = basis_vecs[i][1];
 								
@@ -293,12 +293,11 @@ public class DexterityAPI {
 						.add(basis2.clone().multiply(c.getY()));
 				Vector blockoffset = locs[i].clone().add(raw_offset); //surface location
 				
-				//markerPoint(DexUtils.location(loc.getWorld(), blockoffset), Color.WHITE, 5);
-				
 				if (dist < mindist) {
 					mindist = dist;
 					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), 
 							loc, up_dir, east_dir, south_dir, dist);
+					if (ro != null) nearest.setRollOffset(ro);
 				}
 			}	
 		}
@@ -306,15 +305,15 @@ public class DexterityAPI {
 		return nearest;
 	}
 	
-	public ClickedBlock getBlockLookingAt(Player p) {
-		return getBlockLookingAtRaw(p, 0.01, 5); // same as getBlockLookingAt(p, 100);
+	public ClickedBlock getPhysicalBlockLookingAt(Player p) {
+		return getPhysicalBlockLookingAtRaw(p, 0.01, 5); // same as getBlockLookingAt(p, 100);
 	}
 	
-	public ClickedBlock getBlockLookingAt(Player p, double percent_precision) {
-		return getBlockLookingAtRaw(p, Math.abs(1/percent_precision), 5);
+	public ClickedBlock getPhysicalBlockLookingAt(Player p, double percent_precision) {
+		return getPhysicalBlockLookingAtRaw(p, Math.abs(1/percent_precision), 5);
 	}
 	
-	public ClickedBlock getBlockLookingAtRaw(Player p, double step_multiplier, double max_dist) { //TODO account for physical block size
+	public ClickedBlock getPhysicalBlockLookingAtRaw(Player p, double step_multiplier, double max_dist) {
 		Vector step = p.getLocation().getDirection().multiply(step_multiplier);
 		
 		Location loc = p.getEyeLocation();
