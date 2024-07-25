@@ -190,7 +190,6 @@ public class DexterityAPI {
 					ro = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
 					if (ro == null) {
 						ro = new RollOffset(e.getTransformation().getLeftRotation());
-						ro.hadimardOffset(DexUtils.vector(e.getTransformation().getScale()));
 						roll_offsets.put(key, ro);
 					}
 					displacement.subtract(ro.getOffset());

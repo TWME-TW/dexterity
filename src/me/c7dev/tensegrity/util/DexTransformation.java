@@ -61,10 +61,6 @@ public class DexTransformation {
 		return disp2;
 	}
 	
-	public Vector getRollOffsetRaw() {
-		return disp2;
-	}
-	
 	public DexTransformation setScale(Vector s) {
 		scale = s;
 		return this;
@@ -101,7 +97,7 @@ public class DexTransformation {
 	}
 	
 	public Transformation build() {
-		return new Transformation(DexUtils.vector(disp.clone().add(getRollOffset())), l, DexUtils.vector(scale), r);
+		return new Transformation(DexUtils.vector(disp.clone().add(DexUtils.hadimard(disp2, scale))), l, DexUtils.vector(scale), r);
 	}
 
 }

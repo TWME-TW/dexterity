@@ -42,7 +42,7 @@ public class EventListeners implements Listener {
 	}
 	
 	public boolean clickDelay(UUID u) {
-		int delay = 200;
+		int delay = 100;
 		if (System.currentTimeMillis() - click_delay.getOrDefault(u, 0l) < delay) return true;
 		final long newdelay = System.currentTimeMillis() + delay;
 		click_delay.put(u, newdelay);
@@ -160,8 +160,8 @@ public class EventListeners implements Listener {
 
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
-							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(clicked_db.getTransformation().getRollOffsetRaw()));
-							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffsetRaw().clone());
+							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(DexUtils.hadimard(clicked_db.getTransformation().getRollOffset(), clicked_db.getTransformation().getScale())));
+							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffset().clone());
 							clicked_display.getBlocks().add(new_db);
 							if (session != null) session.pushBlock(new_db, true);
 						}

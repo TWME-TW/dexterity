@@ -69,15 +69,14 @@ public class DexBlock {
 		RollOffset cached = cache.get(key);
 		if (cached != null) {
 			trans.setRollOffset(cached.getOffset());
-			trans.getDisplacement().subtract(cached.getOffset());
+			trans.getDisplacement().subtract(DexUtils.hadimard(cached.getOffset(), trans.getScale()));
 			roll = cached.getRoll();
 		} else {
 			if (r.w != 0) {
 				if (r.x == 0 && r.y == 0 && r.z != 0) {
 					RollOffset c = new RollOffset(r);
-					c.hadimardOffset(trans.getScale());
 					trans.setRollOffset(c.getOffset());
-					trans.getDisplacement().subtract(c.getOffset());
+					trans.getDisplacement().subtract(DexUtils.hadimard(c.getOffset(), trans.getScale()));
 					roll = c.getRoll();
 					cache.put(key, c);
 				}
@@ -91,7 +90,6 @@ public class DexBlock {
 		if (r.w != 0) {
 			if (r.x == 0 && r.y == 0 && r.z != 0) {
 				RollOffset c = new RollOffset(r);
-				c.hadimardOffset(trans.getScale());
 				trans.setRollOffset(c.getOffset());
 				trans.getDisplacement().subtract(c.getOffset());
 				roll = c.getRoll();

@@ -389,14 +389,12 @@ public class DexterityDisplay {
 			Vector disp = db.getLocation().toVector().subtract(center.toVector());
 			Vector diff = DexUtils.hadimard(disp, sd);
 			Vector block_scale = DexUtils.hadimard(v, db.getTransformation().getScale());
-			Vector roll_offset = DexUtils.hadimard(v, db.getTransformation().getRollOffset());
 			
 			db.move(diff);
 			
 			db.getTransformation()
 					.setDisplacement(block_scale.clone().multiply(-0.5))
-					.setScale(block_scale)
-					.setRollOffset(roll_offset);
+					.setScale(block_scale);
 			db.updateTransformation();
 		}
 		scale = DexUtils.hadimard(scale, v);

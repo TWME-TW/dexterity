@@ -26,10 +26,6 @@ public class RollOffset {
 		offset = new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0);
 	}
 	
-	public void hadimardOffset(Vector v) {
-		offset = DexUtils.hadimard(offset, v);
-	}
-	
 	public Vector getOffset() {
 		return offset;
 	}

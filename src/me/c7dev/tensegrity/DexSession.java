@@ -102,7 +102,7 @@ public class DexSession {
 		
 		selected = o;
 		if (msg && o.getLabel() != null && p.isOnline()) {
-			p.sendMessage(plugin.getConfigString("selected").replaceAll("\\Q%label%\\E", o.getLabel()));
+			p.sendMessage(plugin.getConfigString("selected-success").replaceAll("\\Q%label%\\E", o.getLabel()));
 			if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.api().tempHighlight(o, 15);
 		}
 	}

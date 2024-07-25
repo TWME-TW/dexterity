@@ -25,6 +25,10 @@ public class DexBlockState {
 		roll = db.getRoll();
 	}
 	
+	public void setDisplay(DexterityDisplay d) {
+		disp = d;
+	}
+	
 	public Location getLocation() {
 		return loc;
 	}

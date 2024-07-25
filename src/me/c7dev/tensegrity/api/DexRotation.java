@@ -336,7 +336,7 @@ public class DexRotation {
 				axispairs.put(dir, a);
 			}
 			
-			Vector r = db.getEntity().getLocation().toVector().subtract(centerv);
+			Vector r = db.getLocation().toVector().subtract(centerv);
 			Vector3d r_trans = DexUtils.vectord(r);
 			q1.transform(r_trans);
 			
@@ -387,7 +387,7 @@ public class DexRotation {
 						axispairs.put(dir, a);
 					}
 					
-					Vector r = db.getEntity().getLocation().toVector().subtract(centerv);
+					Vector r = db.getLocation().toVector().subtract(centerv);
 					Vector3d r_trans = DexUtils.vectord(r);
 					q1.transform(r_trans);
 					Vector offset = DexUtils.vector(r_trans).subtract(r);

@@ -13,19 +13,14 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
-import org.joml.Quaternionf;
 
 import me.c7dev.tensegrity.DexSession.EditType;
 import me.c7dev.tensegrity.api.DexterityAPI;
 import me.c7dev.tensegrity.displays.DexterityDisplay;
-import me.c7dev.tensegrity.displays.animation.RideAnimation;
-import me.c7dev.tensegrity.displays.animation.RideAnimation.LookMode;
 import me.c7dev.tensegrity.transaction.BlockTransaction;
 import me.c7dev.tensegrity.transaction.ConvertTransaction;
 import me.c7dev.tensegrity.transaction.DeconvertTransaction;
@@ -37,6 +32,7 @@ import me.c7dev.tensegrity.transaction.Transaction;
 import me.c7dev.tensegrity.util.ClickedBlockDisplay;
 import me.c7dev.tensegrity.util.ColorEnum;
 import me.c7dev.tensegrity.util.DexBlock;
+import me.c7dev.tensegrity.util.DexBlockState;
 import me.c7dev.tensegrity.util.DexTransformation;
 import me.c7dev.tensegrity.util.DexUtils;
 import me.c7dev.tensegrity.util.RotationPlan;
@@ -414,15 +410,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
 			for (DexBlock db : d.getBlocks()) {
-				BlockDisplay block = db.getLocation().getWorld().spawn(db.getLocation(), BlockDisplay.class, a -> {
-					a.setBlock(db.getEntity().getBlock());
-					a.setTransformation(db.getTransformation().build());
-					if (db.getEntity().isGlowing()) {
-						a.setGlowColorOverride(db.getEntity().getGlowColorOverride());
-						a.setGlowing(true);
-					}
-				});
-				blocks.add(new DexBlock(block, clone));
+//				BlockDisplay block = db.getLocation().getWorld().spawn(db.getLocation(), BlockDisplay.class, a -> {
+//					a.setBlock(db.getEntity().getBlock());
+//					a.setTransformation(db.getTransformation().build());
+//					if (db.getEntity().isGlowing()) {
+//						a.setGlowColorOverride(db.getEntity().getGlowColorOverride());
+//						a.setGlowing(true);
+//					}
+//				});
+				DexBlockState state = db.getState();
+				state.setDisplay(clone);
+				blocks.add(new DexBlock(state));
 			}
 			clone.setEntities(blocks, false);
 			
@@ -442,8 +440,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("glow")) { //TODO add transaction
 			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
-			boolean propegate = flags.contains("propegate");
-			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off")) {
+			boolean propegate = false; //flags.contains("propegate");
+			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off") || flags.contains("none") || flags.contains("off")) {
 				d.setGlow(null, propegate);
 				p.sendMessage(getConfigString("glow-success-disable", session));
 				return true;
@@ -927,8 +925,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			add_labels = true;
 		}
 		else if (argsr[0].equalsIgnoreCase("glow")) {
-			ret.add("none");
-			ret.add("-propegate");
+			ret.add("-none");
+//			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
 		}
 		else if (argsr[0].equalsIgnoreCase("move") || argsr[0].equalsIgnoreCase("m")) {
