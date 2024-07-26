@@ -34,16 +34,20 @@ public class DexterityDisplay {
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
 	
 	public DexterityDisplay(Dexterity plugin) {
-		this(plugin, null, new Vector(1, 1, 1));
+		this(plugin, null, new Vector(1, 1, 1), null);
 	}
 	
-	//TODO make block transactions update scale and rotation
-		
 	public DexterityDisplay(Dexterity plugin, Location center, Vector scale) {
+		this(plugin, center, scale, null);
+	}
+
+		
+	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, String label) {
 		this.plugin = plugin;
 		this.scale = scale == null ? new Vector(1, 1, 1) : scale;
 		if (center == null) recalculateCenter();
 		else this.center = center;
+		this.label = label;
 	}
 	
 	public UUID getUniqueId() {
@@ -112,12 +116,6 @@ public class DexterityDisplay {
 		setLabel("display-" + i);
 	}
 	
-	@Deprecated
-	public void forceSetLabel(String s) {
-		if (s == null || plugin.getDisplayLabels().contains(s)) return;
-		label = s;
-	}
-	
 	public boolean setLabel(String s) {
 		if (s == null) {
 			unregister();
@@ -131,7 +129,6 @@ public class DexterityDisplay {
 		for (DexBlock db : blocks) {
 			if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isListed()) db.setDexterityDisplay(this);
 		}
-		plugin.saveDisplays();
 		return true;
 	}
 		
@@ -144,7 +141,6 @@ public class DexterityDisplay {
 		plugin.unregisterDisplay(this, false);
 		label = null;
 		for (DexterityDisplay sub : subdisplays) sub.unregister();
-		plugin.saveDisplays();
 	}
 	
 	public List<DexBlock> getBlocks(){
@@ -261,7 +257,7 @@ public class DexterityDisplay {
 			r = p;
 		}
 		
-		plugin.saveDisplays();
+		plugin.saveDisplay(this);
 		return r;
 	}
 	
@@ -278,13 +274,11 @@ public class DexterityDisplay {
 		parent.getSubdisplays().remove(this);
 		parent = null;
 		plugin.registerDisplay(label, this);
-		plugin.saveDisplays();
 	}
 	
 	public void remove(boolean restore) {
 		if (parent != null) parent.getSubdisplays().remove(this);
 		removeHelper(restore);
-		plugin.saveDisplays();
 	}
 		
 	private void removeHelper(boolean restore) {

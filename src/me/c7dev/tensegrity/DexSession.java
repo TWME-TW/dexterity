@@ -29,10 +29,7 @@ public class DexSession {
 	public enum EditType {
 		TRANSLATE,
 		CLONE,
-		MERGE,
-		DEEPMERGE,
-		SCALE,
-		ROTATE
+		CLONE_MERGE,
 	}
 	
 	private Player p;
@@ -271,7 +268,12 @@ public class DexSession {
 	
 	public void cancelEdit() {
 		if (selected == null) return;
-		if (selected != null && secondary != null) selected.remove(false);
+		if (selected != null && secondary != null) {
+			selected.remove(false);
+			selected = secondary;
+			selected.setEditingLock(null);
+			secondary = null;
+		}
 		if (editType == EditType.TRANSLATE && orig_loc != null) {
 			if (secondary != null) secondary.teleport(orig_loc);
 			else selected.teleport(orig_loc);
@@ -281,7 +283,7 @@ public class DexSession {
 	
 	public void finishEdit() {
 		if (selected == null) return;
-		if (secondary != null) selected = secondary;
+		if (secondary != null && editType != EditType.CLONE) selected = secondary;
 		editType = null;
 		secondary = null;
 		following = null;

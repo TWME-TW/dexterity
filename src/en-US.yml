@@ -107,7 +107,7 @@ unsave-description: "Unsave a display so it can be edited"
 wand-description: "Get a wand to select block locations"
 
 #Command usage
-merge-usage: "/d merge <sub-display>"
+merge-usage: "/d merge <display>"
 rename-usage: "/d name <name>"
 replace-usage: "/d replace <from> <to>"
 rotate-usage: "/d rotate <y> [pitch] [roll]"

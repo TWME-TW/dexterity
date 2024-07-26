@@ -98,7 +98,7 @@ public class EventListeners implements Listener {
 					return;
 				}
 				
-				boolean msg = hand.getType() != Material.WOODEN_AXE;
+				boolean msg = hand.getType() != Material.WOODEN_AXE || e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_AIR;
 				if (clicked != null && !clicked_block) { //click block with wand (set pos1 or pos2)
 					boolean is_l1 = !right_click;
 					Vector scale = DexUtils.hadimard(DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale()), DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock()));

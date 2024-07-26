@@ -234,10 +234,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("set")) {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
-				case CLONE:
+				case CLONE_MERGE:
 					if (session.getSecondary() != null) {
 						session.getSecondary().hardMerge(session.getSelected());
 					}
+				case CLONE:
 					p.sendMessage(getConfigString("clone-success", session));
 					break;
 				default:
@@ -410,21 +411,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
 			for (DexBlock db : d.getBlocks()) {
-//				BlockDisplay block = db.getLocation().getWorld().spawn(db.getLocation(), BlockDisplay.class, a -> {
-//					a.setBlock(db.getEntity().getBlock());
-//					a.setTransformation(db.getTransformation().build());
-//					if (db.getEntity().isGlowing()) {
-//						a.setGlowColorOverride(db.getEntity().getGlowColorOverride());
-//						a.setGlowing(true);
-//					}
-//				});
 				DexBlockState state = db.getState();
 				state.setDisplay(clone);
 				blocks.add(new DexBlock(state));
 			}
 			clone.setEntities(blocks, false);
 			
-			session.startEdit(clone, EditType.CLONE, mergeafter);
+			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
 			
 			if (!flags.contains("nofollow")) session.startFollowing();
 			
@@ -830,7 +823,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
-			boolean hard = flags.contains("hard");
+			boolean hard = true; //flags.contains("hard");
 			if (hard) {
 				if (!d.canHardMerge() || !parent.canHardMerge()) {
 					p.sendMessage(getConfigString("cannot-hard-merge", session));
@@ -919,11 +912,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("z=");
 			ret.add("-set");
 		}
-		else if (argsr[0].equalsIgnoreCase("merge")) {
-			ret.add("new_group=");
-			ret.add("-hard");
-			add_labels = true;
-		}
+//		else if (argsr[0].equalsIgnoreCase("merge")) {
+//			ret.add("new_group=");
+//			ret.add("-hard");
+//			add_labels = true;
+//		}
 		else if (argsr[0].equalsIgnoreCase("glow")) {
 			ret.add("-none");
 //			ret.add("-propegate");

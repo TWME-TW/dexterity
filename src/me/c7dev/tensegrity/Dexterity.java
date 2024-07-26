@@ -202,12 +202,9 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	private int loadDisplays() { //load from displays.yml
-		File f = new File(this.getDataFolder().getAbsolutePath() + "/displays.yml");
-		try {
-			if (f.createNewFile()) return 0;
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			Bukkit.getLogger().warning("Failed to save a new displays.yml file!");
+		File folder = new File(this.getDataFolder().getAbsolutePath() + "/displays/");
+		if (!folder.exists()) {
+			folder.mkdirs();
 			return 0;
 		}
 		
@@ -216,13 +213,16 @@ public class Dexterity extends JavaPlugin {
 		int display_count = 0;
 		
 		try {
-			FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
 			
-			for (String label : afile.getKeys(false)) {
-				
+			for (File f : folder.listFiles()) {
+				if (!f.getName().endsWith(".yml")) continue;
+				String label = f.getName().replaceAll("\\.yml", "");
+ 			
+				FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
+
 				List<BlockDisplay> blocks = new ArrayList<>();
 				boolean missing_blocks = false;
-				for (String uuid : afile.getStringList(label + ".uuids")) {
+				for (String uuid : afile.getStringList("uuids")) {
 					Entity entity = Bukkit.getEntity(UUID.fromString(uuid));
 					if (entity != null && entity instanceof BlockDisplay) {
 						blocks.add((BlockDisplay) entity);
@@ -231,23 +231,22 @@ public class Dexterity extends JavaPlugin {
 				if (missing_blocks) {
 					Bukkit.getLogger().warning("Some of the blocks for display '" + label + "' are missing!");
 				}
-				
-				Location center = DexUtils.deserializeLocation(afile, label + ".center");
-				double sx = afile.getDouble(label + ".scale-x");
-				double sy = afile.getDouble(label + ".scale-y");
-				double sz = afile.getDouble(label + ".scale-z");
-				float base_yaw = (float) afile.getDouble(label + ".yaw");
-				float base_pitch = (float) afile.getDouble(label + ".pitch");
-				float base_roll = (float) afile.getDouble(label + ".roll");
+
+				Location center = DexUtils.deserializeLocation(afile, "center");
+				double sx = afile.getDouble("scale-x");
+				double sy = afile.getDouble("scale-y");
+				double sz = afile.getDouble("scale-z");
+				float base_yaw = (float) afile.getDouble("yaw");
+				float base_pitch = (float) afile.getDouble("pitch");
+				float base_roll = (float) afile.getDouble("roll");
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
-				DexterityDisplay disp = new DexterityDisplay(this, center, scale);
+				DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
 				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
-				disp.forceSetLabel(label);
-				
+
 				for (BlockDisplay bd : blocks) {
 					disp.getBlocks().add(new DexBlock(bd, disp));
 				}
-				
+
 				new BukkitRunnable() {
 					@Override
 					public void run() {
@@ -257,8 +256,8 @@ public class Dexterity extends JavaPlugin {
 						}
 					}
 				}.runTaskAsynchronously(this);
-				
-				String parent_label = afile.getString(label + ".parent");
+
+				String parent_label = afile.getString("parent");
 				if (parent_label != null) {
 					DexterityDisplay parent = getDisplay(parent_label);
 					if (parent == null) Bukkit.getLogger().severe("Could not find parent display '" + parent_label + "'!");
@@ -267,11 +266,11 @@ public class Dexterity extends JavaPlugin {
 						disp.setParent(parent);
 					}
 				}
-								
+
 				if (disp.getParent() == null) displays.put(disp.getLabel(), disp);
 				all_displays.put(disp.getLabel(), disp);
 			}
-			
+
 			//purge empty displays if any were loaded
 			DexterityDisplay[] allLabeled = new DexterityDisplay[displays.size()];
 			int i = 0;
@@ -280,9 +279,9 @@ public class Dexterity extends JavaPlugin {
 				i++;
 			}
 			for (DexterityDisplay disp : allLabeled) purgeHelper(disp);
-			
+
 			return display_count;
-			
+
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			Bukkit.getLogger().severe("Could not load Dexterity displays!");
@@ -291,46 +290,39 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void saveDisplays() {
-		File f = new File(this.getDataFolder().getAbsolutePath() + "/displays.yml");
-		if (!f.exists()) {
-			try {
-				f.createNewFile();
-			} catch (IOException ex) {
-				ex.printStackTrace();
-				Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose data.");
-				return;
-			}
+		for (DexterityDisplay disp : getDisplays()) {
+			saveDisplay(disp);
+		}
+	}
+	
+	public void saveDisplay(DexterityDisplay disp) {
+		
+		if (!disp.isListed() || disp.getLabel().length() == 0) return; //TODO auto-generate label
+		
+		File f = new File(this.getDataFolder().getAbsoluteFile() + "/displays/" + disp.getLabel() + ".yml");
+		try {
+			if (!f.exists()) f.createNewFile();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			Bukkit.getLogger().severe("Could not save display " + disp.getLabel() + "!");
+			return;
 		}
 		FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
 		for (String s : afile.getKeys(false)) afile.set(s, null);
 		
-		for (DexterityDisplay disp : getDisplays()) {
-			saveDisplay(disp, afile);
-			//TODO serialize animations
-		}
-		
-		try {
-			afile.save(f);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			Bukkit.getLogger().severe("Could not save displays.yml! Dexterity will lose data.");
-		}
-	}
-	
-	private void saveDisplay(DexterityDisplay disp, FileConfiguration afile) {
-		afile.set(disp.getLabel() + ".center", disp.getCenter().serialize());
-		if (disp.getScale().getX() != 1) afile.set(disp.getLabel() + ".scale-x", disp.getScale().getX());
-		if (disp.getScale().getY() != 1) afile.set(disp.getLabel() + ".scale-y", disp.getScale().getY());
-		if (disp.getScale().getZ() != 1) afile.set(disp.getLabel() + ".scale-z", disp.getScale().getZ());
+		afile.set("center", disp.getCenter().serialize());
+		if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
+		if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
+		if (disp.getScale().getZ() != 1) afile.set("scale-z", disp.getScale().getZ());
 		
 		if (disp.getRotationManager() != null) {
 			try {
 				DexRotation rot = disp.getRotationManager();
 				AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
 				Vector res = a.getPitchYawRoll();
-				if (res.getY() != 0) afile.set(disp.getLabel() + ".yaw", res.getY());
-				if (res.getX() != 0) afile.set(disp.getLabel() + ".pitch", res.getX());
-				if (res.getZ() != 0) afile.set(disp.getLabel() + ".roll", res.getZ());
+				if (res.getY() != 0) afile.set("yaw", res.getY());
+				if (res.getX() != 0) afile.set("pitch", res.getX());
+				if (res.getZ() != 0) afile.set("roll", res.getZ());
 			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
@@ -338,18 +330,26 @@ public class Dexterity extends JavaPlugin {
 		
 		List<String> uuids = new ArrayList<>();
 		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
-		afile.set(disp.getLabel() + ".uuids", uuids);
+		afile.set("uuids", uuids);
 				
-		if (disp.getParent() != null) afile.set(disp.getLabel() + ".parent", disp.getParent().getLabel());
+		if (disp.getParent() != null) afile.set("parent", disp.getParent().getLabel());
 		
-		for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub, afile);
+		try {
+			afile.save(f);
+		} catch (IOException e) {
+			e.printStackTrace();
+			Bukkit.getLogger().severe("Could not save '" + disp.getLabel() + "' display!");
+		}
+		
+		for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub);
 	}
 	
 	public void registerDisplay(String label, DexterityDisplay d) {
-		if (label == null || d == null) return;
+		if (label == null || d == null) throw new IllegalArgumentException("Parameters cannot be null!");
 		if (all_displays.containsKey(label) && all_displays.get(label) != d) return;
 		if (d.getParent() == null) displays.put(label, d);
 		all_displays.put(label, d);
+		saveDisplay(d);
 	}
 	
 	public void unregisterDisplay(DexterityDisplay d) {
@@ -357,8 +357,16 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void unregisterDisplay(DexterityDisplay d, boolean from_merge) {
+		if (!d.isListed()) return;
 		if (!from_merge) all_displays.remove(d.getLabel());
 		displays.remove(d.getLabel());
+		
+		try {
+			File f = new File(this.getDataFolder().getAbsolutePath() + "/displays/" + d.getLabel() + ".yml");
+			if (f.exists()) f.delete();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 	
 	//////////////////////////////////////////////////////////
