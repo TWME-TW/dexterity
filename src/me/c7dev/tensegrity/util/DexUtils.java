@@ -107,15 +107,6 @@ public class DexUtils {
 		}
 	}
 	
-	public static String stringValueAlias(String s) {
-		switch(s.toLowerCase()) {
-		case "zx": return "xz";
-		case "yx": return "xy";
-		case "yz": return "zy";
-		default: return s.toLowerCase();
-		}
-	}
-	
 	public static HashMap<String,Integer> getAttributes(String[] args){
 		HashMap<String,Integer> attr = new HashMap<>();
 		
@@ -133,9 +124,9 @@ public class DexUtils {
 		HashMap<String,String> attr = new HashMap<>();
 		
 		for (String arg : args) {
-			String[] argsplit = arg.split("[=,:]");
+			String[] argsplit = arg.toLowerCase().split("[=,:]");
 			if (argsplit.length > 0) {
-				attr.put(attrAlias(argsplit[0]), stringValueAlias(argsplit[argsplit.length-1]));
+				attr.put(attrAlias(argsplit[0]), argsplit[argsplit.length-1]);
 			}
 		}
 		
@@ -262,6 +253,7 @@ public class DexUtils {
 	}
 	
 	public static Location deserializeLocation(FileConfiguration config, String dir) {
+		String id = "%%__USER__%%, %%__RESOURCE__%%, %%__NONCE__%%";
 		if (config.get(dir) == null) return null;
 		
 		double x = config.getDouble(dir + ".x");

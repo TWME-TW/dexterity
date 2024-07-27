@@ -122,6 +122,9 @@ public class DexSession {
 	public Vector getFollowingOffset() {
 		return following.clone();
 	}
+	public void setFollowingOffset(Vector v) {
+		following = v.clone();
+	}
 	
 	public void clearHistory() {
 		toUndo.clear();
@@ -369,6 +372,7 @@ public class DexSession {
 							db.loadRoll(roll_cache); //TODO possibly make this async
 						}
 						else if (db.getDexterityDisplay().isListed()) continue;
+						if (db.getDexterityDisplay().getEditingLock() == null) db.setDexterityDisplay(s);
 						dblocks.add(db);
 						if (dblocks.size() >= maxvol) break;
 					}

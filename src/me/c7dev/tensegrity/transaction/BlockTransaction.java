@@ -60,6 +60,9 @@ public class BlockTransaction implements Transaction {
 			}
 		}
 	}
+	public void commitEmpty() { //no blocks
+		isCommitted = true;
+	}
 	
 	public DexterityDisplay undo() {
 		if (!isCommitted || isUndone) return null;

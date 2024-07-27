@@ -327,7 +327,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					}
 				}
 				
-				session.pushTransaction(t);
+				if (t.isCommitted()) session.pushTransaction(t);
 				
 				p.sendMessage(getConfigString("replace-success", session)
 						.replaceAll("\\Q%from%\\E", from.toString().toLowerCase())
@@ -481,10 +481,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, "move");
 			if (d == null) return true;
 			
-			if (session.getEditType() == EditType.TRANSLATE) {
-				session.getPlayer().sendMessage(getConfigString("must-finish-edit", session));
-				return true;
-			} else if (args.length == 1) {
+			if (args.length == 1) {
 				session.startFollowing();
 				session.startEdit(d, EditType.TRANSLATE, false);
 				p.sendMessage(getConfigString("to-finish-edit", session));
@@ -514,6 +511,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			t.commit(d.getBlocks());
 			session.pushTransaction(t);
+			
+			if (session.getFollowingOffset() != null) {
+				Location loc2 = p.getLocation();
+				if (!p.isSneaking()) DexUtils.blockLoc(loc2);
+				session.setFollowingOffset(d.getCenter().toVector().subtract(loc2.toVector()));
+			}
 			
 		}
 		else if (args[0].equalsIgnoreCase("label") || args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("rename") || args[0].equalsIgnoreCase("save")) {

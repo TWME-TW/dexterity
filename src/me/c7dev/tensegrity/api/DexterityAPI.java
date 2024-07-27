@@ -372,6 +372,7 @@ public class DexterityAPI {
 	}
 	
 	public String getAuthor() {
+		String a = "%%__USER__%%, %%__RESOURCE__%%, %%__NONCE__%%";
 		final String message_for_pirates = "Make it FREE. You'd better not claim it as your own or load it with viruses, or I'll find you >:3" +
 				"\n Leave a visible spigotMC link to the original work at the top of your page. Also take a shower you smell like rum.";
 		return ("ytrew").replace('y', 'C').replace('w', 'v').replace('t', '7').replace('r', 'd');
