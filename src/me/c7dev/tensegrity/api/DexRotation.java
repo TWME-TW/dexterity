@@ -349,7 +349,7 @@ public class DexRotation {
 		if (t != null) {
 			t.commit();
 			t = null;
-		} else Bukkit.broadcastMessage("t null");
+		}
 	}
 	
 	public void againAsync() {
@@ -413,7 +413,7 @@ public class DexRotation {
 						if (t != null) {
 							t.commit();
 							t = null;
-						} else Bukkit.broadcastMessage("t null");
+						}
 					}
 				}.runTask(d.getPlugin());
 				

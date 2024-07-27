@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
+import com.sk89q.worldedit.regions.Region;
+
 import me.c7dev.tensegrity.displays.DexterityDisplay;
 import me.c7dev.tensegrity.transaction.BuildTransaction;
 import me.c7dev.tensegrity.transaction.RemoveTransaction;
@@ -34,16 +36,16 @@ public class DexSession {
 	
 	private Player p;
 	private Location l1, l2;
-	private DexterityDisplay selected = null, secondary = null;
+	private DexterityDisplay selected, secondary;
 	private Dexterity plugin;
-	private Vector3f editing_scale = null;
-	private Vector following = null, l1_scale_offset = null, l2_scale_offset = null;
-	private EditType editType = null;
-	private Location orig_loc = null;
+	private Vector3f editing_scale;
+	private Vector following, l1_scale_offset, l2_scale_offset;
+	private EditType editType;
+	private Location orig_loc;
 	private double volume = Integer.MAX_VALUE;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
-	private BuildTransaction t_build = null;
-	private Material mask = null;
+	private BuildTransaction t_build;
+	private Material mask;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -300,8 +302,14 @@ public class DexSession {
 	}
 	
 	public double getSelectionVolume() {
+		return Math.max(getSelectedVolumeSpace(), getSelectedVolumeCount());
+	}
+	public double getSelectedVolumeSpace() {
 		if (volume == Integer.MAX_VALUE) return 0;
 		return volume;
+	}
+	public double getSelectedVolumeCount() {
+		return selected == null ? 0 : selected.getBlocks().size();
 	}
 	
 	public void setLocation(Location loc, boolean is_l1) {

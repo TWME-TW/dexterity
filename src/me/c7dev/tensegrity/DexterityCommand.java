@@ -452,9 +452,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (!withPermission(p, "convert") || testInEdit(session)) return true;
-			if (session.getLocation1() != null && session.getLocation2() != null) {
+			Location l1 = session.getLocation1(), l2 = session.getLocation2();
+			if (l1 != null && l2 != null) {
 				
-				if (!session.getLocation1().getWorld().getName().equals(session.getLocation2().getWorld().getName())) {
+				if (!l1.getWorld().getName().equals(l2.getWorld().getName())) {
 					p.sendMessage(getConfigString("must-same-world-points", session));
 					return true;
 				}
@@ -464,7 +465,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 				
 				ConvertTransaction t = new ConvertTransaction();
-				DexterityDisplay d = api.createDisplay(session.getLocation1(), session.getLocation2(), t);
+				DexterityDisplay d = api.convertBlocks(l1, l2, t);
 				
 				session.setSelected(d, false);
 				session.pushTransaction(t);

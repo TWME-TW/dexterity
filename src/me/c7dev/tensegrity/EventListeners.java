@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
@@ -14,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -215,6 +215,17 @@ public class EventListeners implements Listener {
 		double cutoff = 0.01; //follow player
 		if (Math.abs(e.getTo().getX() - e.getFrom().getX()) > cutoff || Math.abs(e.getTo().getY() - e.getFrom().getY()) > cutoff || Math.abs(e.getTo().getZ() - e.getFrom().getZ()) > cutoff) {
 			session.getSelected().teleport(loc);
+		}
+	}
+	
+	@EventHandler
+	public void onCommand(PlayerCommandPreprocessEvent e) {
+		if (!e.getPlayer().hasPermission("worldedit.selection.pos") || !e.getPlayer().hasPermission("dexterity.command")) return;
+		if (e.getMessage().equalsIgnoreCase("//pos1") || e.getMessage().equalsIgnoreCase("//pos2")) {
+			DexSession s = plugin.api().getSession(e.getPlayer());
+			if (s != null) {
+				s.setLocation(e.getPlayer().getLocation(), e.getMessage().equalsIgnoreCase("//pos1"), false);
+			}
 		}
 	}
 	

@@ -18,9 +18,13 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.regions.Region;
 
 import me.c7dev.tensegrity.api.DexRotation;
 import me.c7dev.tensegrity.api.DexterityAPI;
@@ -43,6 +47,7 @@ public class Dexterity extends JavaPlugin {
 	private String chat_color, chat_color2, chat_color3;
 	private DexterityAPI api;
 	private int max_volume = 25000;
+	private WorldEditPlugin we = null;
 		
 	@Override
 	public void onEnable() {
@@ -56,6 +61,9 @@ public class Dexterity extends JavaPlugin {
 		
 		loadDisplays();
 		
+		Plugin we_plugin = Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
+		if (we_plugin != null) we = (WorldEditPlugin) we_plugin;
+		else Bukkit.broadcastMessage("worldedit not loaded");
 	}
 	
 	@Override
@@ -77,7 +85,7 @@ public class Dexterity extends JavaPlugin {
 		return api;
 	}
 	
-	public DexterityAPI getAPI() {
+	public static DexterityAPI getAPI() {
 		Dexterity plugin = Dexterity.getPlugin(Dexterity.class);
 		return plugin.api();
 	}
@@ -94,6 +102,23 @@ public class Dexterity extends JavaPlugin {
 	
 	public int getMaxVolume() {
 		return max_volume;
+	}
+	
+	public boolean usingWorldEdit() {
+		return we != null;
+	}
+	
+	public WorldEditPlugin getWorldEdit() {
+		return we;
+	}
+	
+	public Region getSelection(Player p) {
+		if (we == null) return null;
+		try {
+			return we.getSession(p).getSelection();
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 	
 	private String parseChatColor(String s) {

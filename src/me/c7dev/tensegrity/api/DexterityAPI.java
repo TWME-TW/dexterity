@@ -88,10 +88,10 @@ public class DexterityAPI {
 		return plugin.getEditSession(u);
 	}
 	
-	public DexterityDisplay createDisplay(Location l1, Location l2) {
-		return createDisplay(l1, l2, null);
+	public DexterityDisplay convertBlocks(Location l1, Location l2) {
+		return convertBlocks(l1, l2, null);
 	}
-	public DexterityDisplay createDisplay(Location l1, Location l2, ConvertTransaction t) { //l1 and l2 bounding box, all blocks inside converted
+	public DexterityDisplay convertBlocks(Location l1, Location l2, ConvertTransaction t) { //l1 and l2 bounding box, all blocks inside converted
 		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
 		
 		int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());

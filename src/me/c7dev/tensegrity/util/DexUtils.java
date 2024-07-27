@@ -23,6 +23,8 @@ import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 
+import com.sk89q.worldedit.math.BlockVector3;
+
 public class DexUtils {
 	
 	public static ItemStack createItem(Material material, int amount, String name, String... lore) {
@@ -233,6 +235,9 @@ public class DexUtils {
 	}
 	public static Location location(World w, Vector v) {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
+	}
+	public static Location location(World w, BlockVector3 v) {
+		return new Location(w, v.x(), v.y(), v.z());
 	}
 	public static Quaternionf cloneQ(Quaternionf r) {
 		return new Quaternionf(r.x, r.y, r.z, r.w);
