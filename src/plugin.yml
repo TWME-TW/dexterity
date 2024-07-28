@@ -1,7 +1,7 @@
 name: Dexterity
 version: 1.0.0
 author: c7dev
-main: me.c7dev.tensegrity.Dexterity
+main: me.c7dev.dexterity.Dexterity
 api-version: 1.19
 
 commands:
