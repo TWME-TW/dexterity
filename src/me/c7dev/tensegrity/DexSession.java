@@ -120,6 +120,7 @@ public class DexSession {
 	}
 	
 	public Vector getFollowingOffset() {
+		if (following == null) return null;
 		return following.clone();
 	}
 	public void setFollowingOffset(Vector v) {
@@ -393,11 +394,7 @@ public class DexSession {
 	
 	private void highlightSelected(DexterityDisplay new_disp) {
 		if (!plugin.getConfig().getBoolean("highlight-display-on-select")) return;
-		if (selected != null) {
-			for (DexBlock db : selected.getBlocks()) {
-				if (plugin.api().isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
-			}
-		}
+		plugin.api().unTempHighlight(selected);
 		plugin.api().tempHighlight(new_disp, 30);
 	}
 	

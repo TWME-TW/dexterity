@@ -143,7 +143,7 @@ public class DexUtils {
 				try {
 					double d = Double.parseDouble(argsplit[argsplit.length-1]);
 					
-					if (argsplit[0].equalsIgnoreCase("down") || argsplit[0].equalsIgnoreCase("west") || argsplit[0].equalsIgnoreCase("south")) d*=-1;
+					if (argsplit[0].equalsIgnoreCase("down") || argsplit[0].equalsIgnoreCase("west") || argsplit[0].equalsIgnoreCase("north")) d*=-1;
 					
 					attr.put(alias, d);
 				} catch (Exception ex) {

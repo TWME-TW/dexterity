@@ -150,13 +150,13 @@ public class DexterityAPI {
 	//avg 0.011371 milliseconds per block on a potato pc :D
 	public ClickedBlockDisplay getLookingAt(Player p) {
 		if (p == null) throw new IllegalArgumentException("Player cannot be null!");
-		List<Entity> near = p.getNearbyEntities(4.5, 4.5, 4.5);
+		List<Entity> near = p.getNearbyEntities(4, 4, 4);
 		Vector dir = p.getLocation().getDirection();
 		Vector eye_loc = p.getEyeLocation().toVector();
 		double mindist = Double.MAX_VALUE;
 		ClickedBlockDisplay nearest = null;
 				
-		HashMap<Float, RollOffset> roll_offsets = new HashMap<>();
+		HashMap<OrientationKey, RollOffset> roll_offsets = new HashMap<>();
 		HashMap<OrientationKey, Vector[]> axes = new HashMap<>();
 				
 		Vector[][] basis_vecs_norot = getBasisVecs(new Matrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1));
@@ -174,7 +174,7 @@ public class DexterityAPI {
 			//check if the player is looking in the general direction of the block, accounting for scale
 			Vector diff = e.getLocation().toVector().subtract(eye_loc).normalize();
 			double dot1 = diff.dot(dir);
-			if (dot1 < (scale.lengthSquared() <= 1.2 ? 0 : -0.4)) continue;
+			if (dot1 < (-0.375*scale.lengthSquared()) + 0.75) continue; //TODO: taylor series to improve the approximation
 			
 			Vector up_dir, south_dir, east_dir;
 			Vector[][] basis_vecs;
@@ -184,15 +184,19 @@ public class DexterityAPI {
 			Location loc;// = e.getLocation().add(displacement).add(scale_raw);
 			//calculate roll and its offset
 			if (db == null) {
-				float key = e.getTransformation().getLeftRotation().w;
 				Vector displacement = DexUtils.vector(e.getTransformation().getTranslation());
-				if (key != 0) {
+				if (e.getTransformation().getLeftRotation().w != 0) {
+//				float key = e.getTransformation().getLeftRotation().w;
+					OrientationKey key = new OrientationKey(e.getTransformation().getScale().x, 
+							e.getTransformation().getScale().y,
+							e.getTransformation().getScale().z,
+							e.getTransformation().getLeftRotation());
 					ro = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
 					if (ro == null) {
 						ro = new RollOffset(e.getTransformation().getLeftRotation());
 						roll_offsets.put(key, ro);
 					}
-					displacement.subtract(ro.getOffset());
+					displacement.subtract(DexUtils.hadimard(ro.getOffset(), DexUtils.vector(e.getTransformation().getScale())));
 				}
 				loc = e.getLocation().add(displacement).add(scale_raw);
 			} else {
@@ -300,7 +304,7 @@ public class DexterityAPI {
 				}
 			}	
 		}
-				
+		
 		return nearest;
 	}
 	
@@ -415,6 +419,13 @@ public class DexterityAPI {
 				}
 			}
 		}.runTaskLater(plugin, ticks);
+	}
+	
+	public void unTempHighlight(DexterityDisplay d) {
+		if (d == null) return;
+		for (DexBlock db : d.getBlocks()) {
+			if (isInProcess(db.getEntity().getUniqueId())) db.getEntity().setGlowing(false);
+		}
 	}
 	
 	public boolean isInProcess(UUID u) {

@@ -408,6 +408,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
 //			clone.setBaseRotation((float) d.getYaw(), (float) d.getPitch(), 0f); //TODO
 			
+			api.unTempHighlight(d);
+			
 			//start clone
 			List<DexBlock> blocks = new ArrayList<>();
 			for (DexBlock db : d.getBlocks()) {
