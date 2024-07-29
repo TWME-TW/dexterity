@@ -157,7 +157,7 @@ public class EventListeners implements Listener {
 						});
 						
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
-
+						
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
 							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(DexUtils.hadimard(clicked_db.getTransformation().getRollOffset(), clicked_db.getTransformation().getScale())));
@@ -182,6 +182,7 @@ public class EventListeners implements Listener {
 					
 				} else { //break a block display
 					e.getPlayer().playSound(clicked.getBlockDisplay().getLocation(), clicked.getBlockDisplay().getBlock().getSoundGroup().getBreakSound(), 1f, 1f);
+					
 					if (clicked_db == null) clicked.getBlockDisplay().remove();
 					else {
 						if (session != null) session.pushBlock(clicked_db, false);

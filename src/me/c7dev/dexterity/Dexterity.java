@@ -59,11 +59,16 @@ public class Dexterity extends JavaPlugin {
 		new DexterityCommand(this);
 		new EventListeners(this);
 		
-		loadDisplays();
 		
 		Plugin we_plugin = Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
 		if (we_plugin != null) we = (WorldEditPlugin) we_plugin;
-		else Bukkit.broadcastMessage("worldedit not loaded");
+		
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				loadDisplays();				
+			}
+		}.runTask(this);
 	}
 	
 	@Override

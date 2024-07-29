@@ -15,8 +15,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
-import com.sk89q.worldedit.regions.Region;
-
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.RemoveTransaction;

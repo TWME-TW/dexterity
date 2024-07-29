@@ -72,44 +72,45 @@ public class DexRotation {
 		
 		clearCached();
 		
-		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
+		//alternate way to check the block closest to 0
+//		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
+//		for (DexBlock db : d.getBlocks()) {
+//			double yaw = Math.abs(db.getEntity().getLocation().getYaw()), pitch = Math.abs(db.getEntity().getLocation().getPitch()), roll = Math.abs(db.getRoll());
+//			if (yaw < min_yaw && pitch < min_pitch && roll < min_roll) {
+//				min_yaw = yaw;
+//				yaw_val = db.getEntity().getLocation().getYaw();
+//				min_pitch = pitch;
+//				pitch_val = -db.getEntity().getLocation().getPitch();
+//				min_roll = roll;
+//				roll_val = -db.getRoll();
+//			}
+//		}
+		
+		//Finds the mode of all three axes, rather than the closest to zero
+		double yaw_mode = 0, pitch_mode = 0, roll_mode = 0;
+		int count = 0;
 		for (DexBlock db : d.getBlocks()) {
-			double yaw = Math.abs(db.getEntity().getLocation().getYaw()), pitch = Math.abs(db.getEntity().getLocation().getPitch()), roll = Math.abs(db.getRoll());
-			if (yaw < min_yaw && pitch < min_pitch && roll < min_roll) {
-				min_yaw = yaw;
-				yaw_val = db.getEntity().getLocation().getYaw();
-				min_pitch = pitch;
-				pitch_val = -db.getEntity().getLocation().getPitch();
-				min_roll = roll;
-				roll_val = -db.getRoll();
+			double yaw = db.getEntity().getLocation().getYaw(), pitch = db.getEntity().getLocation().getPitch(), roll = db.getRoll();
+			
+			if (yaw == yaw_mode && pitch == pitch_mode && roll == roll_mode) count++;
+			else {
+				count--;
+				if (count < 0) {
+					yaw_mode = yaw;
+					pitch_mode = pitch;
+					roll_mode = roll;
+					count = 0;
+				}
 			}
 		}
 		
-		//Alternate method that finds the mode of each axis, rather than the closest to zero
-//		double yaw_mode = 0, pitch_mode = 0, roll_mode = 0;
-//		int yaw_count = 0, pitch_count = 0, roll_count = 0;
-//		for (DexBlock db : d.getBlocks()) {
-//			double yaw = db.getEntity().getLocation().getYaw(), pitch = db.getEntity().getLocation().getPitch(), roll = db.getRoll();
-//			if (yaw == yaw_mode) yaw_count++;
-//			else if (yaw_count <= 0) yaw_mode = yaw;
-//			else yaw_count--;
-//			
-//			if (pitch == pitch_mode) pitch_count++;
-//			else if (pitch_count <= 0) pitch_mode = pitch;
-//			else pitch_count--;
-//			
-//			if (roll == roll_mode) roll_count++;
-//			else if (roll_count <= 0) roll_mode = roll;
-//			else roll_count--;
-//		}
-		
-		base_yaw = yaw_val;
-		base_pitch = pitch_val;
-		base_roll = roll_val;
+		base_yaw = yaw_mode;
+		base_pitch = pitch_mode;
+		base_roll = roll_mode;
 		
 		Quaterniond s = new Quaterniond(0, 0, 0, 1);
-		s.rotateZ(Math.toRadians(base_roll));
-		s.rotateX(Math.toRadians(base_pitch));
+		s.rotateZ(Math.toRadians(-base_roll));
+		s.rotateX(Math.toRadians(-base_pitch));
 		s.rotateY(Math.toRadians(base_yaw));
 		
 		x = new Vector3d(1, 0, 0);
@@ -117,7 +118,8 @@ public class DexRotation {
 		z = new Vector3d(0, 0, 1);
 		s.transformInverse(x);
 		s.transformInverse(y);
-		s.transformInverse(z);		
+		s.transformInverse(z);
+		
 	}
 	
 	public Vector getXAxis() {

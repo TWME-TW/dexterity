@@ -210,8 +210,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
+			boolean entity_centers = flags.contains("entities");
 			for (DexBlock db : d.getBlocks()) {
 				api.markerPoint(db.getLocation(), Math.abs(db.getRoll()) < 0.000001 ? Color.LIME : Color.AQUA, 6);
+				if (entity_centers) api.markerPoint(db.getEntity().getLocation(), Color.ORANGE, 6);
 			}
 		}
 		else if (args[0].equalsIgnoreCase("debug:removetransformation") && p.hasPermission("dexterity.admin")) {
