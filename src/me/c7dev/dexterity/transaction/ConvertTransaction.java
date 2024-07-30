@@ -20,7 +20,7 @@ public class ConvertTransaction implements Transaction {
 	}
 	
 	public void addBlock(SavedBlockState from, DexBlock to) {
-		blocks.add(from);
+		if (from != null) blocks.add(from);
 		dexblocks.add(to);
 		isCommitted = true;
 	}

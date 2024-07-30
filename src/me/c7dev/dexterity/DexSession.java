@@ -16,6 +16,7 @@ import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.transaction.Transaction;
@@ -39,6 +40,7 @@ public class DexSession {
 	private Vector3f editing_scale;
 	private Vector following, l1_scale_offset, l2_scale_offset;
 	private EditType editType;
+	private Transaction editTransaction;
 	private Location orig_loc;
 	private double volume = Integer.MAX_VALUE;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
@@ -256,8 +258,13 @@ public class DexSession {
 	}
 	
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {
+		startEdit(d, type, swap, null);
+	}
+	
+	public void startEdit(DexterityDisplay d, EditType type, boolean swap, Transaction t) {
 		if (selected == null || editType != null) return;
 		editType = type;
+		editTransaction = t;
 		if (d != selected) {
 			if (swap) {
 				secondary = selected;
@@ -282,17 +289,27 @@ public class DexSession {
 			if (secondary != null) secondary.teleport(orig_loc);
 			else selected.teleport(orig_loc);
 		}
+		editTransaction = null;
 		finishEdit();
 	}
 	
 	public void finishEdit() {
 		if (selected == null) return;
 		if (secondary != null && editType != EditType.CLONE) selected = secondary;
-		editType = null;
 		secondary = null;
 		following = null;
 		selected.setEditingLock(null);
 		stopFollowing();
+		if (editTransaction != null) {
+			switch (editType) {
+			case TRANSLATE:
+				BlockTransaction t = (BlockTransaction) editTransaction;
+				t.commit(selected.getBlocks());
+			default:
+			}
+			pushTransaction(editTransaction);
+		}
+		editType = null;
 	}
 	
 	public EditType getEditType() {

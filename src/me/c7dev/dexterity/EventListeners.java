@@ -235,6 +235,7 @@ public class EventListeners implements Listener {
 		UUID u = e.getPlayer().getUniqueId();
 		DexSession session = plugin.getEditSession(u);
 		if (session != null) {
+			session.cancelEdit();
 			new BukkitRunnable() {
 				@Override
 				public void run() {

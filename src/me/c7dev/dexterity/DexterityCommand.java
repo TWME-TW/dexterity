@@ -233,7 +233,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		
-		else if (args[0].equalsIgnoreCase("set")) {
+		else if (args[0].equalsIgnoreCase("paste")) {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
 				case CLONE_MERGE:
@@ -375,7 +375,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			}
-			session.setLocation(loc, index == 0);
+			session.setContinuousLocation(loc, index == 0, new Vector(0, 0, 0), true);
+//			session.setLocation(loc, index == 0);
 		}
 		
 		else if (args[0].equalsIgnoreCase("desel") || args[0].equalsIgnoreCase("deselect") || args[0].equalsIgnoreCase("clear")) {
@@ -487,7 +488,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			if (args.length == 1) {
 				session.startFollowing();
-				session.startEdit(d, EditType.TRANSLATE, false);
+				session.startEdit(d, EditType.TRANSLATE, false, new BlockTransaction(d.getBlocks()));
 				p.sendMessage(getConfigString("to-finish-edit", session));
 				return true;
 			}
@@ -884,7 +885,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		List<String> ret = new ArrayList<String>();
-		boolean add_labels = false, finalized = false;
+		boolean add_labels = false;
 		
 		if (argsr.length <= 1) {
 			for (String s : commands) ret.add(s);
