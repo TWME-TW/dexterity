@@ -102,7 +102,7 @@ public class DexSession {
 		selected = o;
 		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(plugin.getConfigString("selected-success").replaceAll("\\Q%label%\\E", o.getLabel()));
-			if (plugin.getConfig().getBoolean("highlight-display-on-select")) plugin.api().tempHighlight(o, 15);
+			plugin.api().tempHighlight(o, 15);
 		}
 	}
 	
@@ -408,7 +408,6 @@ public class DexSession {
 	}
 	
 	private void highlightSelected(DexterityDisplay new_disp) {
-		if (!plugin.getConfig().getBoolean("highlight-display-on-select")) return;
 		plugin.api().unTempHighlight(selected);
 		plugin.api().tempHighlight(new_disp, 30);
 	}

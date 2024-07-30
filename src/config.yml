@@ -18,5 +18,4 @@ secondary-color: "#21de80" #Default: #21de80
 tertiary-color: "#42f5ef" #Default: #42f5ef
 
 max-selection-volume: 25000 #for tps safety
-highlight-display-on-select: true #temporary glow effect when clicked with wand
 session-history-size: 25 #maximum number of transactions to store
