@@ -228,7 +228,7 @@ public class DexUtils {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
 	}
 	public static Location location(World w, BlockVector3 v) {
-		return new Location(w, v.x(), v.y(), v.z());
+		return new Location(w, v.getX(), v.getY(), v.getZ());
 	}
 	public static Quaternionf cloneQ(Quaternionf r) {
 		return new Quaternionf(r.x, r.y, r.z, r.w);

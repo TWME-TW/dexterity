@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
+import com.sk89q.worldedit.regions.Region;
+
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
@@ -51,6 +53,13 @@ public class DexSession {
 		p = player;
 		this.plugin = plugin;
 		plugin.setEditSession(player.getUniqueId(), this);
+		
+		if (plugin.usingWorldEdit()) {
+			Region r = plugin.getSelection(player);
+			if (r.getMinimumPoint() != null) l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
+			if (r.getMaximumPoint() != null) l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
+			if (l1 != null && l2 != null) selectFromLocations();
+		}
 	}
 	
 	public Location getLocation1() {

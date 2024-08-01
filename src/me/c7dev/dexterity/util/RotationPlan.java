@@ -8,4 +8,23 @@ public class RotationPlan {
 	public RotationPlan() {
 		
 	}
+	
+	public RotationPlan clone() {
+		RotationPlan r = new RotationPlan();
+		r.x_deg = x_deg;
+		r.y_deg = y_deg;
+		r.z_deg = z_deg;
+		r.yaw_deg = yaw_deg;
+		r.pitch_deg = pitch_deg;
+		r.roll_deg = roll_deg;
+		r.set_x = set_x;
+		r.set_y = set_y;
+		r.set_z = set_z;
+		r.set_y = set_yaw;
+		r.set_pitch = set_pitch;
+		r.set_roll = set_roll;
+		r.reset = reset;
+		r.async = async;
+		return r;
+	}
 }

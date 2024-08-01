@@ -4,7 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 
 public class LinearTranslationAnimation extends Animation {
@@ -12,8 +11,8 @@ public class LinearTranslationAnimation extends Animation {
 	private Location start_loc;
 	private Location end_loc;
 			
-	public LinearTranslationAnimation(DexterityDisplay display, Dexterity plugin, int ticks, Location end_loc) {
-		super(display, plugin, ticks);
+	public LinearTranslationAnimation(DexterityDisplay display, int ticks, Location end_loc) {
+		super(display, ticks);
 		
 		start_loc = display.getCenter();
 		this.end_loc = end_loc;

@@ -21,6 +21,7 @@ import org.bukkit.util.Vector;
 import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.displays.animation.RotationAnimation;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.transaction.DeconvertTransaction;
@@ -205,6 +206,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			r.setSpeed(10);
 //			r.setLookingMode(LookMode.YAW_ONLY);
 //			r.mount(p);
+//			r.start();
+//		}
+//		else if (args[0].equalsIgnoreCase("animtest3")) {
+//			DexterityDisplay d = getSelected(session, null);
+//			if (d == null) return true;
+//			d.getAnimations().clear();
+//			RotationPlan plan = new RotationPlan();
+//			plan.yaw_deg = 360;
+//			RotationAnimation r = new RotationAnimation(d, 200, plan);
+//			d.getAnimations().add(r);
 //			r.start();
 //		}
 		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")) {

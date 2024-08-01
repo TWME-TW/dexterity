@@ -2,6 +2,7 @@ package me.c7dev.dexterity.api;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ import me.c7dev.dexterity.transaction.RotationTransaction;
 import me.c7dev.dexterity.util.AxisPair;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.QueuedRotation;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexRotation {
@@ -27,10 +29,12 @@ public class DexRotation {
 	private HashMap<Vector, AxisPair> axispairs = new HashMap<>();
 	private DexterityDisplay d;
 	private Vector3d x = new Vector3d(1, 0, 0), y = new Vector3d(0, 1, 0), z = new Vector3d(0, 0, 1);
-	private Quaterniond q1 = new Quaterniond(0, 0, 0, 1);
+	private QueuedRotation last = null;
 	private double base_x = 0, base_y = 0, base_z = 0, base_pitch = 0, base_roll = 0, base_yaw = 0;
 	private List<BlockDisplay> points = new ArrayList<>();
 	private RotationTransaction t = null;
+	private LinkedList<QueuedRotation> queue = new LinkedList<>();
+	private boolean processing = false;
 	
 	public static final double cutoff = 0.000001;
 	
@@ -226,11 +230,10 @@ public class DexRotation {
 		if (del_yaw != 0) q = yawQuaternion(Math.toRadians(del_yaw), q);
 		if (del_y != 0) q = yQuaternion(Math.toRadians(del_y), q);
 		
-		q1 = new Quaterniond();
+		Quaterniond q1 = new Quaterniond();
 		q.invert(q1);
 		
-		if (plan.async) rotateAsync(q1);
-		else rotate(q1);
+		rotate(q1, plan.async);
 		
 		base_y = (base_y + del_y) % 360;
 		base_x = (base_x + del_x) % 360;
@@ -240,6 +243,38 @@ public class DexRotation {
 		base_roll = (base_roll + del_roll) % 360;
 		
 		return DexUtils.cloneQ(q1);
+	}
+	
+	public QueuedRotation prepareRotation(RotationPlan plan, RotationTransaction transaction) {
+		double del_x, del_y, del_z, del_yaw, del_pitch, del_roll;
+		if (plan.reset) {
+			del_x = -plan.x_deg; del_y = -plan.y_deg; del_z = -plan.z_deg;
+			del_pitch = plan.pitch_deg; del_yaw = plan.yaw_deg; del_roll = plan.roll_deg;
+			base_y = 0; base_x = 0; base_z = 0;
+			base_yaw = 0; base_pitch = 0; base_roll = 0;
+		} else {
+			del_x = plan.set_x ? -plan.x_deg - base_x : -plan.x_deg; //right hand rule
+			del_y = plan.set_y ? -plan.y_deg - base_y : -plan.y_deg;
+			del_z = plan.set_z ? -plan.z_deg - base_z : -plan.z_deg;
+			del_yaw = plan.set_yaw ? plan.yaw_deg - base_yaw : plan.yaw_deg;
+			del_pitch = plan.set_pitch ? plan.pitch_deg - base_pitch : plan.pitch_deg;
+			del_roll = plan.set_roll ? plan.roll_deg - base_roll : plan.roll_deg;
+			if (del_x == 0 && del_y == 0 && del_z == 0 && del_yaw == 0 && del_pitch == 0 && del_roll == 0) return null;
+		}
+						
+		Quaterniond q = new Quaterniond(0, 0, 0, 1);
+		if (plan.reset) q = resetQuaternion();
+		if (del_z != 0) q = zQuaternion(Math.toRadians(del_z), q);
+		if (del_roll != 0) q = rollQuaternion(Math.toRadians(del_roll), q);
+		if (del_x != 0) q = xQuaternion(Math.toRadians(del_x), q);
+		if (del_pitch != 0) q = pitchQuaternion(Math.toRadians(del_pitch), q);
+		if (del_yaw != 0) q = yawQuaternion(Math.toRadians(del_yaw), q);
+		if (del_y != 0) q = yQuaternion(Math.toRadians(del_y), q);
+		
+		Quaterniond q1 = new Quaterniond();
+		q.invert(q1);
+		
+		return new QueuedRotation(q1, plan.async, transaction);
 	}
 	
 	private Quaterniond yQuaternion(double rads, Quaterniond src) {
@@ -310,21 +345,54 @@ public class DexRotation {
 	}
 	
 	public void again() {
-		rotate(q1);
+		rotate(last);
 	}
 	
-	//avg 0.00048400 ms per block :D
 	public void rotate(Quaterniond q1) {
+		rotate(q1, true);
+	}
+	
+	public void rotate(Quaterniond q1, boolean async) {
+		if (q1 == null) throw new IllegalArgumentException("Quaternion cannot be null!");
+		rotate(new QueuedRotation(q1, async, t));
+	}
+	
+	public void rotate(QueuedRotation rotation) {
+		if (rotation == null) throw new IllegalArgumentException("Rotation cannot be null!");
+		queue.addLast(rotation);
+		if (!processing) dequeue();
+	}
+	
+	private void dequeue() {
+		if (queue.size() == 0) {
+			processing = false;
+			t = null;
+			return;
+		}
+		QueuedRotation r = queue.getFirst();
+		queue.removeFirst();
+		if (r.isAsync()) executeRotationAsync(r);
+		else executeRotation(r);
+	}
+	
+	public QueuedRotation getPreviousRotation() {
+		return last;
+	}
+	
+	//avg 0.00048400 ms per block :3
+	private void executeRotation(QueuedRotation rot) {
+		Quaterniond q1 = rot.getQuaternion();
+		RotationTransaction trans = rot.getTransaction();
 		if (d == null) throw new IllegalArgumentException("Quaternion cannot be null!");
 		
 		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()) return;
 		
-		dirs.clear();
-		this.q1 = q1;
+		if (!rot.equals(last)) dirs.clear(); //TODO only do this when different rotation
 		
 		Vector centerv = d.getCenter().toVector();
+		processing = true;
 		for (DexBlock db : d.getBlocks()) {
 			Vector key = new Vector(db.getEntity().getLocation().getPitch(), db.getEntity().getLocation().getYaw(), db.getRoll());
 			Vector dir = dirs.get(key);
@@ -348,27 +416,24 @@ public class DexRotation {
 			db.setRoll((float) dir.getZ());
 		}
 		
-		if (t != null) {
-			t.commit();
-			t = null;
-		}
+		if (trans != null) trans.commit();
+		
+		last = rot;
+		dequeue();
 	}
 	
-	public void againAsync() {
-		rotateAsync(q1);
-	}
-
-	
-	public void rotateAsync(Quaterniond q1) {
-		if (d == null) throw new IllegalArgumentException("Quaternion cannot be null!");
+	private void executeRotationAsync(QueuedRotation rot) {
+		Quaterniond q1 = rot.getQuaternion();
+		RotationTransaction trans = rot.getTransaction();
+		if (q1 == null) throw new IllegalArgumentException("Quaternion cannot be null!");
 		
 		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()) return;
 		
-		dirs.clear();
-		this.q1 = q1;
+		if (!rot.equals(last)) dirs.clear();
 		
+		processing = true;
 		Vector centerv = d.getCenter().toVector();
 		new BukkitRunnable() {
 			@Override
@@ -412,10 +477,11 @@ public class DexRotation {
 							db.setRoll((float) dir.getZ());
 						}
 						
-						if (t != null) {
-							t.commit();
-							t = null;
-						}
+						if (trans != null) trans.commit();
+						
+						last = rot;
+						dequeue();
+						
 					}
 				}.runTask(d.getPlugin());
 				

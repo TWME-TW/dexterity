@@ -15,12 +15,12 @@ public class Animation {
 	private DexterityDisplay display;
 	private List<Animation> subseq = new ArrayList<>();
 	private Dexterity plugin;
-	private int ticks, delay = 0, tick_count = 0;
+	private int ticks = 0, delay = 0, tick_count = 0;
 	private int freq = 1;
 		
-	public Animation(DexterityDisplay display, Dexterity plugin, int ticks) {
+	public Animation(DexterityDisplay display, int ticks) {
 		this.display = display;
-		this.plugin = plugin;
+		this.plugin = display.getPlugin();
 		if (ticks < 1) ticks = 1;
 		this.ticks = ticks;
 		if (!display.getAnimations().contains(this)) display.getAnimations().add(this);
@@ -53,6 +53,14 @@ public class Animation {
 	}
 	public void setPaused(boolean b) {
 		if (paused == b) return;
+		
+		try {
+			if (b) beforePause();
+			else beforeUnpause();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 		paused = b;
 		//if (b && !stopped) start();
 		if (b) start();
@@ -86,6 +94,12 @@ public class Animation {
 			@Override
 			public void run() {
 				delay = 0;
+				try {
+					beforeStart();
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+				
 				paused = false;
 			}
 		};
@@ -94,6 +108,13 @@ public class Animation {
 	
 	public void stop() {
 		if (stop_req) return;
+		
+		try {
+			beforeStop();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 		stop_req = true;
 		if (start_delay != null && !start_delay.isCancelled()) start_delay.cancel();
 		start_delay = null;
@@ -114,10 +135,6 @@ public class Animation {
 			if (a != this) a.kill();
 	}
 	
-	public void reset() {
-		
-	}
-	
 	public void finish() {
 		if (!subseq.contains(this) || delay > 0) kill(false);
 		
@@ -130,6 +147,29 @@ public class Animation {
 	
 	public DexterityDisplay getDisplay() {
 		return display;
+	}
+	
+	
+	//for api to override
+	
+	public void beforeStart() {
+		
+	}
+	
+	public void beforePause() {
+		
+	}
+	
+	public void beforeUnpause() {
+		
+	}
+	
+	public void beforeStop() {
+		
+	}
+	
+	public void reset() {
+		
 	}
 
 }

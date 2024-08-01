@@ -8,7 +8,6 @@ import org.bukkit.entity.Snowball;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.RotationPlan;
 
@@ -28,8 +27,8 @@ public class RideAnimation extends Animation {
 	private Player p;
 	private Vector seat_offset = new Vector(0, seat_y_offset, 0);
 
-	public RideAnimation(DexterityDisplay display, Dexterity plugin) {
-		super(display, plugin, 1);
+	public RideAnimation(DexterityDisplay display) {
+		super(display, 1);
 		
 		spawnMount();
 		
