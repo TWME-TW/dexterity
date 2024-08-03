@@ -21,7 +21,6 @@ import org.bukkit.util.Vector;
 import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
-import me.c7dev.dexterity.displays.animation.RotationAnimation;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.transaction.DeconvertTransaction;
@@ -244,7 +243,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		
-		else if (args[0].equalsIgnoreCase("paste")) {
+		else if (args[0].equalsIgnoreCase("paste") || args[0].equalsIgnoreCase("set")) {
 			if (session.getEditType() != null) {
 				switch(session.getEditType()) {
 				case CLONE_MERGE:
@@ -572,7 +571,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 			} else {
-				d = getSelected(session, "unsave");
+				d = getSelected(session, "save");
 				if (d == null) return true;
 				if (!d.isListed()) {
 					p.sendMessage(getConfigString("not-saved", session));

@@ -56,9 +56,11 @@ public class DexSession {
 		
 		if (plugin.usingWorldEdit()) {
 			Region r = plugin.getSelection(player);
-			if (r.getMinimumPoint() != null) l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
-			if (r.getMaximumPoint() != null) l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
-			if (l1 != null && l2 != null) selectFromLocations();
+			if (r != null) {
+				if (r.getMinimumPoint() != null) l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
+				if (r.getMaximumPoint() != null) l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
+				if (l1 != null && l2 != null) selectFromLocations();
+			}
 		}
 	}
 	
@@ -362,7 +364,7 @@ public class DexSession {
 			l2 = loc;
 			l2_scale_offset = scale_offset.clone().multiply(0.5);
 		}
-
+		
 		selectFromLocations();
 		
 		if (msg) p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
@@ -374,13 +376,11 @@ public class DexSession {
 				if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
 				if (l2_scale_offset == null) l2_scale_offset = new Vector(1, 1, 1);
 				
-//				double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
-//				double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
-//				double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
-//
-//				volume = Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
-
-//				if (volume <= plugin.getMaxVolume()) { //set selected
+				if (DexUtils.getVolume(l1, l2) > plugin.getMaxVolume()) {
+					setSelected(null, false);
+					return;
+				}
+				
 				int maxvol = plugin.getMaxVolume();
 				List<BlockDisplay> blocks = plugin.api().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
 				if (blocks.size() > 0) {
