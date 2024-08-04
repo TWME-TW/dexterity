@@ -127,17 +127,17 @@ public class DexterityDisplay {
 		label = s;
 		plugin.registerDisplay(s, this);
 		for (DexBlock db : blocks) {
-			if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isListed()) db.setDexterityDisplay(this);
+			if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isSaved()) db.setDexterityDisplay(this);
 		}
 		return true;
 	}
 		
-	public boolean isListed() {
+	public boolean isSaved() {
 		return label != null;
 	}
 	
 	public void unregister() {
-		if (!isListed()) return;
+		if (!isSaved()) return;
 		plugin.unregisterDisplay(this, false);
 		label = null;
 		for (DexterityDisplay sub : subdisplays) sub.unregister();
@@ -146,13 +146,45 @@ public class DexterityDisplay {
 	public List<DexBlock> getBlocks(){
 		return blocks;
 	}
-
-	public List<Animation> getAnimations(){
-		return animations;
+	
+	public void addBlock(DexBlock db) {
+		if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isSaved()) {
+			db.setDexterityDisplay(this);
+			blocks.add(db);
+		}
+	}
+	
+//	public List<Animation> getAnimationss(){
+//		return animations;
+//	}
+	
+	public int getAnimationsCount() {
+		return animations.size();
+	}
+	
+	public void addAnimation(Animation a) {
+		Animation existing = getAnimation(a.getClass());
+		if (existing != null) {
+			Bukkit.getLogger().warning("Dex API: Adding a " + a.getClass().getSimpleName() + " animation that replaces the existing old animation of this type!");
+			removeAnimation(existing);
+		}
+		animations.add(a);
+	}
+	
+	public void removeAnimation(Animation a) {
+		a.kill();
+		animations.remove(a);
+	}
+	
+	public Animation getAnimation(Class<?> clazz) { //animations list should hold unique animation types
+		for (Animation a : animations) {
+			if (a.getClass() == clazz) return a;
+		}
+		return null;
 	}
 	
 	public Vector getScale() {
-		return scale;
+		return scale.clone();
 	}
 
 	public void setEntities(List<DexBlock> entities_, boolean recalc_center){

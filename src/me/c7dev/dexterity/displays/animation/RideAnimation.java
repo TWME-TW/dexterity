@@ -22,7 +22,7 @@ public class RideAnimation extends Animation {
 	private Location start_loc;
 	private double speed = 2.0/20, seat_y_offset = -1.34;
 	private boolean x_enabled = true, y_enabled = true, z_enabled = true, teleport_when_done = false;
-	private LookMode look_mode = LookMode.YAW_PITCH;
+	private LookMode look_mode = LookMode.YAW_ONLY;
 	private Snowball mount;
 	private Player p;
 	private Vector seat_offset = new Vector(0, seat_y_offset, 0);
@@ -66,14 +66,15 @@ public class RideAnimation extends Animation {
 				display.teleport(dir);
 				RotationPlan plan = new RotationPlan();
 				plan.set_y = true;
+				plan.async = false;
 				if (look_mode == LookMode.YAW_ONLY) {
-					plan.y_deg = p.getLocation().getYaw();
+					plan.y_deg = 180 - p.getLocation().getYaw();
 					display.rotate(plan);
 				}
 				else if (look_mode == LookMode.YAW_PITCH) {
-					plan.y_deg = p.getLocation().getYaw();
-					plan.x_deg = p.getLocation().getPitch();
-					plan.set_x = true;
+					plan.y_deg = 180 - p.getLocation().getYaw();
+					plan.pitch_deg = p.getLocation().getPitch();
+					plan.set_pitch = true;
 					display.rotate(plan);
 				}
 				

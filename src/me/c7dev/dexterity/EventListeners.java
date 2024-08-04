@@ -167,13 +167,7 @@ public class EventListeners implements Listener {
 						}
 					} else if (clicked_display != null) {
 						//clicked display with empty hand
-						RideAnimation ride = null;
-						for (Animation a : clicked_display.getAnimations()) {
-							if (a instanceof RideAnimation) {
-								ride = (RideAnimation) a;
-								break;
-							}
-						}
+						RideAnimation ride = (RideAnimation) clicked_display.getAnimation(RideAnimation.class);
 						if (ride != null && ride.getMountedPlayer() == null) {
 							ride.mount(e.getPlayer());
 							ride.start();

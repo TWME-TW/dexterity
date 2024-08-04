@@ -23,7 +23,7 @@ public class Animation {
 		this.plugin = display.getPlugin();
 		if (ticks < 1) ticks = 1;
 		this.ticks = ticks;
-		if (!display.getAnimations().contains(this)) display.getAnimations().add(this);
+//		if (!display.getAnimations().contains(this)) display.getAnimations().add(this);
 	}
 	
 	public boolean tick() {
@@ -136,6 +136,12 @@ public class Animation {
 	}
 	
 	public void finish() {
+		try {
+			beforeFinish();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 		if (!subseq.contains(this) || delay > 0) kill(false);
 		
 		if (!stop_req) {
@@ -165,6 +171,10 @@ public class Animation {
 	}
 	
 	public void beforeStop() {
+		
+	}
+	
+	public void beforeFinish() {
 		
 	}
 	

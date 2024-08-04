@@ -396,7 +396,7 @@ public class DexSession {
 							db = new DexBlock(bd, s);
 							db.loadRoll(roll_cache); //TODO possibly make this async
 						}
-						else if (db.getDexterityDisplay().isListed()) continue;
+						else if (db.getDexterityDisplay().isSaved()) continue;
 						if (db.getDexterityDisplay().getEditingLock() == null) db.setDexterityDisplay(s);
 						dblocks.add(db);
 						if (dblocks.size() >= maxvol) break;

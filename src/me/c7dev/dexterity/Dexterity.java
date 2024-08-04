@@ -327,7 +327,7 @@ public class Dexterity extends JavaPlugin {
 	
 	public void saveDisplay(DexterityDisplay disp) {
 		
-		if (!disp.isListed() || disp.getLabel().length() == 0) return; //TODO auto-generate label
+		if (!disp.isSaved() || disp.getLabel().length() == 0) return; //TODO auto-generate label
 		
 		File f = new File(this.getDataFolder().getAbsoluteFile() + "/displays/" + disp.getLabel() + ".yml");
 		try {
@@ -387,7 +387,7 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void unregisterDisplay(DexterityDisplay d, boolean from_merge) {
-		if (!d.isListed()) return;
+		if (!d.isSaved()) return;
 		if (!from_merge) all_displays.remove(d.getLabel());
 		displays.remove(d.getLabel());
 		

@@ -198,23 +198,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //		else if (args[0].equalsIgnoreCase("animtest2")) {
 //			DexterityDisplay d = getSelected(session, null);
 //			if (d == null) return true;
-//			d.getAnimations().clear();
-//			RideAnimation r = new RideAnimation(d, plugin);
+//			RideAnimation r = new RideAnimation(d);
 //			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
 //			//r.setSeatOffset(new Vector(0, -0.7, 0));
-//			r.setSpeed(10);
-//			r.setLookingMode(LookMode.YAW_ONLY);
+//			r.setSpeed(5);
 //			r.mount(p);
 //			r.start();
 //		}
 //		else if (args[0].equalsIgnoreCase("animtest3")) {
 //			DexterityDisplay d = getSelected(session, null);
 //			if (d == null) return true;
-//			d.getAnimations().clear();
+////			d.getAnimations().clear();
 //			RotationPlan plan = new RotationPlan();
 //			plan.yaw_deg = 360;
-//			RotationAnimation r = new RotationAnimation(d, 200, plan);
-//			d.getAnimations().add(r);
+//			RotationAnimation r = new RotationAnimation(d, 20, plan);
+//			d.addAnimation(r);
 //			r.start();
 //		}
 		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")) {
@@ -573,7 +571,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			} else {
 				d = getSelected(session, "save");
 				if (d == null) return true;
-				if (!d.isListed()) {
+				if (!d.isSaved()) {
 					p.sendMessage(getConfigString("not-saved", session));
 					return true;
 				}

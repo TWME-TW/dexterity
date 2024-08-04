@@ -21,7 +21,7 @@ public class DexBlock {
 	
 	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
 	
-	private static final int TELEPORT_DURATION = 2;
+	public static final int TELEPORT_DURATION = 2;
 	
 	public DexBlock(Block display, DexterityDisplay d) {
 		disp = d;
