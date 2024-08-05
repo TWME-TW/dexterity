@@ -24,6 +24,7 @@ import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.transaction.Transaction;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
 
@@ -47,7 +48,7 @@ public class DexSession {
 	private double volume = Integer.MAX_VALUE;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	private BuildTransaction t_build;
-	private Material mask;
+	private Mask mask;
 	
 	public DexSession(Player player, Dexterity plugin) {
 		p = player;
@@ -82,7 +83,7 @@ public class DexSession {
 		return p;
 	}
 	
-	public Material getMask() {
+	public Mask getMask() {
 		return mask;
 	}
 	
@@ -389,7 +390,7 @@ public class DexSession {
 					HashMap<OrientationKey, RollOffset> roll_cache = new HashMap<>();
 					
 					for (BlockDisplay bd : blocks) {
-						if (mask != null && bd.getBlock().getMaterial() != mask) continue;
+						if (mask != null && !mask.isAllowed(bd.getBlock().getMaterial())) continue;
 
 						DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
 						if (db == null) {
@@ -421,16 +422,14 @@ public class DexSession {
 		plugin.api().tempHighlight(new_disp, 30);
 	}
 	
-	public void setMask(Material mat) {
-		if (mat == Material.AIR) mat = null;
-		if (mask == mat) return;
-		mask = mat;
-		if (mat != null) {
+	public void setMask(Mask mask) {
+		this.mask = mask;
+		if (mask != null) {
 			if (selected != null) {
 				DexterityDisplay s = new DexterityDisplay(plugin, selected.getCenter(), selected.getScale());
 				List<DexBlock> dblocks = new ArrayList<>();
 				for (DexBlock db : selected.getBlocks()) {
-					if (db.getEntity().getBlock().getMaterial() == mat) dblocks.add(db);
+					if (mask.isAllowed(db.getEntity().getBlock().getMaterial())) dblocks.add(db);
 				}
 				if (dblocks.size() == s.getBlocks().size()) selectFromLocations();
 
@@ -442,8 +441,6 @@ public class DexSession {
 				}
 			}
 		} else selectFromLocations();
-		
-		
 	}
 	
 	public void clearLocationSelection() {

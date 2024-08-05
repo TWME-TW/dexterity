@@ -281,7 +281,6 @@ public class DexUtils {
 		if (m.endsWith("_FENCE")) return new Vector(0.25, 1, 0.25);
 		if (m.endsWith("_BED")) return new Vector(1, 9.0/16, 1);
 		if (m.endsWith("TORCH")) return new Vector(0.125, 0.625, 0.125);
-		if (m.endsWith("LANTERN")) return new Vector(0.375, 11.0/16, 0.375);
 		if (m.endsWith("_WALL")) return new Vector(0.5, 1, 0.5);
 		if (m.endsWith("_CARPET") || m.endsWith("_PRESSURE_PLATE")) return new Vector(1, 1.0/16, 1);
 		if (m.startsWith("POTTED")) {
@@ -313,6 +312,8 @@ public class DexUtils {
 		case NETHER_PORTAL: return new Vector(1, 1, 0.25);
 		case PINK_PETALS: return new Vector(1, 3.0/16, 1);
 		case DAYLIGHT_DETECTOR: return new Vector(1, 0.375, 1);
+		case LANTERN:
+		case SOUL_LANTERN: return new Vector(0.375, 11.0/16, 0.375);
 		case BELL:
 			if (facing == BlockFace.WEST || facing == BlockFace.EAST) return new Vector(0.25, 1, 1);
 			else return new Vector(1, 1, 0.25);
@@ -329,6 +330,60 @@ public class DexUtils {
 			if (m.toString().startsWith(start)) r.add(m.toString().toLowerCase());
 		}
 		return r;
+	}
+	
+	public static double getParameter(Vector v, int axis) {
+		switch(axis) {
+		case 0: return v.getX();
+		case 1: return v.getY();
+		case 2: return v.getZ();
+		default: return getParameter(v, axis % 3);
+		}
+	}
+	
+	public static void setParameter(Vector v, int axis, double val) {
+		switch(axis) {
+		case 0: 
+			v.setX(val);
+			return;
+		case 1: 
+			v.setY(val);
+			return;
+		case 2: 
+			v.setZ(val);
+			return;
+		default: setParameter(v, axis % 3, val);
+		}
+	}
+	
+	public static double getParameter(Location loc, int axis) {
+		switch(axis) {
+		case 0: return loc.getX();
+		case 1: return loc.getY();
+		case 2: return loc.getZ();
+		default: return getParameter(loc, axis % 3);
+		}
+	}
+	
+	public static Vector oneHot(int axis) {
+		return oneHot(axis, 1);
+	}
+	
+	public static Vector oneHot(int axis, double param) {
+		switch(axis) {
+		case 0: return new Vector(param, 0, 0);
+		case 1: return new Vector(0, param, 0);
+		case 2: return new Vector(0, 0, param);
+		default: return oneHot(axis % 3, param);
+		}
+	}
+	
+	public static boolean numbersContain(List<Double> list, double x) { //unsorted list
+		double epsilon = 0.00001;
+		for (double i : list) {
+			if (Math.abs(i - x) < epsilon) return true;
+		}
+		return false;
 	}
 	
 	public static Matrix3d rotMatDeg(double xdeg, double ydeg, double zdeg) {
@@ -348,6 +403,20 @@ public class DexUtils {
 				-cosx*sinz, cosx*cosz, sinx,
 				sinx*cosy*sinz + siny*cosz, siny*sinz - sinx*cosy*cosz, cosx*cosy
 				);
+	}
+	
+	public static boolean isAllowedMaterial(Material mat) {
+		switch(mat) {
+		case AIR:
+		case WATER:
+		case WATER_BUCKET:
+		case LAVA:
+		case LAVA_BUCKET:
+		case BARRIER:
+		case END_PORTAL:
+			return false;
+		default: return true;
+		}
 	}
 	
 	public static boolean isOrthonormal(Vector x, Vector y) {

@@ -55,6 +55,7 @@ not-saved: "&4Error: &cThis selection is not saved!"
 #Success strings
 align-success: "&^Aligned %loclabel%&^!"
 clone-success: "&^Successfully cloned %loclabel%&^!"
+consolidate-success: "&^Consolidated &*%label%&^!"
 convert-success: "&^Successfully converted block selection!"
 desel-success: "&^Cleared selection!"
 glow-success: "&^Set the glow for %loclabel%&^!"

@@ -15,7 +15,9 @@ import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.displays.animation.Animation;
 import me.c7dev.dexterity.util.DexBlock;
+import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexterityDisplay {
@@ -451,32 +453,6 @@ public class DexterityDisplay {
 		}
 	}
 	
-//	public void rotateQ(double x, double y, double z) {
-//		for (DexBlock b : blocks) {
-//			b.setTransformation(b.getTransformation().setDisplacement(new Vector(0, 0, 0)));
-//		}
-//		Vector centerv = center.toVector().add(scale.clone().multiply(0.5));
-//		plugin.getAPI().markerPoint(DexUtils.location(center.getWorld(), centerv), Color.LIME, 8);
-//		double gamma = Math.toRadians(x), beta = Math.toRadians(y), alpha = Math.toRadians(z);
-//		
-//		Matrix3d rotmat = new Matrix3d(
-//				Math.cos(alpha)*Math.cos(beta), (Math.cos(alpha)*Math.sin(beta)*Math.sin(gamma)) - (Math.sin(alpha)*Math.cos(gamma)), (Math.cos(alpha)*Math.sin(beta)*Math.cos(gamma)) + (Math.sin(alpha)*Math.sin(beta)),
-//				Math.sin(alpha)*Math.cos(beta), (Math.sin(alpha)*Math.sin(beta)*Math.sin(gamma)) + (Math.cos(alpha)*Math.cos(gamma)), (Math.sin(alpha)*Math.sin(beta)*Math.cos(gamma)) - (Math.cos(alpha)*Math.sin(gamma)),
-//				-Math.sin(beta), Math.cos(beta)*Math.sin(gamma), Math.cos(beta)*Math.cos(gamma)
-//				).transpose();
-//		
-//		for (DexBlock b : blocks) {
-//			Vector3f oldOffset = DexUtils.vector(b.getEntity().getLocation().toVector().subtract(centerv));
-//			Vector3f newOffset = new Vector3f();
-//			rotmat.transform(oldOffset, newOffset);
-//			Location loc = b.getLocation().add(DexUtils.vector(newOffset.sub(oldOffset)));
-////			plugin.getAPI().markerPoint(b.getEntity().getLocation(), Color.RED, 8);
-////			plugin.getAPI().markerPoint(loc, Color.ORANGE, 8);
-//			b.teleport(loc);
-//			//b.setRotation(Math.sin(Math.toRadians(pitch)), Math.sin(Math.toRadians(yaw)), Math.sin(Math.toRadians(roll)));
-//		}
-//	}
-	
 	public Quaterniond rotate(float y_deg, float pitch_deg, float roll_deg) {
 		RotationPlan plan = new RotationPlan();
 		plan.y_deg = y_deg;
@@ -513,6 +489,54 @@ public class DexterityDisplay {
 	public Quaterniond rotate(RotationPlan plan) {
 		if (rot == null) rot = new DexRotation(this);
 		return rot.rotate(plan);
+	}
+	
+	public void consolidate(Mask m) {
+		consolidate(0, m);
+		consolidate(1, m);
+		consolidate(2, m);
+	}
+
+	public void consolidate(int axis, Mask m) {
+		if (blocks.size() <= 1) return;
+		double epsilon = 0.001;
+		blocks.sort((l, r) -> {
+			double a = DexUtils.getParameter(l.getLocation(), axis), b = DexUtils.getParameter(r.getLocation(), axis);
+			if (Math.abs(a - b) < epsilon) return 0;
+			return a > b ? 1 : -1;
+		});
+		
+		for (int i = 0; i < blocks.size(); i++) {
+			DexBlock prev = blocks.get(i);
+			if (m != null && !m.isAllowed(prev.getEntity().getBlock().getMaterial())) continue;
+			Location prev_loc = prev.getLocation();
+			
+			for (int j = i+1; j < blocks.size(); j++) { //find the first block that is in the same column
+				DexBlock db = blocks.get(j);
+				Location loc = db.getLocation();
+				
+				if (Math.abs(DexUtils.getParameter(loc, axis+1) - DexUtils.getParameter(prev_loc, axis+1)) < epsilon
+						&& Math.abs(DexUtils.getParameter(loc, axis+2) - DexUtils.getParameter(prev_loc, axis+2)) < epsilon) {
+
+					if (db.getEntity().getBlock().equals(prev.getEntity().getBlock())
+							&& db.getTransformation().getScale().equals(prev.getTransformation().getScale())
+							&& Math.abs(prev_loc.getYaw() - loc.getYaw()) < epsilon && Math.abs(prev_loc.getPitch() - loc.getPitch()) < epsilon && Math.abs(prev.getRoll() - db.getRoll()) < epsilon
+							&& prev.getTransformation().getLeftRotation().equals(db.getTransformation().getLeftRotation())) {
+
+						double diff = DexUtils.getParameter(loc, axis) - DexUtils.getParameter(prev_loc, axis); 
+						if (diff - DexUtils.getParameter(db.getTransformation().getScale(), axis) < epsilon) {
+							DexTransformation trans = prev.getTransformation();
+							DexUtils.setParameter(trans.getScale(), axis, DexUtils.getParameter(trans.getScale(), axis) + diff);
+							DexUtils.setParameter(trans.getDisplacement(), axis, DexUtils.getParameter(trans.getDisplacement(), axis) - (diff/2));
+							prev.updateTransformation();
+							prev.move(DexUtils.oneHot(axis, diff/2));
+							db.remove();
+						}
+					}
+					break;
+				}
+			}
+		}
 	}
 
 }

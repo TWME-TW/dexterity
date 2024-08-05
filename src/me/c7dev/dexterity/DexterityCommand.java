@@ -35,6 +35,7 @@ import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
@@ -44,7 +45,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, cc3, usage_format, selected_str;
 	
 	private String[] commands = {
-		"align", "clone", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
+		"align", "clone", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
 		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
@@ -257,6 +258,30 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		
+		else if (args[0].equalsIgnoreCase("consolidate")) {
+			DexterityDisplay d = getSelected(session, "consolidate");
+			if (d == null) return true;
+			
+			Mask mask = null;
+			
+			if (def != null) {
+				try {
+					Material mat = Material.valueOf(def.toUpperCase().trim());
+					mask = new Mask(mat);
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", def.toLowerCase()));
+					return true;
+				}
+			}
+			
+			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			d.consolidate(mask);
+			t.commit(d.getBlocks());
+			session.pushTransaction(t);
+			
+			p.sendMessage(getConfigString("consolidate-success", session));
+		}
+		
 		else if (args[0].equalsIgnoreCase("recenter")) { //TODO add -auto to recalculate
 			DexterityDisplay d = getSelected(session, "recenter");
 			if (d == null) return true;
@@ -446,15 +471,22 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("glow")) { //TODO add transaction
 			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
+			if (args.length < 2 || (def == null && flags.size() == 0)) p.sendMessage(getUsage("glow"));
+			
 			boolean propegate = false; //flags.contains("propegate");
-			if (args[1].equalsIgnoreCase("none") || args[1].equalsIgnoreCase("off") || flags.contains("none") || flags.contains("off")) {
+			if ((def != null && (def.equalsIgnoreCase("none") || def.equalsIgnoreCase("off"))) || flags.contains("none") || flags.contains("off")) {
 				d.setGlow(null, propegate);
 				p.sendMessage(getConfigString("glow-success-disable", session));
 				return true;
 			}
+			if (def == null) {
+				p.sendMessage(getUsage("glow"));
+				return true;
+			}
+			
 			ColorEnum c;
 			try {
-				c = ColorEnum.valueOf(args[1].toUpperCase());
+				c = ColorEnum.valueOf(def.toUpperCase());
 			} catch (Exception ex) {
 				p.sendMessage(getConfigString("unknown-color", session).replaceAll("\\Q%input%\\E", args[1].toUpperCase()));
 				return true;
@@ -589,14 +621,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setMask(null);
 				p.sendMessage(getConfigString("mask-success-disable", session));
 			} else {
-				Material mat;
+				Material mat; //TODO invert with !material
 				try {
 					mat = Material.valueOf(def.toUpperCase());
 				} catch (Exception ex) {
-					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", args[1].toLowerCase()));
+					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", def.toLowerCase()));
 					return true;
 				}
-				session.setMask(mat);
+				if (!DexUtils.isAllowedMaterial(mat)) return true;
+				
+				Mask m = new Mask(mat);
+				
+				session.setMask(m);
 				
 				p.sendMessage(getConfigString("mask-success", session).replaceAll("\\Q%input%\\E", mat.toString().toLowerCase()));;
 			}
@@ -709,13 +745,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			Transaction t;
-			if (res) {
-				t = new DeconvertTransaction(d);
-				DeconvertTransaction dct = (DeconvertTransaction) t;
-				for (DexBlock db : d.getBlocks()) {
-					
-				}
-			} else t = new RemoveTransaction(d);
+			if (res) t = new DeconvertTransaction(d);
+			else t = new RemoveTransaction(d);
 			d.remove(res);
 			if (res) p.sendMessage(getConfigString("restore-success", session));
 			else p.sendMessage(getConfigString("remove-success", session));
@@ -911,10 +942,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
 			}
 		}
-		else if (argsr[0].equalsIgnoreCase("mask")) {
+		else if (argsr[0].equalsIgnoreCase("mask") || argsr[0].equalsIgnoreCase("consolidate")) {
 			if (argsr.length <= 2 && argsr[argsr.length - 1].length() >= 2) {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
-				ret.add("-none");
+				if (argsr[0].equalsIgnoreCase("mask")) ret.add("-none");
 			}
 		}
 		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {

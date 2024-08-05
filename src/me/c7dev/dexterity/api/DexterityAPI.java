@@ -348,7 +348,7 @@ public class DexterityAPI {
 	}
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
-		float size = 0.04f;
+		float size = 0.02f;
 		Location loc_ = loc.clone();
 		loc_.setPitch(0);
 		loc_.setYaw(0);

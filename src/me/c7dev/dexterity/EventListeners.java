@@ -70,8 +70,7 @@ public class EventListeners implements Listener {
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
 			if (hand.getType() == Material.AIR && right_click) return;
 			
-			ClickedBlockDisplay clicked = (hand.getType() == Material.BARRIER && right_click)
-					? null : plugin.api().getLookingAt(e.getPlayer());
+			ClickedBlockDisplay clicked = (DexUtils.isAllowedMaterial(hand.getType()) || !right_click) ? plugin.api().getLookingAt(e.getPlayer()) : null;
 			
 			boolean clicked_block;
 			if (clicked == null) clicked_block = right_click;

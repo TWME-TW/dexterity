@@ -147,6 +147,7 @@ public class DexBlock {
 	}
 	
 	public void updateTransformation() {
+		
 		entity.setTransformation(trans.build());
 	}
 	
