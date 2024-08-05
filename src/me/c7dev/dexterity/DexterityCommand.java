@@ -262,7 +262,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, "consolidate");
 			if (d == null) return true;
 			
-			Mask mask = null;
+			Mask mask = session.getMask();
 			
 			if (def != null) {
 				try {
