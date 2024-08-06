@@ -317,6 +317,7 @@ public class DexSession {
 			case TRANSLATE:
 				BlockTransaction t = (BlockTransaction) editTransaction;
 				t.commit(selected.getBlocks());
+				t.commitCenter(selected.getCenter());
 			default:
 			}
 			pushTransaction(editTransaction);

@@ -2,8 +2,6 @@ package me.c7dev.dexterity.transaction;
 
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
-
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 
@@ -16,6 +14,10 @@ public class BlockTransactionLine {
 	public BlockTransactionLine(DexBlock block) { //TODO make this more advanced with deltas
 		this.db = block;
 		this.from = block.getState();
+	}
+	
+	public boolean isCommitted() {
+		return committed;
 	}
 	
 	public void commit(DexBlockState to) {

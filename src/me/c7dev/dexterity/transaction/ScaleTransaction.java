@@ -14,7 +14,7 @@ public class ScaleTransaction extends BlockTransaction {
 	private DexterityDisplay disp;
 	
 	public ScaleTransaction(DexterityDisplay d) {
-		super(d.getBlocks());
+		super(d);
 		disp = d;
 		s1 = disp.getScale();
 	}

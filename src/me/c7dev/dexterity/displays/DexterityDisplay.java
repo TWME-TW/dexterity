@@ -368,9 +368,18 @@ public class DexterityDisplay {
 	}
 	
 	public void teleport(Location loc) {
-		Vector diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
-		//else diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
-		teleport(diff);
+		
+		if (loc.getWorld().getName().equals(center.getWorld().getName())) {
+			Vector diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
+			//else diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
+			teleport(diff);
+		} else {
+			for (DexBlock db : blocks) {
+				Vector diff = new Vector(db.getEntity().getLocation().getX() - center.getX(), db.getEntity().getLocation().getY() - center.getY(), db.getEntity().getLocation().getZ() - center.getZ());
+				db.getEntity().teleport(loc.clone().add(diff));
+			}
+			center = loc.clone();
+		}
 	}
 	
 	public void teleport(Vector diff) {

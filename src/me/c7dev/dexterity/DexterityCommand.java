@@ -131,7 +131,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			s = s.replaceAll("\\Q%label%\\E", label).replaceAll("\\Q%loclabel%\\E", label); //regex substr selector isn't working, idk
 		} else {
 			s = s.replaceAll("\\Q%label%\\E", selected_str);
-			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", "at " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0));
+			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", "at " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0) + cc);
 			else s = s.replaceAll("\\Q%loclabel%\\E", "");
 		}
 		return s;
@@ -274,9 +274,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 			}
 			
-			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			BlockTransaction t = new BlockTransaction(d, mask);
 			d.consolidate(mask);
-			t.commit(d.getBlocks());
+			t.commit(d.getBlocks(), mask, true);
 			session.pushTransaction(t);
 			
 			p.sendMessage(getConfigString("consolidate-success", session));
@@ -294,8 +294,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			Location loc = p.getLocation();
 			if (!flags.contains("continuous")) DexUtils.blockLoc(loc).add(0.5, 0.5, 0.5);
 			
-			RecenterTransaction t = new RecenterTransaction(d);
-			t.commit(loc);
+//			RecenterTransaction t = new RecenterTransaction(d);
+			BlockTransaction t = new BlockTransaction(d);
+			t.commitCenter(loc);
+			t.commitEmpty();
+//			t.commit(loc);
 			
 			d.setCenter(loc);
 			api.markerPoint(loc, Color.AQUA, 4);
@@ -312,7 +315,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, "move");
 			if (d == null) return true;
 			
-			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			BlockTransaction t = new BlockTransaction(d);
 			d.align();
 			t.commit(d.getBlocks());
 			session.pushTransaction(t);
@@ -339,7 +342,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 				
-				BlockTransaction t = new BlockTransaction(d.getBlocks(), from);
+				BlockTransaction t = new BlockTransaction(d, new Mask(from));
 				if (to == Material.AIR) {
 					List<DexBlock> remove = new ArrayList<>();
 					for (DexBlock db : d.getBlocks()) {
@@ -528,12 +531,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			if (args.length == 1) {
 				session.startFollowing();
-				session.startEdit(d, EditType.TRANSLATE, false, new BlockTransaction(d.getBlocks()));
+				session.startEdit(d, EditType.TRANSLATE, false, new BlockTransaction(d));
 				p.sendMessage(getConfigString("to-finish-edit", session));
 				return true;
 			}
 			
-			BlockTransaction t = new BlockTransaction(d.getBlocks());
+			BlockTransaction t = new BlockTransaction(d);
 			Location loc;
 			if (flags.contains("continuous") || flags.contains("c") || flags.contains("here")) {
 				if (flags.contains("continuous") || flags.contains("c")) loc = p.getLocation();
@@ -555,6 +558,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			d.teleport(loc);
 			
 			t.commit(d.getBlocks());
+			t.commitCenter(d.getCenter());
 			session.pushTransaction(t);
 			
 			if (session.getFollowingOffset() != null) {

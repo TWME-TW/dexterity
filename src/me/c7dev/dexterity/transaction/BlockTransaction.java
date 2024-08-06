@@ -6,29 +6,35 @@ import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.Location;
 
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.DexBlock;
+import me.c7dev.dexterity.util.Mask;
 
 public class BlockTransaction implements Transaction {
 	
 	protected HashMap<UUID, BlockTransactionLine> trans = new HashMap<>();
 	protected boolean isUndone = false, isCommitted = false;
+	private Location old_center, new_center;
+	private DexterityDisplay disp;
 	
 	public BlockTransaction() {
 	}
 	
-	public BlockTransaction(List<DexBlock> blocks) {
-		this(blocks, null);
+	public BlockTransaction(DexterityDisplay disp) {
+		this(disp, null);
 	}
 	
-	public BlockTransaction(List<DexBlock> blocks, Material mat) {
-		if (mat == null) {
-			for (DexBlock db : blocks) trans.put(db.getEntity().getUniqueId(), new BlockTransactionLine(db));
+	public BlockTransaction(DexterityDisplay disp, Mask mask) {
+		if (disp == null) throw new IllegalArgumentException("Display cannot be null on transaction!");
+		this.disp = disp;
+		old_center = disp.getCenter();
+		if (mask == null) {
+			for (DexBlock db : disp.getBlocks()) trans.put(db.getEntity().getUniqueId(), new BlockTransactionLine(db));
 		} else {
-			for (DexBlock db : blocks) {
-				if (db.getEntity().getBlock().getMaterial() == mat) trans.put(db.getEntity().getUniqueId(), new BlockTransactionLine(db));
+			for (DexBlock db : disp.getBlocks()) {
+				if (mask.isAllowed(db.getEntity().getBlock().getMaterial())) trans.put(db.getEntity().getUniqueId(), new BlockTransactionLine(db));
 			}
 		}
 	}
@@ -47,16 +53,22 @@ public class BlockTransaction implements Transaction {
 	}
 	
 	public void commit(List<DexBlock> blocks) {
-		commit(blocks, null);
+		commit(blocks, null, false);
 	}
-	public void commit(List<DexBlock> blocks, Material mask) {
+	public void commit(List<DexBlock> blocks, Mask mask, boolean all) {
 		if (isCommitted) return;
 		isCommitted = true;
 		if (mask == null) {
 			for (DexBlock db : blocks) commitBlock(db);
 		} else {
 			for (DexBlock db : blocks) {
-				if (db.getEntity().getBlock().getMaterial() == mask) commitBlock(db);
+				if (mask.isAllowed(db.getEntity().getBlock().getMaterial())) commitBlock(db);
+			}
+		}
+		
+		if (all) {
+			for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) {
+				if (!entry.getValue().isCommitted() && Bukkit.getEntity(entry.getKey()) == null) entry.getValue().commit(null);
 			}
 		}
 	}
@@ -64,10 +76,16 @@ public class BlockTransaction implements Transaction {
 		isCommitted = true;
 	}
 	
+	public void commitCenter(Location new_loc) {
+		if (new_loc == null) return;
+		new_center = new_loc.clone();
+	}
+	
 	public DexterityDisplay undo() {
 		if (!isCommitted || isUndone) return null;
 		isUndone = true;
 		for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) entry.getValue().undo();
+		if (new_center != null && old_center != null) disp.setCenter(old_center);
 		return null;
 	}
 	
@@ -76,6 +94,7 @@ public class BlockTransaction implements Transaction {
 		isUndone = false;
 		
 		for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) entry.getValue().redo();
+		if (new_center != null && old_center != null) disp.setCenter(new_center);
 	}
 	
 	public boolean isPossible() {

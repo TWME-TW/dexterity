@@ -14,7 +14,7 @@ public class RotationTransaction extends BlockTransaction {
 	private DexterityDisplay disp;
 	
 	public RotationTransaction(DexterityDisplay d) {
-		super(d.getBlocks());
+		super(d);
 		disp = d;
 		DexRotation r = d.getRotationManager(true);
 		x1 = r.getXAxis();

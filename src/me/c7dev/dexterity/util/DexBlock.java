@@ -58,7 +58,7 @@ public class DexBlock {
 		roll = state.getRoll();
 		if (state.getDisplay() != null) {
 			state.getDisplay().getPlugin().setMappedDisplay(this);
-			state.getDisplay().getBlocks().add(this);
+			state.getDisplay().addBlock(this);
 		}
 	}
 	
