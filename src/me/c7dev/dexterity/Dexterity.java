@@ -2,6 +2,7 @@ package me.c7dev.dexterity;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,6 +10,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -16,6 +20,7 @@ import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -48,13 +53,21 @@ public class Dexterity extends JavaPlugin {
 	private DexterityAPI api;
 	private int max_volume = 25000;
 	private WorldEditPlugin we = null;
+	private boolean legacy = false;
+	
+	public static final String defaultLangName = "en-US.yml";
 		
 	@Override
 	public void onEnable() {
 		saveDefaultConfig();
+		if (!checkIfLegacy()) {
+			Bukkit.getLogger().severe("§cYour server must be on 1.19.4 or higher to be able to use Block Displays! Plugin disabled.");
+			return;
+		}
 		api = new DexterityAPI(this);
 		
 		loadConfigSettings();
+		
 		
 		new DexterityCommand(this);
 		new EventListeners(this);
@@ -126,6 +139,41 @@ public class Dexterity extends JavaPlugin {
 		}
 	}
 	
+	public boolean isLegacy() {
+		return legacy;
+	}
+	
+	private boolean checkIfLegacy() {
+		Pattern verpattern = Pattern.compile("\\(MC: (.*)\\)");
+		Matcher matcher = verpattern.matcher(Bukkit.getVersion());
+		if (matcher.find()) {
+			String[] version = matcher.group(1).split("\\.");
+			if (version.length > 2) {
+				int vernum = Integer.parseInt(version[1]);
+				int sub = Integer.parseInt(version[2]);
+				if (vernum < 19 || (vernum == 19 && sub < 4)) return false;
+				legacy = (vernum < 20 || (vernum == 20 && sub < 2));
+			}
+		}
+		return true;
+	}
+	
+	public <T extends Entity> T spawn(Location loc, Class<T> type, Consumer<T> c) {
+		T entity;
+		World w = loc.getWorld();
+		if (legacy) { //backwards compatability with MC versions 1.20.1 and below
+			entity = w.spawn(loc, type);
+			c.accept(entity);
+		} else {
+			entity = w.spawn(loc, type, c);
+			if (entity instanceof Display) {
+				Display bd = (Display) entity;
+				bd.setTeleportDuration(DexBlock.TELEPORT_DURATION);
+			}
+		}
+		return entity;
+	}
+	
 	private String parseChatColor(String s) {
 		if (s.startsWith("#")) return ChatColor.of(s).toString();
 		return s.replace('&', ChatColor.COLOR_CHAR);
@@ -166,8 +214,13 @@ public class Dexterity extends JavaPlugin {
 
 		String s = use.getString(dir);
 		if (s == null) {
-			Bukkit.getLogger().warning("Could not get value from config: '" + dir + "'");
-			return "§c[Language file missing '§c§o" + dir + "§r§c']";
+			if (defaultLang != null && use != defaultLang) s = defaultLang.getString(dir);
+			if (s == null) {
+				Bukkit.getLogger().warning("Could not get value from config: '" + dir + "'");
+				return "§c[Language file missing '§c§o" + dir + "§r§c']";
+			}
+			
+			Bukkit.getLogger().warning("Language file is missing '" + dir + "', using the value from the default instead.");
 		}
 		return s
 				.replaceAll("\\Q&^\\E", chat_color)
@@ -180,12 +233,11 @@ public class Dexterity extends JavaPlugin {
 	
 	private void loadLanguageFile(boolean default_lang) {
 		String langName;
-		String defaultName = "en-US.yml";
-		if (default_lang) langName = defaultName;
+		if (default_lang) langName = defaultLangName;
 		else {
 			langName = getConfig().getString("lang-path");
 			if (langName == null) {
-				langName = defaultName;
+				langName = defaultLangName;
 				Bukkit.getLogger().warning("No language file specified in config, loading default.");
 			}
 			if (!langName.contains(".")) langName += ".yml";
@@ -201,30 +253,28 @@ public class Dexterity extends JavaPlugin {
 			Bukkit.getLogger().severe("Could not load the language file!");
 		}
 		
-		if (!langName.equals(defaultName) || lang == null) {
-			try {
-				String langPath = "";
-				String[] pathSplit = dir.split("/");
-				for (int i = 0; i < pathSplit.length - 1; i++) langPath += pathSplit[i] + "/";
+		try {
+			String langPath = "";
+			String[] pathSplit = dir.split("/");
+			for (int i = 0; i < pathSplit.length - 1; i++) langPath += pathSplit[i] + "/";
 
-				File df1 = new File(langPath + "/" + defaultName);
-				if (df1.exists()) {
-					defaultLang = YamlConfiguration.loadConfiguration(df1);
-				} else { //from scratch
-					saveResource(defaultName, false);
-					File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + defaultName);
-					defaultLang = YamlConfiguration.loadConfiguration(df2);
-				}
-
-			} catch (Exception ex) {
-				ex.printStackTrace();
-				Bukkit.getLogger().severe("Could not load the default language file!");
+			File df1 = new File(langPath + "/" + defaultLangName);
+			if (df1.exists()) {
+				defaultLang = YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(defaultLangName)));
+			} else { //from scratch
+				saveResource(defaultLangName, false);
+				File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + defaultLangName);
+				defaultLang = YamlConfiguration.loadConfiguration(df2);
 			}
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			Bukkit.getLogger().severe("Could not load the default language file!");
 		}
 	}
 	
 	private void purgeHelper(DexterityDisplay d) {
-		if (d.getBlocks().size() > 0) return;
+		if (d.getBlocksCount() > 0) return;
 		if (d.getSubdisplays().size() == 0) d.remove(false);
 		else {
 			for (DexterityDisplay sub : d.getSubdisplays()) purgeHelper(sub);
@@ -274,7 +324,7 @@ public class Dexterity extends JavaPlugin {
 				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
 
 				for (BlockDisplay bd : blocks) {
-					disp.getBlocks().add(new DexBlock(bd, disp));
+					disp.addBlock(new DexBlock(bd, disp));
 				}
 
 				new BukkitRunnable() {

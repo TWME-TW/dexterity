@@ -83,10 +83,7 @@ public class RideAnimation extends Animation {
 	}
 	
 	private void spawnMount() {
-		mount = getDisplay().getCenter().getWorld().spawn(getDisplay().getCenter().add(seat_offset), Snowball.class, a -> {
-			//a.addPassenger(p);
-			//a.setVisible(false);
-			//a.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 1, false));
+		mount = getDisplay().getPlugin().spawn(getDisplay().getCenter().add(seat_offset), Snowball.class, a -> {
 			a.setSilent(true);
 			a.setGravity(false);
 		});

@@ -24,7 +24,6 @@ import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.transaction.DeconvertTransaction;
-import me.c7dev.dexterity.transaction.RecenterTransaction;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.transaction.RotationTransaction;
 import me.c7dev.dexterity.transaction.ScaleTransaction;
@@ -42,7 +41,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
 	private DexterityAPI api;
-	String noperm, cc, cc2, cc3, usage_format, selected_str;
+	String noperm, cc, cc2, cc3, usage_format, selected_str, loclabel_prefix;
 	
 	private String[] commands = {
 		"align", "clone", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
@@ -61,6 +60,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		noperm = plugin.getConfigString("no-permission");
 		usage_format = plugin.getConfigString("usage-format");
 		selected_str = plugin.getConfigString("selected");
+		loclabel_prefix = plugin.getConfigString("loclabel-prefix", "selection at");
 		
 		for (int i = 0; i < commands.length; i++) {
 			descriptions[i] = plugin.getConfigString(commands[i] + "-description");
@@ -107,7 +107,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		for (int j = 0; j < level; j++) line += "  ";
 		
 		line += disp.getLabel();
-		if (disp.getBlocks().size() > 0) line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + line + "§7: " + cc + DexUtils.locationString(disp.getCenter(), 0) + " (" + disp.getCenter().getWorld().getName() + ")";
+		if (disp.getBlocksCount() > 0) line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + line + "§7: " + cc + DexUtils.locationString(disp.getCenter(), 0) + " (" + disp.getCenter().getWorld().getName() + ")";
 		else line = cc2 + ((selected != null && disp.getLabel().equals(selected)) ? "§d" : "") + "§l" + line + cc + ":";
 		
 		strs[i] = line;
@@ -131,7 +131,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			s = s.replaceAll("\\Q%label%\\E", label).replaceAll("\\Q%loclabel%\\E", label); //regex substr selector isn't working, idk
 		} else {
 			s = s.replaceAll("\\Q%label%\\E", selected_str);
-			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", "at " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0) + cc);
+			if (session != null && session.getSelected() != null) s = s.replaceAll("\\Q%loclabel%", loclabel_prefix + " " + cc2 + DexUtils.locationString(session.getSelected().getCenter(), 0) + cc);
 			else s = s.replaceAll("\\Q%loclabel%\\E", "");
 		}
 		return s;
@@ -359,7 +359,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					for (DexBlock db : d.getBlocks()) {
 						if (db.getEntity().getBlock().getMaterial() == from) {
 							t.commitBlock(db);
-							db.getEntity().getBlock().copyTo(todata);
+							if (!plugin.isLegacy()) db.getEntity().getBlock().copyTo(todata);
 							db.getEntity().setBlock(todata);
 						}
 					}
@@ -474,16 +474,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("glow")) { //TODO add transaction
 			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
-			if (args.length < 2 || (def == null && flags.size() == 0)) p.sendMessage(getUsage("glow"));
+			if (args.length < 2 || (def == null && flags.size() == 0)) {
+				p.sendMessage(getUsage("glow"));
+				return true;
+			}
 			
 			boolean propegate = false; //flags.contains("propegate");
 			if ((def != null && (def.equalsIgnoreCase("none") || def.equalsIgnoreCase("off"))) || flags.contains("none") || flags.contains("off")) {
 				d.setGlow(null, propegate);
 				p.sendMessage(getConfigString("glow-success-disable", session));
-				return true;
-			}
-			if (def == null) {
-				p.sendMessage(getUsage("glow"));
 				return true;
 			}
 			
@@ -620,7 +619,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equalsIgnoreCase("mask")) {
-			if (args.length < 2) p.sendMessage(getUsage("mask"));
+			if (args.length < 2) {
+				p.sendMessage(getUsage("mask"));
+				return true;
+			}
 			if (flags.contains("none") || flags.contains("off") || def.equalsIgnoreCase("none") || def.equalsIgnoreCase("off")) {
 				session.setMask(null);
 				p.sendMessage(getConfigString("mask-success-disable", session));
@@ -727,7 +729,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			if (d.getLabel() == null) {
-				p.sendMessage(cc + "Selected " + cc2 + d.getBlocks().size() + cc + " ghost block" + (d.getBlocks().size() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
+				p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
 			} else {
 				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
 				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));

@@ -147,21 +147,22 @@ public class EventListeners implements Listener {
 						Location fromLoc = clicked.getDisplayCenterLocation();
 						if (clicked.getBlockFace() != BlockFace.UP && clicked.getBlockFace() != BlockFace.DOWN) fromLoc.add(clicked.getUpDir().multiply((blockscale.getY()/2)*(1 - blockdimensions.getY())));
 						
-						BlockDisplay b = e.getPlayer().getWorld().spawn(fromLoc.clone().add(delta), BlockDisplay.class, a -> {
+						
+						BlockDisplay b = plugin.spawn(fromLoc.clone().add(delta), BlockDisplay.class, a -> {
 							a.setBlock(bdata);
 							trans.setScale(blockscale);
 							if (clicked.getRollOffset() == null) trans.setDisplacement(blockscale.clone().multiply(-0.5));
 							else trans.setDisplacement(blockscale.clone().multiply(-0.5).add(clicked.getRollOffset().getOffset()));
 							a.setTransformation(trans.build());
 						});
-						
+
 						e.getPlayer().playSound(b.getLocation(), bdata.getSoundGroup().getPlaceSound(), 1f, 1f);
 						
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
 							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(DexUtils.hadimard(clicked_db.getTransformation().getRollOffset(), clicked_db.getTransformation().getScale())));
 							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffset().clone());
-							clicked_display.getBlocks().add(new_db);
+							clicked_display.addBlock(new_db);
 							if (session != null) session.pushBlock(new_db, true);
 						}
 					} else if (clicked_display != null) {

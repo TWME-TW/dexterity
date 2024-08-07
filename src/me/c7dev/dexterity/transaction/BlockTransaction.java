@@ -52,10 +52,10 @@ public class BlockTransaction implements Transaction {
 		isCommitted = true;
 	}
 	
-	public void commit(List<DexBlock> blocks) {
+	public void commit(DexBlock[] blocks) {
 		commit(blocks, null, false);
 	}
-	public void commit(List<DexBlock> blocks, Mask mask, boolean all) {
+	public void commit(DexBlock[] blocks, Mask mask, boolean all) {
 		if (isCommitted) return;
 		isCommitted = true;
 		if (mask == null) {

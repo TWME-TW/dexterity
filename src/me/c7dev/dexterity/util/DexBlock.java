@@ -26,10 +26,9 @@ public class DexBlock {
 	public DexBlock(Block display, DexterityDisplay d) {
 		disp = d;
 		trans = DexTransformation.newDefaultTransformation();
-		this.entity = display.getLocation().getWorld().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, (spawned) -> {
+		entity = d.getPlugin().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, spawned -> {
 			spawned.setBlock(display.getBlockData());
 			spawned.setTransformation(trans.build());
-			spawned.setTeleportDuration(TELEPORT_DURATION);
 		});
 		d.getPlugin().setMappedDisplay(this);
 		display.setType(Material.AIR);
@@ -43,17 +42,16 @@ public class DexBlock {
 		entity = bd;
 		disp = d;
 		this.roll = roll;
-		bd.setTeleportDuration(TELEPORT_DURATION);
+		if (!d.getPlugin().isLegacy()) bd.setTeleportDuration(TELEPORT_DURATION);
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
 	}
 	public DexBlock(DexBlockState state) {
 		disp = state.getDisplay();
 		trans = state.getTransformation();
-		entity = state.getLocation().getWorld().spawn(state.getLocation(), BlockDisplay.class, a -> {
+		entity = state.getDisplay().getPlugin().spawn(state.getLocation(), BlockDisplay.class, a -> {
 			a.setBlock(state.getBlock());
 			a.setTransformation(state.getTransformation().build());
-			a.setTeleportDuration(TELEPORT_DURATION);
 		});
 		roll = state.getRoll();
 		if (state.getDisplay() != null) {
@@ -165,10 +163,10 @@ public class DexBlock {
 //	}
 	
 	public void remove() {
-		disp.getBlocks().remove(this);
+		disp.removeBlock(this);
 		disp.getPlugin().clearMappedDisplay(entity.getUniqueId());
 		entity.remove();
-		if (disp.getBlocks().size() == 0 && disp.getSubdisplays().size() == 0) {
+		if (disp.getBlocks().length == 0 && disp.getSubdisplays().size() == 0) {
 			disp.remove(false);
 		}
 	}

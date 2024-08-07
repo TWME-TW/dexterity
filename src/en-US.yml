@@ -20,6 +20,7 @@ list-page-header: "&^&lDisplay list: &**Page &**&l%page%&**/%maxpage%"
 cancelled-edit: "&^Cancelled edit!"
 unknown-subcommand: "&cUnknown sub-command."
 selected: "selected"
+loclabel-prefix: "selection at"
 
 #Error strings
 display-not-found: "&4Error: &cCould not find display '%input%'"
@@ -109,6 +110,8 @@ unsave-description: "Unsave a display so it can be edited"
 wand-description: "Get a wand to select block locations"
 
 #Command usage
+glow-usage: "/d glow <color|none>"
+mask-usage: "/d mask <material|none>"
 merge-usage: "/d merge <display>"
 rename-usage: "/d name <name>"
 replace-usage: "/d replace <from> <to>"

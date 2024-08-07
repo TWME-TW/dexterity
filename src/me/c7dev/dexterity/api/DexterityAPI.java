@@ -33,6 +33,7 @@ import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.SavedBlockState;
@@ -114,7 +115,7 @@ public class DexterityAPI {
 						if (t != null) saved = new SavedBlockState(b);
 						
 						DexBlock db = new DexBlock(b, d);
-						d.getBlocks().add(db);
+						d.addBlock(db);
 						if (t != null) {
 							t.addBlock(saved, db);
 						}
@@ -349,10 +350,11 @@ public class DexterityAPI {
 	
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
 		float size = 0.02f;
+		if (seconds <= 0) return null;
 		Location loc_ = loc.clone();
 		loc_.setPitch(0);
 		loc_.setYaw(0);
-		BlockDisplay disp = loc.getWorld().spawn(loc_, BlockDisplay.class, a -> {
+		BlockDisplay disp = plugin.spawn(loc_, BlockDisplay.class, a -> {
 			a.setBlock(Bukkit.createBlockData(Material.WHITE_CONCRETE));
 			if (glow != null) {
 				a.setGlowColorOverride(glow);
@@ -362,16 +364,15 @@ public class DexterityAPI {
 			Transformation t2 = new Transformation(new Vector3f(-size/2, -size/2, -size/2), t.getLeftRotation(), 
 					new Vector3f(size, size, size), t.getRightRotation());
 			a.setTransformation(t2);
-			markerPoints.add(a.getUniqueId());
 		});
-		if (seconds > 0) {
-			new BukkitRunnable() {
-				public void run() {
-					markerPoints.add(disp.getUniqueId());
-					disp.remove();
-				}
-			}.runTaskLater(plugin, seconds*20l);
-		}
+		markerPoints.add(disp.getUniqueId());
+
+		new BukkitRunnable() {
+			public void run() {
+				markerPoints.add(disp.getUniqueId());
+				disp.remove();
+			}
+		}.runTaskLater(plugin, seconds*20l);
 		return disp;
 	}
 	
@@ -489,6 +490,56 @@ public class DexterityAPI {
 		}
 						
 		return blocks;
+	}
+	
+	public DexterityDisplay selectFromLocations(Location l1, Location l2) {
+		return selectFromLocations(l1, l2, null, null, null);
+	}
+	
+	public DexterityDisplay selectFromLocations(Location l1, Location l2, Mask mask) {
+		return selectFromLocations(l1, l2, mask, null, null);
+	}
+	
+	public DexterityDisplay selectFromLocations(Location l1, Location l2, Mask mask, Vector l1_scale_offset, Vector l2_scale_offset) {
+		if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
+			if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
+			if (l2_scale_offset == null) l2_scale_offset = new Vector(1, 1, 1);
+
+			if (DexUtils.getVolume(l1, l2) > plugin.getMaxVolume()) {
+				throw new IllegalArgumentException("Location 1 and 2 for selected exceed maximum configured volume!");
+			}
+
+			int maxvol = plugin.getMaxVolume();
+			List<BlockDisplay> blocks = plugin.api().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
+			if (blocks.size() > 0) {
+				DexterityDisplay s = new DexterityDisplay(plugin);
+				List<DexBlock> dblocks = new ArrayList<>();
+				HashMap<OrientationKey, RollOffset> roll_cache = new HashMap<>();
+
+				for (BlockDisplay bd : blocks) {
+					if (mask != null && !mask.isAllowed(bd.getBlock().getMaterial())) continue;
+
+					DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
+					if (db == null) {
+						db = new DexBlock(bd, s);
+						db.loadRoll(roll_cache); //TODO possibly make this async
+					}
+					else if (db.getDexterityDisplay().isSaved()) continue;
+					if (db.getDexterityDisplay().getEditingLock() == null) db.setDexterityDisplay(s);
+					dblocks.add(db);
+					if (dblocks.size() >= maxvol) break;
+				}
+
+				if (dblocks.size() == 0) {
+					return null;
+				}
+
+				s.setEntities(dblocks, true);
+
+				return s;
+			}
+		}
+		return null;
 	}
 	
 }

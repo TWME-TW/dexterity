@@ -40,7 +40,7 @@ public class RotationAnimation extends Animation {
 	@Override
 	public void beforeStart() {
 		t = new RotationTransaction(super.getDisplay());
-		if (no_interpolation) {
+		if (no_interpolation && !super.getDisplay().getPlugin().isLegacy()) {
 			for (DexBlock db : super.getDisplay().getBlocks()) {
 				db.getEntity().setTeleportDuration(0);
 			}
@@ -49,7 +49,7 @@ public class RotationAnimation extends Animation {
 	
 	@Override
 	public void beforeFinish() {
-		if (no_interpolation) {
+		if (no_interpolation && !super.getDisplay().getPlugin().isLegacy()) {
 			for (DexBlock db : super.getDisplay().getBlocks()) {
 				db.getEntity().setTeleportDuration(DexBlock.TELEPORT_DURATION);
 			}

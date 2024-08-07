@@ -1,16 +1,13 @@
 package me.c7dev.dexterity;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
@@ -25,8 +22,6 @@ import me.c7dev.dexterity.transaction.Transaction;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.Mask;
-import me.c7dev.dexterity.util.OrientationKey;
-import me.c7dev.dexterity.util.RollOffset;
 
 public class DexSession {
 	
@@ -341,7 +336,7 @@ public class DexSession {
 		return volume;
 	}
 	public double getSelectedVolumeCount() {
-		return selected == null ? 0 : selected.getBlocks().size();
+		return selected == null ? 0 : selected.getBlocks().length;
 	}
 	
 	public void setLocation(Location loc, boolean is_l1) {
@@ -375,44 +370,17 @@ public class DexSession {
 	private void selectFromLocations() {
 		if (editType == null) {
 			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
-				if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
-				if (l2_scale_offset == null) l2_scale_offset = new Vector(1, 1, 1);
 				
 				if (DexUtils.getVolume(l1, l2) > plugin.getMaxVolume()) {
 					setSelected(null, false);
 					return;
 				}
 				
-				int maxvol = plugin.getMaxVolume();
-				List<BlockDisplay> blocks = plugin.api().getBlockDisplaysInRegionContinuous(l1, l2, l1_scale_offset, l2_scale_offset);
-				if (blocks.size() > 0) {
-					DexterityDisplay s = new DexterityDisplay(plugin);
-					List<DexBlock> dblocks = new ArrayList<>();
-					HashMap<OrientationKey, RollOffset> roll_cache = new HashMap<>();
-					
-					for (BlockDisplay bd : blocks) {
-						if (mask != null && !mask.isAllowed(bd.getBlock().getMaterial())) continue;
-
-						DexBlock db = plugin.getMappedDisplay(bd.getUniqueId());
-						if (db == null) {
-							db = new DexBlock(bd, s);
-							db.loadRoll(roll_cache); //TODO possibly make this async
-						}
-						else if (db.getDexterityDisplay().isSaved()) continue;
-						if (db.getDexterityDisplay().getEditingLock() == null) db.setDexterityDisplay(s);
-						dblocks.add(db);
-						if (dblocks.size() >= maxvol) break;
-					}
-
-					if (dblocks.size() == 0) {
-						setSelected(null, false);
-						return;
-					}
-
-					s.setEntities(dblocks, true);
-
-					highlightSelected(s);
-					selected = s;
+				DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
+				if (d == null) setSelected(null, false);
+				else {
+					selected = d;
+					highlightSelected(d);
 				}
 			} else volume = Integer.MAX_VALUE;
 		}
@@ -432,7 +400,7 @@ public class DexSession {
 				for (DexBlock db : selected.getBlocks()) {
 					if (mask.isAllowed(db.getEntity().getBlock().getMaterial())) dblocks.add(db);
 				}
-				if (dblocks.size() == s.getBlocks().size()) selectFromLocations();
+				if (dblocks.size() == s.getBlocks().length) selectFromLocations();
 
 				if (dblocks.size() == 0) setSelected(null, false);
 				else {
@@ -449,24 +417,4 @@ public class DexSession {
 		l2 = null;
 	}
 	
-//	public void openAnimationEditor() {
-//		if (selected == null) return;
-//		
-//		int rows = Math.max(Math.min(selected.getAnimations().size(), 9), 3);
-//		Inventory inv = Bukkit.createInventory(null, 9*rows, plugin.getConfigString("animation-editor-title", "Animation Editor"));
-//		
-//		for (int i = 0; i < rows; i++) {
-//			inv.setItem(9*i, DexUtils.createItem(Material.GRAY_STAINED_GLASS_PANE, 1, "Animation " + (i+1)));
-//		}
-//		
-//		int j = 0;
-//		for (; j < selected.getAnimations().size(); j++) {
-//			
-//			if (j >= rows) break;
-//		}
-//		if (j < rows - 1) inv.setItem(j, DexUtils.createItem(Material.LIME_WOOL, 1, "§aAdd Next Animation"));
-//		
-//		p.openInventory(inv);
-//	}
-
 }

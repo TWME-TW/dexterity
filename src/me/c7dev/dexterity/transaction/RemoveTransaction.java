@@ -39,7 +39,6 @@ public class RemoveTransaction implements Transaction {
 	public DexterityDisplay undo() {
 		if (isUndone) return null;
 		isUndone = true;
-		disp.getBlocks().clear();
 		List<DexBlock> blocks = new ArrayList<>();
 		for (DexBlockState state : states) {
 			blocks.add(new DexBlock(state));

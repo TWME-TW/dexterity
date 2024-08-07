@@ -145,14 +145,24 @@ public class DexterityDisplay {
 		for (DexterityDisplay sub : subdisplays) sub.unregister();
 	}
 	
-	public List<DexBlock> getBlocks(){
-		return blocks;
+	public DexBlock[] getBlocks() {
+		return blocks.toArray(new DexBlock[blocks.size()]);
+	}
+	
+	public int getBlocksCount() {
+		return blocks.size();
 	}
 	
 	public void addBlock(DexBlock db) {
 		if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isSaved()) {
 			db.setDexterityDisplay(this);
 			blocks.add(db);
+		}
+	}
+	
+	public void removeBlock(DexBlock db) {
+		if (blocks.remove(db)) {
+			plugin.clearMappedDisplay(db.getEntity().getUniqueId());
 		}
 	}
 	

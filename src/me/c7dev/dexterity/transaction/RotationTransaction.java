@@ -27,7 +27,7 @@ public class RotationTransaction extends BlockTransaction {
 	}
 	
 	@Override
-	public void commit(List<DexBlock> blocks) {
+	public void commit(DexBlock[] blocks) {
 		super.commit(blocks);
 		DexRotation r = disp.getRotationManager();
 		x2 = r.getXAxis();

@@ -24,7 +24,7 @@ public class ScaleTransaction extends BlockTransaction {
 	}
 	
 	@Override
-	public void commit(List<DexBlock> blocks) {
+	public void commit(DexBlock[] blocks) {
 		super.commit(blocks);
 		s2 = disp.getScale();
 	}
