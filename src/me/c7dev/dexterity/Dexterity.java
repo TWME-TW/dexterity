@@ -275,7 +275,7 @@ public class Dexterity extends JavaPlugin {
 	
 	private void purgeHelper(DexterityDisplay d) {
 		if (d.getBlocksCount() > 0) return;
-		if (d.getSubdisplays().size() == 0) d.remove(false);
+		if (d.getSubdisplayCount() == 0) d.remove(false);
 		else {
 			for (DexterityDisplay sub : d.getSubdisplays()) purgeHelper(sub);
 		}
@@ -342,7 +342,7 @@ public class Dexterity extends JavaPlugin {
 					DexterityDisplay parent = getDisplay(parent_label);
 					if (parent == null) Bukkit.getLogger().severe("Could not find parent display '" + parent_label + "'!");
 					else {
-						parent.getSubdisplays().add(disp);
+						parent.addSubdisplay(disp);
 						disp.setParent(parent);
 					}
 				}

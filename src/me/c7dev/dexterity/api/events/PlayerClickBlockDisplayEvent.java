@@ -21,6 +21,9 @@ public class PlayerClickBlockDisplayEvent extends Event implements Cancellable {
 	private boolean cancelled = false;
 	private DexterityDisplay display_;
 	
+	/**
+	 * Event called when a player has clicked a block display entity
+	 */
 	public PlayerClickBlockDisplayEvent(Player player, ClickedBlockDisplay clicked, Action action, DexterityDisplay display) {
 		player_ = player;
 		clicked_ = clicked;

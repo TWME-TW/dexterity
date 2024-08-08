@@ -45,7 +45,13 @@ public class DexSession {
 	private BuildTransaction t_build;
 	private Mask mask;
 	
+	/**
+	 * Initializes a new session for a player
+	 * @param player
+	 * @param plugin
+	 */
 	public DexSession(Player player, Dexterity plugin) {
+		if (player == null || plugin == null || !player.isOnline()) throw new IllegalArgumentException("Player must be online!");
 		p = player;
 		this.plugin = plugin;
 		plugin.setEditSession(player.getUniqueId(), this);
@@ -60,9 +66,17 @@ public class DexSession {
 		}
 	}
 	
+	/**
+	 * Retrieves first location set by player
+	 * @return
+	 */
 	public Location getLocation1() {
 		return l1;
 	}
+	/**
+	 * Retrieves second location set by player
+	 * @return
+	 */
 	public Location getLocation2() {
 		return l2;
 	}
@@ -85,9 +99,16 @@ public class DexSession {
 	public DexterityDisplay getSelected() {
 		return selected;
 	}
+	
 	public DexterityDisplay getSecondary() {
 		return secondary;
 	}
+	
+	/**
+	 * Changes the player's selection
+	 * @param o The new selection, or null for no selection
+	 * @param msg true if the player should be notified in chat
+	 */
 	public void setSelected(DexterityDisplay o, boolean msg) {
 		if (o == null) {
 			cancelEdit();
@@ -113,6 +134,12 @@ public class DexSession {
 		}
 	}
 	
+	/**
+	 * Returns true if the selection is following the player, such as in a translation edit
+	 * @return
+	 * @see #startFollowing()
+	 * @see #stopFollowing()
+	 */
 	public boolean isFollowing() {
 		return following != null;
 	}
@@ -134,11 +161,18 @@ public class DexSession {
 		following = v.clone();
 	}
 	
+	/**
+	 * Deletes the edit history, removing any undo or redo transactions
+	 */
 	public void clearHistory() {
 		toUndo.clear();
 		toRedo.clear();
 	}
 	
+	/**
+	 * Adds an edit transaction to the stack
+	 * @param t
+	 */
 	public void pushTransaction(Transaction t) {
 		if (!t.isPossible() || t instanceof RemoveTransaction) {
 			t_build = null;
@@ -157,6 +191,11 @@ public class DexSession {
 		trimToSize();
 	}
 	
+	/**
+	 * Adds a modified block to the working {@link BuildTransaction}
+	 * @param db
+	 * @param placing true if player is placing the {@link DexBlock}, false if breaking
+	 */
 	public void pushBlock(DexBlock db, boolean placing) {
 		if (db.getDexterityDisplay() == null) return;
 		if (t_build == null) t_build = new BuildTransaction(db.getDexterityDisplay());
@@ -170,10 +209,17 @@ public class DexSession {
 		else t_build.removeBlock(db);
 	}
 		
+	/**
+	 * Executes 1 undo
+	 */
 	public void undo() {
 		executeUndo(1);
 	}
 	
+	/**
+	 * Executes a number of undo(s)
+	 * @param count The number of undos to execute
+	 */
 	public void undo(int count) {
 		if (count < 1) return;
 		count = Math.max(Math.min(count, toUndo.size()), 1);
@@ -182,10 +228,17 @@ public class DexSession {
 		}
 	}
 	
+	/**
+	 * Executes 1 redo
+	 */
 	public void redo() {
 		executeRedo(1);
 	}
 	
+	/**
+	 * Executes a number of redo(s)
+	 * @param count The number of redos to execute
+	 */
 	public void redo(int count) {
 		if (count < 1) return;
 		count = Math.max(Math.min(count, toRedo.size()), 1);
@@ -264,10 +317,23 @@ public class DexSession {
 		}
 	}
 	
+	/**
+	 * Enters the player into an edit session
+	 * @param d The new selection to set as primary
+	 * @param type
+	 * @param swap If true and there exists a selection already, current selection will be reselected after edit session is over
+	 */
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap) {
 		startEdit(d, type, swap, null);
 	}
 	
+	/**
+	 * Enters the player into an edit session
+	 * @param d The new selection to set as primary
+	 * @param type
+	 * @param swap If true and there exists a selection already, current selection will be reselected after edit session is over
+	 * @param t Transaction to commit any blocks to during edit session
+	 */
 	public void startEdit(DexterityDisplay d, EditType type, boolean swap, Transaction t) {
 		if (selected == null || editType != null) return;
 		editType = type;
@@ -284,6 +350,9 @@ public class DexSession {
 		orig_loc = d.getCenter();
 	}
 	
+	/**
+	 * Removes player from any edit session and restore to previous state
+	 */
 	public void cancelEdit() {
 		if (selected == null) return;
 		if (selected != null && secondary != null) {
@@ -300,6 +369,9 @@ public class DexSession {
 		finishEdit();
 	}
 	
+	/**
+	 * Completes the edit session
+	 */
 	public void finishEdit() {
 		if (selected == null) return;
 		if (secondary != null && editType != EditType.CLONE) selected = secondary;
@@ -339,14 +411,32 @@ public class DexSession {
 		return selected == null ? 0 : selected.getBlocks().length;
 	}
 	
+	/**
+	 * Sets the first or second location to a block
+	 * @param loc
+	 * @param is_l1 true if setting the first location
+	 */
 	public void setLocation(Location loc, boolean is_l1) {
 		setLocation(loc, is_l1, true);
 	}
 	
+	/**
+	 * Sets the first or second location to a block
+	 * @param loc
+	 * @param is_l1 true if setting the first location
+	 * @param msg true if player should be notified in chat
+	 */
 	public void setLocation(Location loc, boolean is_l1, boolean msg) {
 		setContinuousLocation(DexUtils.blockLoc(loc), is_l1, is_l1 ? new Vector(0, 0, 0) : new Vector(1, 1, 1), msg);
 	}
 	
+	/**
+	 * Precisely sets the first or second location
+	 * @param loc
+	 * @param is_l1 true if setting the first location
+	 * @param scale_offset The offset added to the minimum or maximum coordinate once both locations are set
+	 * @param msg true if player should be notified in chat
+	 */
 	public void setContinuousLocation(Location loc, boolean is_l1, Vector scale_offset, boolean msg) {
 		
 //		if (scale == null) DexUtils.blockLoc(loc);
@@ -404,7 +494,7 @@ public class DexSession {
 
 				if (dblocks.size() == 0) setSelected(null, false);
 				else {
-					s.setEntities(dblocks, true);
+					s.setBlocks(dblocks, true);
 					highlightSelected(s);
 					setSelected(s, false);
 				}

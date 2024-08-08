@@ -38,21 +38,39 @@ public class DexRotation {
 	
 	public static final double cutoff = 0.000001;
 	
+	/**
+	 * Manages all rotations and data used for rotations for a specific DexterityDisplay
+	 * @param d
+	 */
 	public DexRotation(DexterityDisplay d) {
 		if (d == null) throw new IllegalArgumentException("Arguments cannot be null");
 		this.d = d;
 		refreshAxis();
 	}
 	
+	/**
+	 * Manages all rotations and data used for rotations for a specific DexterityDisplay
+	 * @param d
+	 * @param x The orthogonal unit vector for the selection's x direction
+	 * @param y The orthogonal unit vector for the selection's y direction
+	 * @param z The orthogonal unit vector for the selection's z direction
+	 */
 	public DexRotation(DexterityDisplay d, Vector x, Vector y, Vector z) {
 		if (d == null || x == null || y == null || z == null) throw new IllegalArgumentException("Arguments cannot be null");
-		if (!DexUtils.isOrthonormal(x, y, z)) throw new IllegalArgumentException("Axes are not orthnomormal!");
+		if (!DexUtils.isOrthonormal(x, y, z)) throw new IllegalArgumentException("Axes are not orthonormal!");
 		this.d = d;
 		this.x = DexUtils.vectord(x);
 		this.y = DexUtils.vectord(y);
 		this.z = DexUtils.vectord(z);
 	}
 	
+	/**
+	 * Manages all rotations and data used for rotations for a specific DexterityDisplay
+	 * @param d
+	 * @param yaw The selection's yaw in degrees
+	 * @param pitch The selection's pitch in degrees
+	 * @param roll The selection's roll in degrees
+	 */
 	public DexRotation(DexterityDisplay d, double yaw, double pitch, double roll) {
 		if (d == null) throw new IllegalArgumentException("Arguments cannot be null");
 		this.d = d;
@@ -72,6 +90,9 @@ public class DexRotation {
 		s.transformInverse(z);
 	}
 
+	/**
+	 * Recalculate the axes of the selection based on the most common {@link DexBlock} rotation
+	 */
 	public void refreshAxis() {
 		
 		clearCached();
@@ -136,10 +157,17 @@ public class DexRotation {
 		return DexUtils.vector(z);
 	}
 	
+	/**
+	 * Set a transaction to be used to be able to undo a rotation
+	 * @param t2
+	 */
 	public void setTransaction(RotationTransaction t2) { //async callback
 		t = t2;
 	}
 	
+	/**
+	 * Clear the cached or pre-calculated data pertaining to the selection's rotations
+	 */
 	public void clearCached() {
 		dirs.clear();
 		axispairs.clear();
@@ -164,6 +192,12 @@ public class DexRotation {
 		return base_roll;
 	}
 	
+	/**
+	 * Overwrite the axes of the selection, providing new orthogonal unit vectors
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
 	public void setAxes(Vector x, Vector y, Vector z) {
 		if (x == null || y == null || z == null) throw new IllegalArgumentException("Axes cannot be null!");
 		if (!DexUtils.isOrthonormal(x, y, z)) throw new IllegalArgumentException("Axes are not orthonormal!");
@@ -173,6 +207,12 @@ public class DexRotation {
 		clearCached();
 	}
 	
+	/**
+	 * Recalculate the y, x, and z unit vectors by providing yaw, pitch, and roll in degrees
+	 * @param yaw
+	 * @param pitch
+	 * @param roll
+	 */
 	public void setAxes(float yaw, float pitch, float roll) {
 		Quaterniond s = new Quaterniond(0, 0, 0, 1);
 		s.rotateZ(-Math.toRadians(yaw));
@@ -191,18 +231,30 @@ public class DexRotation {
 		s.transformInverse(z);		
 	}
 	
-	public void rotate(float y_deg) {
-		rotate(y_deg, 0, 0);
+	/**
+	 * Rotate around the yaw axis in degrees
+	 * @param yaw_deg
+	 */
+	public void rotate(float yaw_deg) {
+		rotate(yaw_deg, 0, 0);
 	}
 	
-	public Quaterniond rotate(float y_deg, float pitch_deg, float roll_deg) {
+	/**
+	 * Rotate around the yaw, pitch, and roll directions in degrees
+	 */
+	public Quaterniond rotate(float yaw_deg, float pitch_deg, float roll_deg) {
 		RotationPlan p = new RotationPlan();
-		p.y_deg = y_deg;
+		p.yaw_deg = yaw_deg;
 		p.pitch_deg = pitch_deg;
 		p.roll_deg = roll_deg;
 		return rotate(p);
 	}
 	
+	/**
+	 * Rotate by a specified plan with details about every axis and if it is asynchronous.
+	 * @param plan
+	 * @return Unmodifiable quaternion for the queued rotation
+	 */
 	public Quaterniond rotate(RotationPlan plan) {
 		
 		double del_x, del_y, del_z, del_yaw, del_pitch, del_roll;
@@ -245,6 +297,13 @@ public class DexRotation {
 		return DexUtils.cloneQ(q1);
 	}
 	
+	/**
+	 * Prepare a rotation that can be reused. 
+	 * Note that using this will not update the internal yaw, pitch, roll, x, y, or z, so refreshAxis() will be needed afterwards.
+	 * @param plan
+	 * @param transaction
+	 * @return
+	 */
 	public QueuedRotation prepareRotation(RotationPlan plan, RotationTransaction transaction) {
 		double del_x, del_y, del_z, del_yaw, del_pitch, del_roll;
 		if (plan.reset) {
@@ -344,19 +403,36 @@ public class DexRotation {
 		return r.mul(q_res_y).mul(q_res_xz);
 	}
 	
+	/**
+	 * Run the previous rotation again
+	 */
 	public void again() {
 		rotate(last);
 	}
-	
+
+	/**
+	 * Queue a rotation
+	 * @param q1
+	 */
 	public void rotate(Quaterniond q1) {
 		rotate(q1, true);
 	}
 	
+	/**
+	 * Queue a rotation
+	 * @param q1
+	 * @param async
+	 */
 	public void rotate(Quaterniond q1, boolean async) {
 		if (q1 == null) throw new IllegalArgumentException("Quaternion cannot be null!");
 		rotate(new QueuedRotation(q1, async, t));
 	}
 	
+	
+	/**
+	 * Queue a rotation
+	 * @param rotation
+	 */
 	public void rotate(QueuedRotation rotation) {
 		if (rotation == null) throw new IllegalArgumentException("Rotation cannot be null!");
 		queue.addLast(rotation);
@@ -375,6 +451,10 @@ public class DexRotation {
 		else executeRotation(r);
 	}
 	
+	/**
+	 * Get the data used for the previous rotation
+	 * @return Unmodifiable object containing quaternion, transaction, and async boolean
+	 */
 	public QueuedRotation getPreviousRotation() {
 		return last;
 	}
@@ -489,6 +569,11 @@ public class DexRotation {
 		}.runTaskAsynchronously(d.getPlugin());
 	}
 	
+	/**
+	 * Create marker points illustrating the direction of each axis.
+	 * X: Red, Y: Lime, Z: Blue
+	 * @param seconds The number of seconds that the marker points should last.
+	 */
 	public void highlightAxes(int seconds) {
 		for (BlockDisplay b : points) {
 			b.remove();

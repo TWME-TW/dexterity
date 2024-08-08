@@ -69,31 +69,75 @@ public class DexterityAPI {
 		return Dexterity.getPlugin(Dexterity.class).api();
 	}
 	
+	/**
+	 * Returns all names of displays that are saved across all worlds
+	 * 
+	 * @return Unmodifiable set of label strings
+	 */
 	public Set<String> getDisplayLabels() {
 		return plugin.getDisplayLabels();
 	}
 	
+	/**
+	 * Returns all displays that have been saved across all worlds
+	 * 
+	 * @return Unmodifiable collection of {@link DexterityDisplay} that have been saved
+	 */
 	public Collection<DexterityDisplay> getDisplays() {
 		return plugin.getDisplays();
 	}
 	
+	/**
+	 * Retrieves a saved {@link DexterityDisplay} in any world by its raw label name
+	 * 
+	 * @param label Label of the saved display
+	 * @return The saved display if it exists, otherwise null
+	 */
 	public DexterityDisplay getDisplay(String label) {
 		return plugin.getDisplay(label);
 	}
 	
+	/**
+	 * Retrieves the specified player's edit session if it exists
+	 * 
+	 * @param p The online player whose session is to be retrieved
+	 * @return The player's session if it exists, otherwise null
+	 */
 	public DexSession getSession(Player p) {
 		return plugin.getEditSession(p.getUniqueId());
 	}
 	
+	/**
+	 * Retrieves the edit session for the player with the specified UUID.
+	 * Can be used if the player is offline but the session has not been automatically deleted yet.
+	 * 
+	 * @param u The UUID of the player whose session is to be retrieved
+	 * @return The edit session of the player with the specified UUID if it exists, otherwise null
+	 */
 	public DexSession getSession(UUID u) {
 		return plugin.getEditSession(u);
 	}
 	
+	/**
+	 * Converts all of the blocks inside the cuboid defined by the two locations into Block Displays
+	 * 
+	 * @param l1 First location
+	 * @param l2 Second location
+	 * @return A {@link DexterityDisplay} selection of the newly created block displays
+	 */
 	public DexterityDisplay convertBlocks(Location l1, Location l2) {
 		return convertBlocks(l1, l2, null);
 	}
+	
+	/**
+	 * Converts all of the blocks inside the cuboid defined by the two locations into Block Displays
+	 * 
+	 * @param l1 First location
+	 * @param l2 Second location
+	 * @return A {@link DexterityDisplay} selection of the newly created block displays
+	 */
 	public DexterityDisplay convertBlocks(Location l1, Location l2, ConvertTransaction t) { //l1 and l2 bounding box, all blocks inside converted
-		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) return null;
+		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) throw new IllegalArgumentException("Locations must be in the same world!");
 		
 		int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());
 		int ymin = Math.min(l1.getBlockY(), l2.getBlockY()), ymax = Math.max(l1.getBlockY(), l2.getBlockY());
@@ -119,18 +163,12 @@ public class DexterityAPI {
 						if (t != null) {
 							t.addBlock(saved, db);
 						}
-						//db.setBrightness(b2.getLightFromBlocks(), b2.getLightFromSky());
 					}
 				}
 			}
 		}
 		
 		d.recalculateCenter();
-		
-		//plugin.registerDisplay(d.getLabel(), d);
-		
-		//plugin.saveDisplays();
-		
 		return d;
 	}
 	
@@ -147,8 +185,13 @@ public class DexterityAPI {
 		return basis_vecs;
 	}
 	
-	//get the block display that the player is looking at
-	//avg 0.011371 milliseconds per block on a potato pc :D
+	/**
+	 * Calculates the precise block display entity that the player is currently looking at with their cursor
+	 * 
+	 * @param p
+	 * @return Unmodifiable data object containing the entity, entity's center, block face, location on the block face, and basis vectors.
+	 * @return Null if the player is not looking at any block display in range
+	 */
 	public ClickedBlockDisplay getLookingAt(Player p) {
 		if (p == null) throw new IllegalArgumentException("Player cannot be null!");
 		List<Entity> near = p.getNearbyEntities(4, 4, 4);
@@ -309,14 +352,30 @@ public class DexterityAPI {
 		return nearest;
 	}
 	
+	/**
+	 * Calculates the precise placed block that the player is currently looking at with their cursor
+	 * 
+	 * @param p
+	 * @return Unmodifiable data object containing the block and distance (in block units) away.
+	 * @return Null if the player is not looking at any block in range.
+	 */
 	public ClickedBlock getPhysicalBlockLookingAt(Player p) {
 		return getPhysicalBlockLookingAtRaw(p, 0.01, 5); // same as getBlockLookingAt(p, 100);
 	}
 	
-	public ClickedBlock getPhysicalBlockLookingAt(Player p, double percent_precision) {
-		return getPhysicalBlockLookingAtRaw(p, Math.abs(1/percent_precision), 5);
-	}
+//	private ClickedBlock getPhysicalBlockLookingAt(Player p, double percent_precision) {
+//		return getPhysicalBlockLookingAtRaw(p, Math.abs(1/percent_precision), 5);
+//	}
 	
+	/**
+	 * Calculates the precise placed block that the player is currently looking at with their cursor
+	 * 
+	 * @param p
+	 * @param step_multiplier Defines the step size, and thus the precision to check
+	 * @param max_dist Defines the maximum radius, in blocks, to search
+	 * @return Unmodifiable data object containing the block and distance (in block units) away.
+	 * @return Null if the player is not looking at any block in range.
+	 */
 	public ClickedBlock getPhysicalBlockLookingAtRaw(Player p, double step_multiplier, double max_dist) {
 		Vector step = p.getLocation().getDirection().multiply(step_multiplier);
 		
@@ -348,6 +407,14 @@ public class DexterityAPI {
 		return new ClickedBlock(b, i*step_multiplier);
 	}
 	
+	/**
+	 * Creates a very small block display with a glow to illustrate a location with precision. Useful for debugging or verifying location variables.
+	 * 
+	 * @param loc
+	 * @param glow The color of the marker point
+	 * @param seconds The number of seconds until the marker point is removed
+	 * @return The {@link BlockDisplay} of the created marker point
+	 */
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
 		float size = 0.02f;
 		if (seconds <= 0) return null;
@@ -383,15 +450,36 @@ public class DexterityAPI {
 		return ("ytrew").replace('y', 'C').replace('w', 'v').replace('t', '7').replace('r', 'd');
 	}
 	
+	/**
+	 * Temporarily makes a {@link DexterityDisplay} glow for a period of time if it is not glowing already. Helpful for debugging or to visualize a selection.
+	 * 
+	 * @param d
+	 * @param ticks The number of ticks (0.05 of a second) until the highlighting is reset.
+	 */
 	public void tempHighlight(DexterityDisplay d, int ticks) {
 		tempHighlight(d, ticks, Color.SILVER);
 	}
 	
+	/**
+	 * Temporarily makes a {@link DexterityDisplay} glow for a period of time if it is not glowing already. Helpful for debugging or to visualize a selection.
+	 * 
+	 * @param d
+	 * @param ticks The number of ticks (0.05 of a second) until the highlighting is reset.
+	 * @param c The glow color to highlight with
+	 */
 	public void tempHighlight(DexterityDisplay d, int ticks, Color c) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		for (DexBlock db : d.getBlocks()) blocks.add(db.getEntity());
 		tempHighlight(blocks, ticks, c);
 	}
+	
+	/**
+	 * Temporarily makes a block display glow for a period of time if it is not glowing already. Helpful for debugging or to visualize a selection.
+	 * 
+	 * @param block The block display to highlight with
+	 * @param ticks The number of ticks (0.05 of a second) until the highlighting is reset.
+	 * @param c The color to highlight with.
+	 */
 	public void tempHighlight(BlockDisplay block, int ticks, Color c) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		blocks.add(block);
@@ -422,6 +510,11 @@ public class DexterityAPI {
 		}.runTaskLater(plugin, ticks);
 	}
 	
+	/**
+	 * Undo any temporarily glow for a selection.
+	 * 
+	 * @param d The selection or display to remove temporary highlighting from
+	 */
 	public void unTempHighlight(DexterityDisplay d) {
 		if (d == null) return;
 		for (DexBlock db : d.getBlocks()) {
@@ -429,14 +522,37 @@ public class DexterityAPI {
 		}
 	}
 	
+	/**
+	 * Check if the UUID of a block display is a marker point that will be removed in the future. 
+	 * Used to check that a repeating process does not go into an infinite loop if it can create marker points.
+	 * 
+	 * @param u
+	 * @return true if the entity with that UUID is a marker point or otherwise will be removed in the near future.
+	 */
 	public boolean isInProcess(UUID u) {
 		return pidMap.containsKey(u);
 	}
 	
+	/**
+	 * Retrieves all of the block display entities within the cuboid defined by the two integer block locations
+	 * 
+	 * @param l1r The first block location
+	 * @param l2r The second block location
+	 * @return Unmodifiable list of Block Display entities that are within the cuboid
+	 */
 	public List<BlockDisplay> getBlockDisplaysInRegion(Location l1r, Location l2r) {
 		return getBlockDisplaysInRegionContinuous(DexUtils.blockLoc(l1r.clone()), DexUtils.blockLoc(l2r.clone()), new Vector(0, 0, 0), new Vector(1, 1, 1));
 	}
 	
+	/**
+	 * Retrieves all of the block display entities within the precise cuboid defined by the two continuous locations
+	 * 
+	 * @param l1r The first location
+	 * @param l2r The second location
+	 * @param l1o The offset added to the minimum of the coordinates
+	 * @param l2o The offset added to the maximum of the coordinates
+	 * @return Unmodifiable list of Block Display entities that are within the cuboid
+	 */
 	public List<BlockDisplay> getBlockDisplaysInRegionContinuous(Location l1r, Location l2r, Vector l1o, Vector l2o) {
 		List<BlockDisplay> blocks = new ArrayList<>();
 		
@@ -492,14 +608,42 @@ public class DexterityAPI {
 		return blocks;
 	}
 	
+	/**
+	 * Create a new {@link DexterityDisplay} of valid block displays within the precise cuboid defined by the two locations.
+	 * Equivalent to using the wand to select in-game.
+	 * 
+	 * @param l1 The first location
+	 * @param l2 The second location
+	 * @return A new DexterityDisplay representing the selection made by the two locations.
+	 */
 	public DexterityDisplay selectFromLocations(Location l1, Location l2) {
 		return selectFromLocations(l1, l2, null, null, null);
 	}
 	
+	/**
+	 * Create a new {@link DexterityDisplay} of valid block displays within the precise cuboid defined by the two locations.
+	 * Equivalent to using the wand to select in-game.
+	 * 
+	 * @param l1 The first location
+	 * @param l2 The second location
+	 * @param mask A mask to use, or null for no mask
+	 * @return A new DexterityDisplay representing the selection made by the two locations.
+	 */
 	public DexterityDisplay selectFromLocations(Location l1, Location l2, Mask mask) {
 		return selectFromLocations(l1, l2, mask, null, null);
 	}
 	
+	/**
+	 * Create a new {@link DexterityDisplay} of valid block displays within the precise cuboid defined by the two locations.
+	 * Equivalent to using the wand to select in-game.
+	 * 
+	 * @param l1 The first location
+	 * @param l2 The second location
+	 * @param mask A mask to use, or null for no mask
+	 * @param l1_scale_offset The offset added to the minimum of the coordinates
+	 * @param l2_scale_offset The offset added to the maximum of the coordinates
+	 * @return A new DexterityDisplay representing the selection made by the two locations.
+	 */
 	public DexterityDisplay selectFromLocations(Location l1, Location l2, Mask mask, Vector l1_scale_offset, Vector l2_scale_offset) {
 		if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
 			if (l1_scale_offset == null) l1_scale_offset = new Vector(0, 0, 0);
@@ -534,7 +678,7 @@ public class DexterityAPI {
 					return null;
 				}
 
-				s.setEntities(dblocks, true);
+				s.setBlocks(dblocks, true);
 
 				return s;
 			}

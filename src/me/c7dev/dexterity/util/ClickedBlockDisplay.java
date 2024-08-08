@@ -52,38 +52,74 @@ public class ClickedBlockDisplay {
 		return bf_;
 	}
 	
+	/**
+	 * Retrieves the vector along the plane of the block face from the center of the face to the precise location of the click
+	 * @return Unmodifiable vector
+	 */
 	public Vector getOffsetFromFaceCenter() {
 		return offset_.clone();
 	}
 	
+	/**
+	 * Retrieves the precise location on the block face that the player clicked
+	 * @return Unmodifiable location
+	 */
 	public Location getClickLocation() {
 		return loc_.clone();
 	}
 	
+	/**
+	 * Retrieves the center of the block display entity
+	 * @return Unmodifiable location
+	 */
 	public Location getDisplayCenterLocation() {
 		return center_.clone();
 	}
 	
+	/**
+	 * Retrieves a unit vector that is perpendicular to the clicked block face
+	 * @return Unmodifiable unit vector
+	 */
 	public Vector getNormal() {
 		return normal_.clone();
 	}
 	
+	/**
+	 * Retrieves the entity's relative up direction basis vector
+	 * @return Unmodifiable unit vector
+	 */
 	public Vector getUpDir() {
 		return up_dir_.clone();
 	}
 	
+	/**
+	 * Retrieves the entity's relative east direction basis vector
+	 * @return Unmodifiable unit vector
+	 */
 	public Vector getEastDir() {
 		return east_dir_.clone();
 	}
 	
+	/**
+	 * Retrieves the entity's relative south direction basis vector
+	 * @return Unmodifiable unit vector
+	 */
 	public Vector getSouthDir() {
 		return south_dir_.clone();
 	}
 	
+	/**
+	 * Retrieves the distance from the player's eye location to the block face in units of blocks
+	 * @return
+	 */
 	public double getDistance() {
 		return dist_;
 	}
 	
+	/**
+	 * Retrieves a wrapper for the calculated roll offset, if roll is used in the block display's rotation
+	 * @return
+	 */
 	public RollOffset getRollOffset() {
 		return ro;
 	}

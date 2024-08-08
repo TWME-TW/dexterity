@@ -13,6 +13,12 @@ public class DisplayRotationEvent extends Event implements Cancellable {
 	private DexterityDisplay d;
 	private Quaterniond q;
 	
+	/**
+	 * Event called when a selection is rotated, such as with a command or the API
+	 * 
+	 * @param display
+	 * @param rotation
+	 */
 	public DisplayRotationEvent(DexterityDisplay display, Quaterniond rotation) {
 		d = display;
 		q = rotation;

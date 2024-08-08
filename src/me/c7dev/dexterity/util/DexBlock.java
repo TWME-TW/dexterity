@@ -23,20 +23,38 @@ public class DexBlock {
 	
 	public static final int TELEPORT_DURATION = 2;
 	
-	public DexBlock(Block display, DexterityDisplay d) {
+	/**
+	 * Convert a block into block display
+	 * @param block The block to convert
+	 * @param d The selection to register the new block display under
+	 */
+	public DexBlock(Block block, DexterityDisplay d) {
 		disp = d;
 		trans = DexTransformation.newDefaultTransformation();
-		entity = d.getPlugin().spawn(display.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, spawned -> {
-			spawned.setBlock(display.getBlockData());
+		entity = d.getPlugin().spawn(block.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, spawned -> {
+			spawned.setBlock(block.getBlockData());
 			spawned.setTransformation(trans.build());
 		});
 		d.getPlugin().setMappedDisplay(this);
-		display.setType(Material.AIR);
+		block.setType(Material.AIR);
 	}
+	/**
+	 * Create a wrapper for a block display that is part of a selection
+	 * @param bd The block display to register
+	 * @param d The selection to register the new block display under
+	 */
 	public DexBlock(BlockDisplay bd, DexterityDisplay d) {
 		this(bd, d, 0f);
 	}
 	
+	/**
+	 * Create a wrapper for a block display that is part of a selection.
+	 * Must manually subtract the {@link RollOffset} afterwards
+	 * 
+	 * @param bd The block display to register
+	 * @param d The selection to register the new block display under
+	 * @param roll The roll, in degrees, that will forced into the wrapper
+	 */
 	@Deprecated //must manually subtract roll offset, used in placing db for efficiency
 	public DexBlock(BlockDisplay bd, DexterityDisplay d, float roll) {
 		entity = bd;
@@ -46,6 +64,12 @@ public class DexBlock {
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
 	}
+	
+	/**
+	 * Spawn a block display wrapper based on a previously recorded state
+	 * 
+	 * @param state
+	 */
 	public DexBlock(DexBlockState state) {
 		disp = state.getDisplay();
 		trans = state.getTransformation();
@@ -60,6 +84,10 @@ public class DexBlock {
 		}
 	}
 	
+	/**
+	 * Calculate the roll, recommended to do async (done automatically when plugin is enabled)
+	 * @param cache Modifyable cache for similar rotation orientations
+	 */
 	public void loadRoll(HashMap<OrientationKey, RollOffset> cache) {
 		Quaternionf r = trans.getLeftRotation();
 		
@@ -82,6 +110,9 @@ public class DexBlock {
 		}
 	}
 	
+	/**
+	 * Calculate the roll, recommended to do async (done automatically when plugin is enabled)
+	 */
 	public void loadRoll() { //async
 		Quaternionf r = trans.getLeftRotation();
 		
@@ -105,10 +136,18 @@ public class DexBlock {
 		disp = d;
 	}
 	
+	/**
+	 * Gets the roll in degrees. Yaw and pitch can be retrieved from the entity's location
+	 * @return The roll in degrees
+	 */
 	public float getRoll() {
 		return roll;
 	}
 	
+	/**
+	 * Set a new transformation for the given roll
+	 * @param f The roll in degrees
+	 */
 	public void setRoll(float f) { //TODO potential optimization is to store same vec, quaternion ref for many db
 		if (Math.abs(f - roll) < 0.0000001) return;
 		RollOffset c = new RollOffset(f);
@@ -130,6 +169,10 @@ public class DexBlock {
 		return new DexBlockState(this);
 	}
 	
+	/**
+	 * Loads in another state without spawning a new entity
+	 * @param state
+	 */
 	public void loadState(DexBlockState state) {
 		if (entity.isDead()) return;
 		trans = state.getTransformation();
@@ -139,11 +182,18 @@ public class DexBlock {
 		entity.setBlock(state.getBlock());
 	}
 		
+	/**
+	 * Sets the transformation wrapper and updates the entity
+	 * @param dt
+	 */
 	public void setTransformation(DexTransformation dt) {
 		trans = dt;
 		entity.setTransformation(dt.build());
 	}
 	
+	/**
+	 * Updates the entity's transformation to the current values of its mutable {@link DexTransformation}
+	 */
 	public void updateTransformation() {
 		
 		entity.setTransformation(trans.build());
@@ -152,25 +202,47 @@ public class DexBlock {
 	public void teleport(Location loc) {
 		entity.teleport(loc);
 	}
+	
+	/**
+	 * Move the block display entity by an offset
+	 * @param v
+	 */
 	public void move(Vector v) {
 		entity.teleport(entity.getLocation().add(v));
 	}
+	
+	/**
+	 * Move the block display entity by an offset
+	 * @param x Distance in blocks
+	 * @param y Distance in blocks
+	 * @param z Distance in blocks
+	 */
 	public void move(double x, double y, double z) {
 		entity.teleport(entity.getLocation().add(x, y, z));
 	}
+	
 //	public void setBrightness(int blockLight, int skyLight) {
 //		entity.setBrightness(new Brightness(blockLight, skyLight));
 //	}
 	
+	/**
+	 * Kill entity and unregister from selection
+	 */
 	public void remove() {
 		disp.removeBlock(this);
 		disp.getPlugin().clearMappedDisplay(entity.getUniqueId());
 		entity.remove();
-		if (disp.getBlocks().length == 0 && disp.getSubdisplays().size() == 0) {
+		if (disp.getBlocks().length == 0 && disp.getSubdisplayCount() == 0) {
 			disp.remove(false);
 		}
 	}
 	
+	/**
+	 * Roll-offset adjusted location of the center of the block display entity.
+	 * This is not necessarily the entity's location if other plugins are being used.
+	 * 
+	 * @return Unmodifiable location of the center of the block display
+	 */
 	public Location getLocation() {
 		return entity.getLocation().add(trans.getDisplacement()).add(trans.getScale().clone().multiply(0.5));
 	}

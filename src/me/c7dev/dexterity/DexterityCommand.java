@@ -112,8 +112,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		strs[i] = line;
 		
-		for (int j = 1; j <= disp.getSubdisplays().size(); j++) {
-			count += constructList(strs, disp.getSubdisplays().get(j-1), selected, i+count, level+1);
+		DexterityDisplay[] subs = disp.getSubdisplays();
+		for (int j = 1; j <= subs.length; j++) {
+			count += constructList(strs, subs[j-1], selected, i+count, level+1);
 		}
 		
 		return count;
@@ -456,7 +457,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				state.setDisplay(clone);
 				blocks.add(new DexBlock(state));
 			}
-			clone.setEntities(blocks, false);
+			clone.setBlocks(blocks, false);
 			
 			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
 			

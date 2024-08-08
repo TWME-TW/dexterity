@@ -43,7 +43,7 @@ public class RemoveTransaction implements Transaction {
 		for (DexBlockState state : states) {
 			blocks.add(new DexBlock(state));
 		}
-		disp.setEntities(blocks, false);
+		disp.setBlocks(blocks, false);
 		if (label != null) disp.setLabel(label);
 		return disp;
 	}
