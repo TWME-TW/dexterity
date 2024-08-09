@@ -374,7 +374,10 @@ public class DexSession {
 	 */
 	public void finishEdit() {
 		if (selected == null) return;
-		if (secondary != null && editType != EditType.CLONE) selected = secondary;
+		if (secondary != null) {
+			secondary.setEditingLock(null);
+			if (editType != EditType.CLONE) selected = secondary;
+		}
 		secondary = null;
 		following = null;
 		selected.setEditingLock(null);
@@ -460,7 +463,6 @@ public class DexSession {
 	private void selectFromLocations() {
 		if (editType == null) {
 			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
-				
 				if (DexUtils.getVolume(l1, l2) > plugin.getMaxVolume()) {
 					setSelected(null, false);
 					return;

@@ -23,7 +23,6 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
-import me.c7dev.dexterity.displays.animation.Animation;
 import me.c7dev.dexterity.displays.animation.RideAnimation;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
@@ -239,5 +238,4 @@ public class EventListeners implements Listener {
 			}.runTaskLater(plugin, 600l); //TODO make this configurable
 		}
 	}
-
 }

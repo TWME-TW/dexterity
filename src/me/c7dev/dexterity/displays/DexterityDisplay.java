@@ -208,10 +208,13 @@ public class DexterityDisplay {
 	 * @see #removeBlock(DexBlock)
 	 */
 	public void addBlock(DexBlock db) {
-		if (db.getDexterityDisplay() == null || !db.getDexterityDisplay().isSaved()) {
-			db.setDexterityDisplay(this);
-			blocks.add(db);
-		}
+		if (db.getDexterityDisplay() != null && db.getDexterityDisplay().isSaved() && !uuid.equals(db.getDexterityDisplay().getUniqueId())) db.getDexterityDisplay().removeBlockNoUnmap(db);
+		db.setDexterityDisplay(this);
+		blocks.add(db);
+	}
+
+	private void removeBlockNoUnmap(DexBlock db) {
+		blocks.remove(db);
 	}
 	
 	/**
@@ -287,12 +290,12 @@ public class DexterityDisplay {
 
 	/**
 	 * Overrides the blocks in this display
-	 * @param entities_ A list of unique DexBlocks
+	 * @param entities A list of unique DexBlocks
 	 * @param recalc_center Recalculates the center point and scale if true
 	 * @see #getBlocks()
 	 */
-	public void setBlocks(List<DexBlock> entities_, boolean recalc_center){
-		this.blocks = entities_;
+	public void setBlocks(List<DexBlock> entities, boolean recalc_center){
+		this.blocks = entities;
 		plugin.unregisterDisplay(this);
 		if (recalc_center) recalculateCenter();
 	}

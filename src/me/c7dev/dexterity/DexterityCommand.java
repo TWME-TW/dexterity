@@ -45,7 +45,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "clone", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
-		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unmerge", "unsave", "wand"
+		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -389,7 +389,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			if (def != null) {
 				DexterityDisplay disp = plugin.getDisplay(def);
-				if (disp != null) {					
+				if (disp != null) {	
 					session.setSelected(disp, true);
 					return true;
 				} else if (index < 0) {
@@ -432,11 +432,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("clone")) {
 			DexterityDisplay d = getSelected(session, "clone");
-			if (d == null) return true;
-			if (session.getSecondary() != null) {
-				p.sendMessage(getConfigString("must-finish-edit", session));
-				return true;
-			}
+			if (d == null || testInEdit(session)) return true;
+			
 			boolean mergeafter = flags.contains("merge");
 			if (mergeafter && !d.canHardMerge()) {
 				p.sendMessage(getConfigString("cannot-clone", session));
@@ -899,20 +896,20 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				} else p.sendMessage(getConfigString("failed-merge", session));
 			}
 		}
-		else if (args[0].equalsIgnoreCase("unmerge")) {
-			DexterityDisplay d = getSelected(session, "merge");
-			if (d == null || testInEdit(session)) return true;
-			if (d.getLabel() == null) {
-				p.sendMessage(getConfigString("must-save-display", session));
-				return true;
-			}
-			if (d.getParent() == null) {
-				p.sendMessage(getConfigString("nothing-to-unmerge", session));
-				return true;
-			}
-			d.unmerge();
-			p.sendMessage(getConfigString("unmerge-success", session));
-		}
+//		else if (args[0].equalsIgnoreCase("unmerge")) {
+//			DexterityDisplay d = getSelected(session, "merge");
+//			if (d == null || testInEdit(session)) return true;
+//			if (d.getLabel() == null) {
+//				p.sendMessage(getConfigString("must-save-display", session));
+//				return true;
+//			}
+//			if (d.getParent() == null) {
+//				p.sendMessage(getConfigString("nothing-to-unmerge", session));
+//				return true;
+//			}
+//			d.unmerge();
+//			p.sendMessage(getConfigString("unmerge-success", session));
+//		}
 		
 		else {
 			p.sendMessage(plugin.getConfigString("unknown-subcommand"));

@@ -281,7 +281,7 @@ public class Dexterity extends JavaPlugin {
 		}
 	}
 	
-	private int loadDisplays() { //load from displays.yml
+	private int loadDisplays() {
 		File folder = new File(this.getDataFolder().getAbsolutePath() + "/displays/");
 		if (!folder.exists()) {
 			folder.mkdirs();
@@ -370,14 +370,18 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void saveDisplays() {
-		for (DexterityDisplay disp : getDisplays()) {
-			saveDisplay(disp);
+		try {
+			for (DexterityDisplay disp : getDisplays()) {
+				saveDisplay(disp);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
 		}
 	}
 	
 	public void saveDisplay(DexterityDisplay disp) {
 		
-		if (!disp.isSaved() || disp.getLabel().length() == 0) return; //TODO auto-generate label
+		if (!disp.isSaved() || disp.getLabel().length() == 0 || disp.getBlocksCount() == 0) return;
 		
 		File f = new File(this.getDataFolder().getAbsoluteFile() + "/displays/" + disp.getLabel() + ".yml");
 		try {
@@ -394,23 +398,25 @@ public class Dexterity extends JavaPlugin {
 		if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
 		if (disp.getScale().getZ() != 1) afile.set("scale-z", disp.getScale().getZ());
-		
+
 		if (disp.getRotationManager() != null) {
-			try {
-				DexRotation rot = disp.getRotationManager();
-				AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
-				Vector res = a.getPitchYawRoll();
-				if (res.getY() != 0) afile.set("yaw", res.getY());
-				if (res.getX() != 0) afile.set("pitch", res.getX());
-				if (res.getZ() != 0) afile.set("roll", res.getZ());
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}
+			DexRotation rot = disp.getRotationManager();
+			AxisPair a = new AxisPair(rot.getXAxis(), rot.getZAxis());
+			Vector res = a.getPitchYawRoll();
+			if (res.getY() != 0) afile.set("yaw", res.getY());
+			if (res.getX() != 0) afile.set("pitch", res.getX());
+			if (res.getZ() != 0) afile.set("roll", res.getZ());
 		}
 		
 		List<String> uuids = new ArrayList<>();
-		for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
-		afile.set("uuids", uuids);
+		DexBlock[] blocks = disp.getBlocks();
+		if (blocks.length > 0) {
+			for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
+			afile.set("uuids", uuids);
+		} else {
+			Bukkit.getLogger().warning("Jar modified, skipping save of " + disp.getLabel());
+			return;
+		}
 				
 		if (disp.getParent() != null) afile.set("parent", disp.getParent().getLabel());
 		
