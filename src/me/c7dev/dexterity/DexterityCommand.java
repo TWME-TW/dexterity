@@ -797,6 +797,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			boolean set = flags.contains("set");
 			
 			ScaleTransaction t = new ScaleTransaction(d);
+			Vector scale = new Vector();
+			String scale_str;
 			if (attrs.containsKey("x") || attrs.containsKey("y") || attrs.containsKey("z")) {
 				HashMap<String, Double> attrsd = DexUtils.getAttributesDoubles(args);
 				float sx = Math.abs(attrsd.getOrDefault("x", set ? d.getScale().getX() : 1).floatValue());
@@ -808,38 +810,34 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					return true;
 				}
 				
-				String scale_str = sx + ", " + sy + ", " + sz;
-				try {
-					if (set) {
-						d.setScale(new Vector(sx, sy, sz));
-						p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
-					}
-					else {
-						d.scale(new Vector(sx, sy, sz));
-						p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
-					}
-				} catch (DexterityException ex) {
-					p.sendMessage(getConfigString("selection-too-complex", session).replaceAll("\\Q%scale%\\E", scale_str));
-					return true;
-				}
-				
+				scale_str = sx + ", " + sy + ", " + sz;
+				scale = new Vector(sx, sy, sz);
 			} else {
-				float scale = 1;
+				float scalar;
 				try {
-					scale = Float.parseFloat(def);
+					scalar = Float.parseFloat(def);
 				} catch(Exception ex) {
 					p.sendMessage(getConfigString("must-send-number", session));
 					return true;
 				}
-
+				scale_str = "" + scalar;
+				scale = new Vector(scalar, scalar, scalar);
+			}
+			
+			try {
 				if (set) {
 					d.setScale(scale);
-					p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale + ""));
-				} else {
-					d.scale(scale);
-					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale + ""));
+					p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
 				}
+				else {
+					d.scale(scale);
+					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+				}
+			} catch (DexterityException ex) {
+				p.sendMessage(getConfigString("selection-too-complex", session).replaceAll("\\Q%scale%\\E", scale_str));
+				return true;
 			}
+
 			t.commit();
 			session.pushTransaction(t);
 		}

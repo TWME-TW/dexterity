@@ -297,7 +297,7 @@ public class DexterityAPI {
 
 			Vector[] locs = {up, down, south, north, east, west};
 						
-			plugin.api().markerPoint(loc, Color.AQUA, 4);
+//			plugin.api().markerPoint(loc, Color.AQUA, 4);
 			
 			for (int i = 0; i < locs.length; i++) {
 				
