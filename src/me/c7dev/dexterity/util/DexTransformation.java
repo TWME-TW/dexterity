@@ -97,7 +97,8 @@ public class DexTransformation {
 	}
 	
 	public Transformation build() {
-		return new Transformation(DexUtils.vector(disp.clone().add(DexUtils.hadimard(disp2, scale))), l, DexUtils.vector(scale), r);
+		return new Transformation(DexUtils.vector(disp.clone().add(disp2)), l, DexUtils.vector(scale), r);
+//		return new Transformation(DexUtils.vector(disp.clone().add(DexUtils.hadimard(disp2, scale))), l, DexUtils.vector(scale), r);
 	}
 
 }

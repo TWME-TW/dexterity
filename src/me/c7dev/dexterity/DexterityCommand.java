@@ -34,6 +34,7 @@ import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.RotationPlan;
 
@@ -171,18 +172,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			} else if (args.length >= 2) page = Math.max(DexUtils.parseInt(args[1]) - 1, 0);
 			int maxpage = DexUtils.maxPage(commands.length, 5);
 			if (page >= maxpage) page = maxpage - 1;
-						
+
 			p.sendMessage(plugin.getConfigString("help-page-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
 			DexUtils.paginate(p, command_strs, page, 5);
 		}
-
+		
 		else if (args[0].equalsIgnoreCase("wand")) {
 			ItemStack wand = new ItemStack(Material.BLAZE_ROD);
 			ItemMeta meta = wand.getItemMeta();
 			meta.setDisplayName(plugin.getConfigString("wand-title", "§fDexterity Wand"));
 			wand.setItemMeta(meta);
 			p.getInventory().addItem(wand);
-			
 		}
 		
 //		else if (args[0].equalsIgnoreCase("animtest")) {
@@ -217,7 +217,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			d.addAnimation(r);
 //			r.start();
 //		}
-		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")) {
+		
+		else if (args[0].equalsIgnoreCase("debug:centers") && p.hasPermission("dexterity.admin")){
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			boolean entity_centers = flags.contains("entities");
@@ -226,6 +227,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				if (entity_centers) api.markerPoint(db.getEntity().getLocation(), Color.ORANGE, 6);
 			}
 		}
+
 		else if (args[0].equalsIgnoreCase("debug:removetransformation") && p.hasPermission("dexterity.admin")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
@@ -726,9 +728,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("info")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
-			if (d.getLabel() == null) {
-				p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
-			} else {
+			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
+			if (d.getLabel() != null) {
 				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
 				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
 			}
@@ -808,13 +809,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 				
 				String scale_str = sx + ", " + sy + ", " + sz;
-				if (set) {
-					d.setScale(new Vector(sx, sy, sz));
-					p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
-				}
-				else {
-					d.scale(new Vector(sx, sy, sz));
-					p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+				try {
+					if (set) {
+						d.setScale(new Vector(sx, sy, sz));
+						p.sendMessage(getConfigString("scale-success-set", session).replaceAll("\\Q%scale%\\E", scale_str));
+					}
+					else {
+						d.scale(new Vector(sx, sy, sz));
+						p.sendMessage(getConfigString("scale-success", session).replaceAll("\\Q%scale%\\E", scale_str));
+					}
+				} catch (DexterityException ex) {
+					p.sendMessage(getConfigString("selection-too-complex", session).replaceAll("\\Q%scale%\\E", scale_str));
+					return true;
 				}
 				
 			} else {

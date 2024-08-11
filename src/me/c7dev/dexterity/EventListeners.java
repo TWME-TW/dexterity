@@ -159,7 +159,7 @@ public class EventListeners implements Listener {
 						
 						if (clicked_display != null) {
 							DexBlock new_db = new DexBlock(b, clicked_display, clicked_db.getRoll());
-							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(DexUtils.hadimard(clicked_db.getTransformation().getRollOffset(), clicked_db.getTransformation().getScale())));
+							new_db.getTransformation().setDisplacement(new_db.getTransformation().getDisplacement().subtract(clicked_db.getTransformation().getRollOffset()));
 							new_db.getTransformation().setRollOffset(clicked_db.getTransformation().getRollOffset().clone());
 							clicked_display.addBlock(new_db);
 							if (session != null) session.pushBlock(new_db, true);

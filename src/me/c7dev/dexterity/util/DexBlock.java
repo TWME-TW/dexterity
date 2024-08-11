@@ -91,18 +91,18 @@ public class DexBlock {
 	public void loadRoll(HashMap<OrientationKey, RollOffset> cache) {
 		Quaternionf r = trans.getLeftRotation();
 		
-		OrientationKey key = new OrientationKey(trans.getScale().getX(), trans.getScale().getY(), trans.getScale().getZ(), r);
+		OrientationKey key = new OrientationKey(trans.getScale().getX(), trans.getScale().getY(), r);
 		RollOffset cached = cache.get(key);
 		if (cached != null) {
 			trans.setRollOffset(cached.getOffset());
-			trans.getDisplacement().subtract(DexUtils.hadimard(cached.getOffset(), trans.getScale()));
+			trans.getDisplacement().subtract(cached.getOffset());
 			roll = cached.getRoll();
 		} else {
 			if (r.w != 0) {
 				if (r.x == 0 && r.y == 0 && r.z != 0) {
-					RollOffset c = new RollOffset(r);
+					RollOffset c = new RollOffset(r, trans.getScale());
 					trans.setRollOffset(c.getOffset());
-					trans.getDisplacement().subtract(DexUtils.hadimard(c.getOffset(), trans.getScale()));
+					trans.getDisplacement().subtract(c.getOffset());
 					roll = c.getRoll();
 					cache.put(key, c);
 				}
@@ -118,7 +118,7 @@ public class DexBlock {
 		
 		if (r.w != 0) {
 			if (r.x == 0 && r.y == 0 && r.z != 0) {
-				RollOffset c = new RollOffset(r);
+				RollOffset c = new RollOffset(r, trans.getScale());
 				trans.setRollOffset(c.getOffset());
 				trans.getDisplacement().subtract(c.getOffset());
 				roll = c.getRoll();
@@ -150,7 +150,7 @@ public class DexBlock {
 	 */
 	public void setRoll(float f) { //TODO potential optimization is to store same vec, quaternion ref for many db
 		if (Math.abs(f - roll) < 0.0000001) return;
-		RollOffset c = new RollOffset(f);
+		RollOffset c = new RollOffset(f, trans.getScale());
 		trans.setLeftRotation(c.getQuaternion());
 		trans.setRollOffset(c.getOffset());
 		roll = f;

@@ -233,14 +233,13 @@ public class DexterityAPI {
 //				float key = e.getTransformation().getLeftRotation().w;
 					OrientationKey key = new OrientationKey(e.getTransformation().getScale().x, 
 							e.getTransformation().getScale().y,
-							e.getTransformation().getScale().z,
 							e.getTransformation().getLeftRotation());
 					ro = roll_offsets.get(key); //does not account for pitch and yaw built into the rotation quaternion, assumed that blocks managed by other plugins are not built on
 					if (ro == null) {
-						ro = new RollOffset(e.getTransformation().getLeftRotation());
+						ro = new RollOffset(e.getTransformation().getLeftRotation(), DexUtils.vector(e.getTransformation().getScale()));
 						roll_offsets.put(key, ro);
 					}
-					displacement.subtract(DexUtils.hadimard(ro.getOffset(), DexUtils.vector(e.getTransformation().getScale())));
+					displacement.subtract(ro.getOffset());
 				}
 				loc = e.getLocation().add(displacement).add(scale_raw);
 			} else {
@@ -250,7 +249,7 @@ public class DexterityAPI {
 			
 			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 0) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
 				
-				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), 0, e.getTransformation().getLeftRotation());
+				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), e.getTransformation().getLeftRotation());
 				Vector[] res = axes.get(key);
 				if (res == null) {
 					Vector3f east_dir_d = new Vector3f(1, 0, 0), up_dir_d = new Vector3f(0, 1, 0), south_dir_d = new Vector3f(0, 0, 1);
@@ -298,7 +297,7 @@ public class DexterityAPI {
 
 			Vector[] locs = {up, down, south, north, east, west};
 						
-//			plugin.api().markerPoint(loc, Color.AQUA, 4);
+			plugin.api().markerPoint(loc, Color.AQUA, 4);
 			
 			for (int i = 0; i < locs.length; i++) {
 				

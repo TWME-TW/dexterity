@@ -5,15 +5,14 @@ import org.joml.Quaternionf;
 public class OrientationKey {
 	
 	private Quaternionf q;
-	private double x, y, z;
+	private double x, y;
 	
 	public static final double epsilon = 0.000001;
 	
-	public OrientationKey(double yaw, double pitch, double roll, Quaternionf q) {
+	public OrientationKey(double yaw, double pitch, Quaternionf q) {
 		this.q = q;
 		this.x = yaw;
 		this.y = pitch;
-		this.z = roll;
 	}
 	
 	public Quaternionf getQuaternion() {
@@ -40,7 +39,6 @@ public class OrientationKey {
 		
 		hash = 31 * hash + (int) (Double.doubleToLongBits(x) ^ (Double.doubleToLongBits(x) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(y) ^ (Double.doubleToLongBits(y) >>> 32));
-		hash = 31 * hash + (int) (Double.doubleToLongBits(z) ^ (Double.doubleToLongBits(z) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.x) ^ (Double.doubleToLongBits(q.x) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.y) ^ (Double.doubleToLongBits(q.y) >>> 32));
 		hash = 31 * hash + (int) (Double.doubleToLongBits(q.z) ^ (Double.doubleToLongBits(q.z) >>> 32));

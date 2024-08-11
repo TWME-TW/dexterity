@@ -224,6 +224,13 @@ public class DexUtils {
 	public static Vector hadimard(Vector a, Vector b) {
 		return new Vector(a.getX()*b.getX(), a.getY()*b.getY(), a.getZ()*b.getZ());
 	}
+	public static Vector linearCombination(Vector x1, Vector y1, Vector z1, Vector u) {
+		Vector v = new Vector();
+		v.add(x1.clone().multiply(u.getX()));
+		v.add(y1.clone().multiply(u.getY()));
+		v.add(z1.clone().multiply(u.getZ()));
+		return v;
+	}
 	public static Location location(World w, Vector v) {
 		return new Location(w, v.getX(), v.getY(), v.getZ(), 0, 0);
 	}

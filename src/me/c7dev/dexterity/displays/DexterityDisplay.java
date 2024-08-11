@@ -1,6 +1,7 @@
 package me.c7dev.dexterity.displays;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
 import org.joml.Quaterniond;
 
 import me.c7dev.dexterity.Dexterity;
@@ -17,7 +19,10 @@ import me.c7dev.dexterity.displays.animation.Animation;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.Mask;
+import me.c7dev.dexterity.util.OrientationKey;
+import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexterityDisplay {
@@ -630,15 +635,32 @@ public class DexterityDisplay {
 	 * Scale by a multiplier
 	 * @param s
 	 */
-	public void scale(float s) {
-		scale(new Vector(s, s, s));
+	public void scale(double s) {
+		if (s == 0) throw new IllegalArgumentException("Scale cannot be zero!");
+		Vector centerv = center.toVector();
+		for (DexBlock db : blocks) {
+			
+//			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
+			Vector diff = db.getLocation().toVector().subtract(centerv).multiply(s-1);
+			Vector block_scale = db.getTransformation().getScale().multiply(s);
+			
+			db.move(diff);
+			
+			db.getTransformation()
+					.setDisplacement(block_scale.clone().multiply(-0.5))
+					.setScale(block_scale);
+			if (db.getTransformation().getRollOffset() != null) db.getTransformation().getRollOffset().multiply(s);
+			db.updateTransformation();
+		}
+		scale = scale.multiply(s);
+		for (DexterityDisplay sub : subdisplays) sub.setScale(s);
 	}
 	
 	/**
 	 * Set the scale
 	 * @param s Representing x, y, and z scale
 	 */
-	public void setScale(float s) {
+	public void setScale(double s) {
 		setScale(new Vector(s, s, s));
 	}
 	
@@ -654,26 +676,64 @@ public class DexterityDisplay {
 	/**
 	 * Skew by a multiplier along x, y, and z, respectively
 	 * @param v
+	 * @throws {@link DexterityException} if skewing a selection with more than 1 rotation orientation, as it is impossible to create parallelograms
 	 */
 	public void scale(Vector v) {
+		if (blocks.size() == 0) return;
 		if (v.getX() == 0 || v.getY() == 0 || v.getZ() == 0) throw new IllegalArgumentException("Scale cannot be zero!");
-		Vector sd = v.clone().add(new Vector(-1, -1, -1));
+		if (v.getX() == v.getY() && v.getY() == v.getZ()) {
+			scale(v.getX());
+			return;
+		}
+		
+		OrientationKey all_key = null;
 		for (DexBlock db : blocks) {
+			OrientationKey key = new OrientationKey(db.getLocation().getYaw(), db.getLocation().getPitch(), db.getTransformation().getLeftRotation());
+			if (all_key == null) all_key = key;
+			else if (!all_key.equals(key)) throw new DexterityException("This selection has too many rotation orientation types to skew!");
+		}
+		
+		HashMap<Vector, RollOffset> offsets = new HashMap<>();
+		
+		if (rot == null) rot = new DexRotation(this);
+		Matrix3d unitVecs = new Matrix3d(
+				rot.getXAxis().getX(), rot.getXAxis().getY(), rot.getXAxis().getZ(),
+				rot.getYAxis().getX(), rot.getYAxis().getY(), rot.getYAxis().getZ(),
+				rot.getZAxis().getX(), rot.getZAxis().getY(), rot.getZAxis().getZ()
+				);
+		unitVecs.invert();
+		Vector x1 = new Vector(unitVecs.m00, unitVecs.m10, unitVecs.m20);
+		Vector y1 = new Vector(unitVecs.m01, unitVecs.m11, unitVecs.m21);
+		Vector z1 = new Vector(unitVecs.m02, unitVecs.m12, unitVecs.m22);
+		
+		Vector centerv = center.toVector();
+		for (DexBlock db : blocks) {
+			Vector diff = db.getLocation().toVector().subtract(centerv);
+			Vector unit_composition = DexUtils.vector(unitVecs.transform(DexUtils.vector(diff)));
+			Vector unit_diff = DexUtils.hadimard(unit_composition, v);
 			
-//			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
-			Vector disp = db.getLocation().toVector().subtract(center.toVector());
-			Vector diff = DexUtils.hadimard(disp, sd);
-			Vector block_scale = DexUtils.hadimard(v, db.getTransformation().getScale());
+			Vector scaled_diff = DexUtils.linearCombination(x1, y1, z1, unit_diff);
 			
-			db.move(diff);
+			db.move(scaled_diff.subtract(diff));
+			Vector block_scale = DexUtils.hadimard(db.getTransformation().getScale(), v);
+			
+			RollOffset ro = offsets.get(block_scale);
+			if (ro == null) {
+				ro = new RollOffset(db.getRoll(), block_scale);
+				offsets.put(block_scale, ro);
+			}
 			
 			db.getTransformation()
 					.setDisplacement(block_scale.clone().multiply(-0.5))
-					.setScale(block_scale);
+					.setScale(block_scale)
+					.setRollOffset(ro.getOffset());
 			db.updateTransformation();
+			
 		}
+				
 		scale = DexUtils.hadimard(scale, v);
-		for (DexterityDisplay sub : subdisplays) sub.setScale(v);
+		for (DexterityDisplay sub : subdisplays) sub.scale(v);
+		
 	}
 	
 	@Deprecated
