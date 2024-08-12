@@ -512,8 +512,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 				
 				ConvertTransaction t = new ConvertTransaction();
+				session.setCancelPhysics(true);
+				
 				DexterityDisplay d = api.convertBlocks(l1, l2, t);
 				
+				session.setCancelPhysics(false);
 				session.setSelected(d, false);
 				session.pushTransaction(t);
 								

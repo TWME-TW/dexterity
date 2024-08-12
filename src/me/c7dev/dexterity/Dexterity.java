@@ -471,6 +471,10 @@ public class Dexterity extends JavaPlugin {
 		return all_displays.get(label);
 	}
 	
+	public Set<Entry<UUID, DexSession>> editSessionIter() {
+		return sessions.entrySet();
+	}
+	
 	public DexSession getEditSession(UUID u) {
 		DexSession s = sessions.get(u);
 		if (s == null) {

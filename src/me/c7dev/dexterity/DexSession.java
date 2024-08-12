@@ -44,6 +44,7 @@ public class DexSession {
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	private BuildTransaction t_build;
 	private Mask mask;
+	private boolean cancel_physics = false;
 	
 	/**
 	 * Initializes a new session for a player
@@ -102,6 +103,22 @@ public class DexSession {
 	
 	public DexterityDisplay getSecondary() {
 		return secondary;
+	}
+	
+	/**
+	 * Gets whether the blocks between the 2 locations have physics updates
+	 * @return true if block physics events should be cancelled
+	 */
+	public boolean isCancellingPhysics() {
+		return (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName()) && cancel_physics);
+	}
+	
+	/**
+	 * Sets whether the blocks between the 2 locations have physics updates
+	 * @param b
+	 */
+	public void setCancelPhysics(boolean b) {
+		cancel_physics = b;
 	}
 	
 	/**
@@ -471,15 +488,15 @@ public class DexSession {
 				DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
 				if (d == null) setSelected(null, false);
 				else {
-					selected = d;
 					highlightSelected(d);
+					selected = d;
 				}
 			} else volume = Integer.MAX_VALUE;
 		}
 	}
 	
 	private void highlightSelected(DexterityDisplay new_disp) {
-		plugin.api().unTempHighlight(selected);
+		if (selected != null) plugin.api().unTempHighlight(selected);
 		plugin.api().tempHighlight(new_disp, 30);
 	}
 	
