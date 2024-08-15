@@ -20,6 +20,7 @@ import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
+import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
@@ -39,6 +40,7 @@ public class DexterityDisplay {
 	private List<DexBlock> blocks = new ArrayList<>();
 	private List<Animation> animations = new ArrayList<>();
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
+	private List<InteractionCommand> cmds = new ArrayList<>();
 	
 	/**
 	 * Initializes an empty selection.
@@ -162,6 +164,7 @@ public class DexterityDisplay {
 			return true;
 		}
 		s = s.toLowerCase();
+		if (s.startsWith("-") || s.contains(".")) throw new IllegalArgumentException("Invalid label! Cannot contain '-' or '.' symbols.");
 		if (plugin.getDisplayLabels().contains(s)) return false;
 		if (label != null) plugin.unregisterDisplay(this);
 		label = s;
@@ -283,6 +286,39 @@ public class DexterityDisplay {
 			if (a.getClass() == clazz) return a;
 		}
 		return null;
+	}
+	
+	/**
+	 * Retrieves a list of commands to run when display is clicked
+	 * 
+	 * @return Unmodifiable array of InteractionCommand cmd data
+	 */
+	public InteractionCommand[] getCommands() {
+		return cmds.toArray(new InteractionCommand[cmds.size()]);
+	}
+	
+	/**
+	 * Retrieves the size of the command list
+	 * @return size of array
+	 */
+	public int getCommandCount() {
+		return cmds.size();
+	}
+	
+	/**
+	 * Adds a command to run when display is clicked
+	 * @param cmd
+	 */
+	public void addCommand(InteractionCommand cmd) {
+		if (!cmds.contains(cmd)) cmds.add(cmd);
+	}
+	
+	/**
+	 * Removes a command from being run when display is clicked
+	 * @param cmd
+	 */
+	public void removeCommand(InteractionCommand cmd) {
+		cmds.remove(cmd);
 	}
 	
 	/**

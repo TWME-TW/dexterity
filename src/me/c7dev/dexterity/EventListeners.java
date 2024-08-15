@@ -31,6 +31,7 @@ import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.InteractionCommand;
 
 public class EventListeners implements Listener {
 	
@@ -90,12 +91,17 @@ public class EventListeners implements Listener {
 			if (!e.getPlayer().hasPermission("dexterity.build") || (hand.getType() == Material.AIR && right_click)) {
 				if (clicked == null || clicked_block) return;
 				if (clicked_display != null && clicked_display.isSaved()) {
+					//click a display as normal player or with nothing in hand
 					RideAnimation ride = (RideAnimation) clicked_display.getAnimation(RideAnimation.class);
 					if (ride != null && ride.getMountedPlayer() == null) {
 						ride.mount(e.getPlayer());
 						ride.start();
 					}
 					e.setCancelled(true);
+					
+					InteractionCommand[] cmds = clicked_display.getCommands();
+					for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
+					
 				}
 			} else {
 				//wand click

@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 
@@ -62,7 +63,7 @@ public class DexSession {
 			if (r != null) {
 				if (r.getMinimumPoint() != null) l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
 				if (r.getMaximumPoint() != null) l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
-				if (l1 != null && l2 != null) selectFromLocations();
+				selectFromLocations();
 			}
 		}
 	}
@@ -110,7 +111,7 @@ public class DexSession {
 	 * @return true if block physics events should be cancelled
 	 */
 	public boolean isCancellingPhysics() {
-		return (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName()) && cancel_physics);
+		return (hasLocationsSet() && cancel_physics);
 	}
 	
 	/**
@@ -420,13 +421,55 @@ public class DexSession {
 		return l1 == null ? null : l1.getWorld();
 	}
 	
+	/**
+	 * Returns the max between number of entities and volume between 2 locations
+	 * @return
+	 */
 	public double getSelectionVolume() {
 		return Math.max(getSelectedVolumeSpace(), getSelectedVolumeCount());
 	}
-	public double getSelectedVolumeSpace() {
-		if (volume == Integer.MAX_VALUE) return 0;
-		return volume;
+	
+	/**
+	 * Returns true if locations are set and valid.
+	 * @return
+	 */
+	public boolean hasLocationsSet() {
+		return (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName()));
 	}
+	
+	/**
+	 * Returns the number of blocks of volume between 2 locations cuboid
+	 * @return
+	 */
+	public double getSelectedVolumeSpace() {
+		if (hasLocationsSet()) return volume;
+		else return 0;
+	}
+	
+	/**
+	 * Returns the largest volume defined by the dexterity.maxvolume.# permission
+	 * @return Min of configured max volume and volume from permissions
+	 */
+	public double getPermittedVolume() {
+		for (PermissionAttachmentInfo perm : p.getEffectivePermissions()) {
+			if (perm.getPermission().startsWith("dexterity.maxvolume.")) {
+				try {
+					double r = Double.parseDouble(perm.getPermission().replaceAll("dexterity\\.maxvolume\\.", ""));
+					if (r < plugin.getMaxVolume()) return r;
+					break;
+				} catch (Exception ex) {
+					Bukkit.getLogger().warning("Permission '" + perm.getPermission() + "' is invalid!");
+					break;
+				}
+			}
+		}
+		return plugin.getMaxVolume();
+	}
+	
+	/**
+	 * Returns the number of {@link DexBlock} in the selection
+	 * @return Integer count of blocks or 0 if nothing selected
+	 */
 	public double getSelectedVolumeCount() {
 		return selected == null ? 0 : selected.getBlocks().length;
 	}
@@ -448,6 +491,7 @@ public class DexSession {
 	 */
 	public void setLocation(Location loc, boolean is_l1, boolean msg) {
 		setContinuousLocation(DexUtils.blockLoc(loc), is_l1, is_l1 ? new Vector(0, 0, 0) : new Vector(1, 1, 1), msg);
+		if (hasLocationsSet()) volume = DexUtils.getBlockVolume(l1, l2);
 	}
 	
 	/**
@@ -479,19 +523,19 @@ public class DexSession {
 	
 	private void selectFromLocations() {
 		if (editType == null) {
-			if (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName())) {
-				if (DexUtils.getVolume(l1, l2) > plugin.getMaxVolume()) {
+			if (hasLocationsSet()) {
+				if (getSelectedVolumeSpace() > Math.min(plugin.getMaxVolume(), getPermittedVolume())) {
 					setSelected(null, false);
 					return;
 				}
-				
 				DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
 				if (d == null) setSelected(null, false);
 				else {
 					highlightSelected(d);
 					selected = d;
 				}
-			} else volume = Integer.MAX_VALUE;
+				volume = DexUtils.getVolume(l1.clone().add(l1_scale_offset), l2.clone().add(l2_scale_offset));
+			} else volume = 0;
 		}
 	}
 	

@@ -136,7 +136,20 @@ public class DexterityAPI {
 	 * @param l2 Second location
 	 * @return A {@link DexterityDisplay} selection of the newly created block displays
 	 */
-	public DexterityDisplay convertBlocks(Location l1, Location l2, ConvertTransaction t) { //l1 and l2 bounding box, all blocks inside converted
+	public DexterityDisplay convertBlocks(Location l1, Location l2, ConvertTransaction t) {
+		return convertBlocks(l1, l2, t, plugin.getMaxVolume());
+	}
+	
+	/**
+	 * Converts all of the blocks inside the cuboid defined by the two locations into Block Displays
+	 * 
+	 * @param l1 First location
+	 * @param l2 Second location
+	 * @param t Transaction to add blocks
+	 * @param limit Maximum number to convert for safety
+	 * @return A {@link DexterityDisplay} selection of the newly created block displays
+	 */
+	public DexterityDisplay convertBlocks(Location l1, Location l2, ConvertTransaction t, int limit) { //l1 and l2 bounding box, all blocks inside converted
 		if (!l1.getWorld().getName().equals(l2.getWorld().getName())) throw new IllegalArgumentException("Locations must be in the same world!");
 		
 		int xmin = Math.min(l1.getBlockX(), l2.getBlockX()), xmax = Math.max(l1.getBlockX(), l2.getBlockX());

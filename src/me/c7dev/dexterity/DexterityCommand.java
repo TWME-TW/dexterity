@@ -35,6 +35,7 @@ import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
+import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.RotationPlan;
 
@@ -45,8 +46,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, cc3, usage_format, selected_str, loclabel_prefix;
 	
 	private String[] commands = {
-		"align", "clone", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", "merge", "move", 
-		"name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
+		"align", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", 
+		"merge", "move", "name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -497,6 +498,78 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
 		}
 		
+		else if (args[0].equalsIgnoreCase("command") || args[0].equalsIgnoreCase("cmd")) {
+			DexterityDisplay d = getSelected(session, "cmd");
+			if (d == null) return true;
+			
+			if (args[1].equalsIgnoreCase("add")) {
+				if (defs.size() == 1 || defs.get(1).length() == 0) {
+					p.sendMessage(getUsage("cmd-add"));
+					return true;
+				}
+				if (!d.isSaved()) {
+					p.sendMessage(getConfigString("not-saved", session));
+					return true;
+				}
+
+				StringBuilder cmd_strb = new StringBuilder();
+				for (int i = 1; i < defs.size(); i++) {
+					cmd_strb.append(defs.get(i));
+					cmd_strb.append(" ");
+				}
+				InteractionCommand command = new InteractionCommand(cmd_strb.toString().trim());
+
+				//set flags
+//				if (flags.contains("left_only") || flags.contains("r")) {
+//					command.setLeft(true);
+//					command.setRight(false);
+//				} else if (flags.contains("right_only") || flags.contains("l")) {
+//					command.setLeft(false);
+//					command.setRight(true);
+//				}
+				command.setByPlayer(flags.contains("player") || flags.contains("p"));
+				if (attr_str.containsKey("permission")) command.setPermission(attr_str.get("permission"));
+
+				d.addCommand(command);
+				p.sendMessage(getConfigString("cmd-add-success", session).replaceAll("\\Q%id%\\E", "" + d.getCommandCount()));
+			}
+			
+			else if (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("rem")) {
+				if (args.length < 3) {
+					p.sendMessage(getUsage("cmd-remove"));
+					return true;
+				}
+				
+				int index;
+				try {
+					index = Integer.parseInt(args[2]);
+					if (index != 0) index -= 1;
+				} catch (Exception ex) {
+					p.sendMessage(getConfigString("must-send-number", session));
+					return true;
+				}
+				if (index < 0) index = d.getCommandCount() + index + 1; //ex. input -1 for the last command
+				if (index < d.getCommandCount()) {
+					InteractionCommand command = d.getCommands()[index];
+					d.removeCommand(command);
+				}
+				p.sendMessage(getConfigString("cmd-remove-success", session).replaceAll("\\Q%id%\\E", (index+1) + ""));			
+			}
+			
+			else if (args[1].equalsIgnoreCase("list")) {
+				if (d.getCommandCount() == 0) p.sendMessage(getConfigString("list-empty", session));
+				else {
+					InteractionCommand[] cmds = d.getCommands();
+					for (int i = 0; i < cmds.length; i++) {
+						p.sendMessage(cc2 + (i+1) + "." + cc + " " + cmds[i].getCmd());
+					}
+				}
+			}
+			
+			else p.sendMessage(getUsage("cmd"));
+			
+		}
+		
 		else if (args[0].equalsIgnoreCase("convert") || args[0].equalsIgnoreCase("conv")) {
 			if (!withPermission(p, "convert") || testInEdit(session)) return true;
 			Location l1 = session.getLocation1(), l2 = session.getLocation2();
@@ -506,15 +579,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					p.sendMessage(getConfigString("must-same-world-points", session));
 					return true;
 				}
-				if (session.getSelectionVolume() > plugin.getMaxVolume()) {
-					p.sendMessage(getConfigString("exceeds-max-volume", session).replaceAll("\\Q%volume%\\E", "" + plugin.getMaxVolume()));
+				double vol = session.getPermittedVolume();
+				if (session.getSelectionVolume() > vol) {
+					p.sendMessage(getConfigString("exceeds-max-volume", session).replaceAll("\\Q%volume%\\E", "" + vol));
 					return true;
 				}
 				
 				ConvertTransaction t = new ConvertTransaction();
 				session.setCancelPhysics(true);
 				
-				DexterityDisplay d = api.convertBlocks(l1, l2, t);
+				DexterityDisplay d = api.convertBlocks(l1, l2, t, (int) vol + 1);
 				
 				session.setCancelPhysics(false);
 				session.setSelected(d, false);
@@ -579,10 +653,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else p.sendMessage(getUsage("rename"));
 				return true;
 			}
-			if (args[1].startsWith("-")) {
+			if (args[1].startsWith("-") || args[1].contains(".")) {
 				p.sendMessage(plugin.getConfigString("invalid-name").replaceAll("\\Q%input%\\E", args[1]));
 				return true;
 			}
+			
 			if (d.setLabel(args[1])) p.sendMessage(getConfigString("rename-success", session));
 			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
@@ -1000,6 +1075,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equalsIgnoreCase("undo") || argsr[0].equalsIgnoreCase("u") || argsr[0].equalsIgnoreCase("redo")) {
 			ret.add("count=");
+		}
+		else if (argsr[0].equalsIgnoreCase("command") || argsr[0].equalsIgnoreCase("cmd")) {
+			if (argsr.length == 2) {
+				ret.add("add");
+				ret.add("remove");
+				ret.add("list");
+			} 
+			else if (argsr[1].equalsIgnoreCase("add")) {
+				ret.add("permission=");
+//				ret.add("-left_only");
+//				ret.add("-right_only");
+				ret.add("-player");
+			}
 		}
 		else if (argsr[0].equalsIgnoreCase("rotate") || argsr[0].equalsIgnoreCase("r")) {
 //			if (!params.contains("plane")) ret.add("plane=");

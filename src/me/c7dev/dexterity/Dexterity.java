@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
@@ -37,6 +38,7 @@ import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.AxisPair;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
+import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
 import net.md_5.bungee.api.ChatColor;
@@ -300,6 +302,7 @@ public class Dexterity extends JavaPlugin {
  			
 				FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
 
+				//load entities by uuid
 				List<BlockDisplay> blocks = new ArrayList<>();
 				boolean missing_blocks = false;
 				for (String uuid : afile.getStringList("uuids")) {
@@ -322,6 +325,13 @@ public class Dexterity extends JavaPlugin {
 				Vector scale = new Vector(sx == 0 ? 1 : sx, sy == 0 ? 1 : sy, sz == 0 ? 1 : sz);
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
 				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
+				
+				ConfigurationSection cmd_section = afile.getConfigurationSection("commands");
+				if (cmd_section != null) {
+					for (String key : cmd_section.getKeys(false)) {
+						disp.addCommand(new InteractionCommand(afile.getConfigurationSection("commands." + key)));
+					}
+				}
 
 				for (BlockDisplay bd : blocks) {
 					disp.addBlock(new DexBlock(bd, disp));
@@ -406,6 +416,14 @@ public class Dexterity extends JavaPlugin {
 			if (res.getY() != 0) afile.set("yaw", res.getY());
 			if (res.getX() != 0) afile.set("pitch", res.getX());
 			if (res.getZ() != 0) afile.set("roll", res.getZ());
+		}
+		
+		if (disp.getCommandCount() > 0) {
+			afile.set("commands", null);
+			InteractionCommand[] cmds = disp.getCommands();
+			for (int i = 0; i < cmds.length; i++) {
+				afile.set("commands.cmd-" + (i+1), cmds[i].serialize());
+			}
 		}
 		
 		List<String> uuids = new ArrayList<>();

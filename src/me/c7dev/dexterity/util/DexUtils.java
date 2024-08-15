@@ -244,12 +244,20 @@ public class DexUtils {
 		return new Quaterniond(r.x, r.y, r.z, r.w);
 	}
 	
-	public static int getVolume(Location l1, Location l2) {
+	public static double getVolume(Location l1, Location l2) {
 		double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX());
 		double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY());
-		double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());
-
-		return (int) Math.round(Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin));
+		double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ());		
+		
+		return Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
+	}
+	
+	public static double getBlockVolume(Location l1, Location l2) {
+		double xmin = Math.min(l1.getX(), l2.getX()), xmax = Math.max(l1.getX(), l2.getX()) + 1;
+		double ymin = Math.min(l1.getY(), l2.getY()), ymax = Math.max(l1.getY(), l2.getY()) + 1;
+		double zmin = Math.min(l1.getZ(), l2.getZ()), zmax = Math.max(l1.getZ(), l2.getZ()) + 1;	
+		
+		return Math.abs(xmax-xmin) * Math.abs(ymax-ymin) * Math.abs(zmax-zmin);
 	}
 	
 	public static int maxPage(int size, int pagelen) {
