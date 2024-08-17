@@ -429,6 +429,11 @@ public class DexUtils {
 		case LAVA_BUCKET:
 		case BARRIER:
 		case END_PORTAL:
+		case PLAYER_HEAD:
+		case CREEPER_HEAD:
+		case ZOMBIE_HEAD:
+		case PIGLIN_HEAD:
+		case DRAGON_HEAD:
 			return false;
 		default: return true;
 		}

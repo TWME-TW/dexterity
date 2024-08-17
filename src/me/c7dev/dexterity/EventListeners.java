@@ -82,30 +82,30 @@ public class EventListeners implements Listener {
 			DexSession session = plugin.getEditSession(e.getPlayer().getUniqueId());
 			DexterityDisplay clicked_display = null;
 			DexBlock clicked_db = null;
+			boolean holding_wand = hand.getType() == Material.WOODEN_AXE || (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")));
 
 			if (clicked != null) {
 				clicked_db = plugin.getMappedDisplay(clicked.getBlockDisplay().getUniqueId());
 				if (clicked_db != null) clicked_display = clicked_db.getDexterityDisplay();
 			}
 
-			if (!e.getPlayer().hasPermission("dexterity.build") || (hand.getType() == Material.AIR && right_click)) {
+			//normal player or saved display click
+			if (clicked_display != null && clicked_display.isSaved() && (!holding_wand || !e.getPlayer().hasPermission("dexterity.build"))) {
 				if (clicked == null || clicked_block) return;
-				if (clicked_display != null && clicked_display.isSaved()) {
-					//click a display as normal player or with nothing in hand
-					RideAnimation ride = (RideAnimation) clicked_display.getAnimation(RideAnimation.class);
-					if (ride != null && ride.getMountedPlayer() == null) {
-						ride.mount(e.getPlayer());
-						ride.start();
-					}
-					e.setCancelled(true);
-					
-					InteractionCommand[] cmds = clicked_display.getCommands();
-					for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
-					
+				//click a display as normal player or with nothing in hand
+				RideAnimation ride = (RideAnimation) clicked_display.getAnimation(RideAnimation.class);
+				if (ride != null && ride.getMountedPlayer() == null) {
+					ride.mount(e.getPlayer());
+					ride.start();
 				}
-			} else {
+				e.setCancelled(true);
+
+				InteractionCommand[] cmds = clicked_display.getCommands();
+				for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
+
+			} else if (e.getPlayer().hasPermission("dexterity.build")) {
 				//wand click
-				if (hand.getType() == Material.WOODEN_AXE || (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")))) {
+				if (holding_wand) {
 					e.setCancelled(true);
 
 					//select display with wand
@@ -123,7 +123,10 @@ public class EventListeners implements Listener {
 						if (e.getAction() == Action.LEFT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), true, msg); //pos1
 						else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) session.setLocation(e.getClickedBlock().getLocation(), false, msg); //pos2
 					}
-				} else {				
+				} 
+				
+				//break or place block display
+				else {
 					if (clicked == null || clicked_block) return;
 					e.setCancelled(true);
 

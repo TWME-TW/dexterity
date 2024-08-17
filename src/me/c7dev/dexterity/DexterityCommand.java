@@ -46,7 +46,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, cc3, usage_format, selected_str, loclabel_prefix;
 	
 	private String[] commands = {
-		"align", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "list", "mask", 
+		"align", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
 		"merge", "move", "name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
@@ -502,8 +502,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, "cmd");
 			if (d == null) return true;
 			
+			if (args.length <= 1) {
+				p.sendMessage(getUsage("cmd"));
+				return true;
+			}
+				
 			if (args[1].equalsIgnoreCase("add")) {
-				if (defs.size() == 1 || defs.get(1).length() == 0) {
+				if (defs.size() == 1 || args.length < 2){
 					p.sendMessage(getUsage("cmd-add"));
 					return true;
 				}
@@ -513,11 +518,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 
 				StringBuilder cmd_strb = new StringBuilder();
-				for (int i = 1; i < defs.size(); i++) {
-					cmd_strb.append(defs.get(i));
-					cmd_strb.append(" ");
+				boolean appending = false;
+				for (int i = 2; i < args.length; i++) {
+					String arg = args[i];
+					if (!appending && !arg.contains("=") && !arg.startsWith("-") && !arg.contains(":")) appending = true;
+					if (appending) {
+						cmd_strb.append(arg);
+						cmd_strb.append(" ");
+					}
 				}
-				InteractionCommand command = new InteractionCommand(cmd_strb.toString().trim());
+				String cmd_str = cmd_strb.toString().trim();
+				if (cmd_str.length() == 0) {
+					p.sendMessage("cmd-add");
+					return true;
+				}
+				InteractionCommand command = new InteractionCommand(cmd_str);
 
 				//set flags
 //				if (flags.contains("left_only") || flags.contains("r")) {
@@ -591,8 +606,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				DexterityDisplay d = api.convertBlocks(l1, l2, t, (int) vol + 1);
 				
 				session.setCancelPhysics(false);
-				session.setSelected(d, false);
+				if (session.getSelected() != null && !session.getSelected().isSaved() && session.getSelected().getCenter().getWorld().getName().equals(d.getCenter().getWorld().getName())) session.getSelected().hardMerge(d); //within cuboid selection
+				else session.setSelected(d, false);
+				
 				session.pushTransaction(t);
+				
+				if (session.getSelected() != null) {
+					session.getSelected().hardMerge(d);
+				}
 								
 				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
 				p.sendMessage(getConfigString("convert-success", session));
@@ -806,11 +827,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equalsIgnoreCase("info")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
-			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName());
-			if (d.getLabel() != null) {
-				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
-				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
-			}
+			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName() + (d.getLabel() != null ? cc + " labelled " + cc2 + d.getLabel() : ""));
+			api.markerPoint(d.getCenter(), Color.AQUA, 4);
+//			if (d.getLabel() != null) {
+//				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
+//				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
+//			}
 		}
 		else if (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("restore") || args[0].equalsIgnoreCase("deconvert") || args[0].equalsIgnoreCase("deconv")) {
 			boolean res = !args[0].equalsIgnoreCase("remove");
@@ -1003,6 +1025,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] argsr) {
+		argsr[0] = argsr[0].toLowerCase();
 		List<String> params = new ArrayList<String>();
 		for (String s : argsr) {
 			String[] ssplit = s.split("=");
@@ -1017,46 +1040,46 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("cancel");
 			ret.add("set");
 		}
-		else if (argsr[0].equalsIgnoreCase("?") || argsr[0].equalsIgnoreCase("help") || argsr[0].equalsIgnoreCase("list")) {
+		else if (argsr[0].equals("?") || argsr[0].equals("help") || argsr[0].equals("list")) {
 			ret.add("page=");
 		}
-		else if (argsr[0].equalsIgnoreCase("sel") || argsr[0].equalsIgnoreCase("select")) {
+		else if (argsr[0].equals("sel") || argsr[0].equals("select")) {
 			add_labels = true;
 		}
-		else if (argsr[0].equalsIgnoreCase("replace") || argsr[0].equalsIgnoreCase("rep")) {
+		else if (argsr[0].equals("replace") || argsr[0].equals("rep")) {
 			if (argsr.length <= 3 && argsr[argsr.length - 1].length() >= 2) {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
 			}
 		}
-		else if (argsr[0].equalsIgnoreCase("mask") || argsr[0].equalsIgnoreCase("consolidate")) {
+		else if (argsr[0].equals("mask") || argsr[0].equals("consolidate")) {
 			if (argsr.length <= 2 && argsr[argsr.length - 1].length() >= 2) {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
-				if (argsr[0].equalsIgnoreCase("mask")) ret.add("-none");
+				if (argsr[0].equals("mask")) ret.add("-none");
 			}
 		}
-		else if (argsr[0].equalsIgnoreCase("remove") || argsr[0].equalsIgnoreCase("restore") || argsr[0].equalsIgnoreCase("deconvert") || argsr[0].equalsIgnoreCase("deconv")) {
+		else if (argsr[0].equals("remove") || argsr[0].equals("restore") || argsr[0].equals("deconvert") || argsr[0].equals("deconv")) {
 			add_labels = true;
 		}
-		else if (argsr[0].equalsIgnoreCase("recenter")) {
+		else if (argsr[0].equals("recenter")) {
 			ret.add("-continuous");
 		}
-		else if (argsr[0].equalsIgnoreCase("scale") || argsr[0].equalsIgnoreCase("s")) {
+		else if (argsr[0].equals("scale") || argsr[0].equals("s")) {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
 			ret.add("-set");
 		}
-//		else if (argsr[0].equalsIgnoreCase("merge")) {
+//		else if (argsr[0].equals("merge")) {
 //			ret.add("new_group=");
 //			ret.add("-hard");
 //			add_labels = true;
 //		}
-		else if (argsr[0].equalsIgnoreCase("glow")) {
+		else if (argsr[0].equals("glow")) {
 			ret.add("-none");
 //			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
 		}
-		else if (argsr[0].equalsIgnoreCase("move") || argsr[0].equalsIgnoreCase("m")) {
+		else if (argsr[0].equals("move") || argsr[0].equals("m")) {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
@@ -1069,14 +1092,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("-here");
 			ret.add("-continuous");
 		}
-		else if (argsr[0].equalsIgnoreCase("clone")) {
+		else if (argsr[0].equals("clone")) {
 			ret.add("-nofollow");
 			ret.add("-merge");
 		}
-		else if (argsr[0].equalsIgnoreCase("undo") || argsr[0].equalsIgnoreCase("u") || argsr[0].equalsIgnoreCase("redo")) {
+		else if (argsr[0].equals("undo") || argsr[0].equals("u") || argsr[0].equals("redo")) {
 			ret.add("count=");
 		}
-		else if (argsr[0].equalsIgnoreCase("command") || argsr[0].equalsIgnoreCase("cmd")) {
+		else if (argsr[0].equals("command") || argsr[0].equals("cmd")) {
 			if (argsr.length == 2) {
 				ret.add("add");
 				ret.add("remove");
@@ -1089,7 +1112,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("-player");
 			}
 		}
-		else if (argsr[0].equalsIgnoreCase("rotate") || argsr[0].equalsIgnoreCase("r")) {
+		else if (argsr[0].equals("rotate") || argsr[0].equals("r")) {
 //			if (!params.contains("plane")) ret.add("plane=");
 //			else if (params.size() == 2) {
 //				ret.add("plane=XY");

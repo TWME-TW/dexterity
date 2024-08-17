@@ -68,6 +68,7 @@ public class InteractionCommand {
 	public void exec(Player p, boolean right_click) {
 		if (!right && right_click) return;
 		if (!left && !right_click) return;
+		if (perm != null && !p.hasPermission(perm)) return;
 		String c = cmd.replaceAll("\\Q%player%\\E|\\Q%name%\\E", p.getName()); //TODO papi
 		
 		if (player) Bukkit.dispatchCommand(p, c);

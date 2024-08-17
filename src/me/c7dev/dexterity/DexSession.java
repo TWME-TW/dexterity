@@ -41,7 +41,7 @@ public class DexSession {
 	private EditType editType;
 	private Transaction editTransaction;
 	private Location orig_loc;
-	private double volume = Integer.MAX_VALUE;
+	private double volume = 0;
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	private BuildTransaction t_build;
 	private Mask mask;
@@ -61,8 +61,14 @@ public class DexSession {
 		if (plugin.usingWorldEdit()) {
 			Region r = plugin.getSelection(player);
 			if (r != null) {
-				if (r.getMinimumPoint() != null) l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
-				if (r.getMaximumPoint() != null) l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
+				if (r.getMinimumPoint() != null) {
+					l1 = DexUtils.location(p.getWorld(), r.getMinimumPoint());
+					l1_scale_offset = new Vector(0, 0, 0);
+				}
+				if (r.getMaximumPoint() != null) {
+					l2 = DexUtils.location(p.getWorld(), r.getMaximumPoint());
+					l2_scale_offset = new Vector(1, 1, 1);
+				}
 				selectFromLocations();
 			}
 		}
@@ -520,23 +526,21 @@ public class DexSession {
 		
 		if (msg) p.sendMessage(plugin.getConfigString("set-success").replaceAll("\\Q%number%\\E", is_l1 ? "1" : "2").replaceAll("\\Q%location%\\E", DexUtils.locationString(loc, 0)));
 	}
-	
+
 	private void selectFromLocations() {
-		if (editType == null) {
-			if (hasLocationsSet()) {
-				if (getSelectedVolumeSpace() > Math.min(plugin.getMaxVolume(), getPermittedVolume())) {
-					setSelected(null, false);
-					return;
-				}
-				DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
-				if (d == null) setSelected(null, false);
-				else {
-					highlightSelected(d);
-					selected = d;
-				}
-				volume = DexUtils.getVolume(l1.clone().add(l1_scale_offset), l2.clone().add(l2_scale_offset));
-			} else volume = 0;
-		}
+		if (hasLocationsSet() && editType == null) {
+			volume = DexUtils.getVolume(l1.clone().add(l1_scale_offset), l2.clone().add(l2_scale_offset));
+			if (volume > Math.min(plugin.getMaxVolume(), getPermittedVolume())) {
+				setSelected(null, false);
+				return;
+			}
+			DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
+			if (d == null) setSelected(null, false);
+			else {
+				highlightSelected(d);
+				selected = d;
+			}
+		} else volume = 0;
 	}
 	
 	private void highlightSelected(DexterityDisplay new_disp) {
