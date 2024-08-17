@@ -610,10 +610,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else session.setSelected(d, false);
 				
 				session.pushTransaction(t);
-				
-				if (session.getSelected() != null) {
-					session.getSelected().hardMerge(d);
-				}
 								
 				//p.sendMessage(cc + "Created a new display: " + cc2 + d.getLabel() + cc + "!");
 				p.sendMessage(getConfigString("convert-success", session));
@@ -824,7 +820,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			//t.commit(); //async, done in callback
 			session.pushTransaction(t);
 		}
-		else if (args[0].equalsIgnoreCase("info")) {
+		else if (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("i")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName() + (d.getLabel() != null ? cc + " labelled " + cc2 + d.getLabel() : ""));

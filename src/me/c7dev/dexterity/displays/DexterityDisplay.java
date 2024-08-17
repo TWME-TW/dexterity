@@ -633,6 +633,7 @@ public class DexterityDisplay {
 				db.getEntity().teleport(loc.clone().add(diff));
 			}
 			center = loc.clone();
+			for (DexterityDisplay subd : subdisplays) subd.teleport(loc);
 		}
 	}
 	
@@ -769,7 +770,6 @@ public class DexterityDisplay {
 				
 		scale = DexUtils.hadimard(scale, v);
 		for (DexterityDisplay sub : subdisplays) sub.scale(v);
-		
 	}
 	
 	@Deprecated

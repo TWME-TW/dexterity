@@ -56,6 +56,7 @@ public class DexSession {
 		if (player == null || plugin == null || !player.isOnline()) throw new IllegalArgumentException("Player must be online!");
 		p = player;
 		this.plugin = plugin;
+		plugin.deleteEditSession(player.getUniqueId());
 		plugin.setEditSession(player.getUniqueId(), this);
 		
 		if (plugin.usingWorldEdit()) {
