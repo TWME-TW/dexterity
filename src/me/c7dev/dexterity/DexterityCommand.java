@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -670,6 +671,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else p.sendMessage(getUsage("rename"));
 				return true;
 			}
+			if (d.getBlocksCount() == 0) {
+				p.sendMessage(getConfigString("must-select-display", session));
+				return true;
+			}
 			if (args[1].startsWith("-") || args[1].contains(".")) {
 				p.sendMessage(plugin.getConfigString("invalid-name").replaceAll("\\Q%input%\\E", args[1]));
 				return true;
@@ -857,10 +862,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("lsit")) {
 			if (!withPermission(p, "list")) return true;
-			if (plugin.getDisplays().size() == 0) {
-				p.sendMessage(plugin.getConfigString("no-saved-displays"));
-				return true;
-			}
+//			if (plugin.getDisplays().size() == 0) {
+//				p.sendMessage(plugin.getConfigString("no-saved-displays"));
+//				return true;
+//			}
 			
 			int page = 0;
 			if (attrs.containsKey("page")) {
@@ -869,21 +874,30 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			int maxpage = DexUtils.maxPage(plugin.getDisplays().size(), 10);
 			if (page >= maxpage) page = maxpage - 1;
 			
+			String w = null;
+			if (attr_str.containsKey("world")) {
+				World world = Bukkit.getWorld(attr_str.get("world"));
+				if (world != null) w = world.getName();
+			}
+			
 			int total = 0;
 			for (DexterityDisplay d : plugin.getDisplays()) {
-				if (d.getLabel() == null) continue;
+				if (d.getLabel() == null || (w != null && !d.getCenter().getWorld().getName().equals(w))) continue;
 				total += d.getGroupSize();
+			}
+			if (total == 0) {
+				p.sendMessage(plugin.getConfigString("no-saved-displays"));
+				return true;
 			}
 			
 			p.sendMessage(plugin.getConfigString("list-page-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", ""+maxpage));
 			String[] strs = new String[total];
 			int i = 0;
 			for (DexterityDisplay disp : plugin.getDisplays()) {
-				if (disp.getLabel() == null) continue;
+				if (disp.getLabel() == null || (w != null && !disp.getCenter().getWorld().getName().equals(w))) continue;
 				i += constructList(strs, disp, session.getSelected() == null ? null : session.getSelected().getLabel(), i, 0);
 			}
 			DexUtils.paginate(p, strs, page, 10);
-			
 		}
 		
 		else if (args[0].equalsIgnoreCase("scale") || args[0].equalsIgnoreCase("s")) {
@@ -1038,6 +1052,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equals("?") || argsr[0].equals("help") || argsr[0].equals("list")) {
 			ret.add("page=");
+			ret.add("world=");
 		}
 		else if (argsr[0].equals("sel") || argsr[0].equals("select")) {
 			add_labels = true;

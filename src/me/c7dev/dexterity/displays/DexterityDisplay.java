@@ -79,7 +79,9 @@ public class DexterityDisplay {
 		return uuid;
 	}
 	
-	public boolean equals(DexterityDisplay d) {
+	public boolean equals(Object o) {
+		if (!(o instanceof DexterityDisplay)) return false;
+		DexterityDisplay d = (DexterityDisplay) o;
 		return uuid.equals(d.getUniqueId());
 	}
 	
