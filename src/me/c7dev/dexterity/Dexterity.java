@@ -89,6 +89,7 @@ public class Dexterity extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		saveDisplays();
+		api.clearAllMarkers();
 	}
 	
 	public void loadConfigSettings() {
@@ -504,10 +505,14 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public void deleteEditSession(UUID u) {
+		DexSession session = sessions.get(u);
+		if (session == null) return;
+		session.removeAxes();
 		sessions.remove(u);
 	}
 	
 	public void setEditSession(UUID u, DexSession s) {
+		deleteEditSession(u);
 		sessions.put(u, s);
 	}
 	

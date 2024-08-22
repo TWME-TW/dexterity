@@ -24,8 +24,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.api.events.PlayerClickBlockDisplayEvent;
+import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.animation.RideAnimation;
+import me.c7dev.dexterity.transaction.RotationTransaction;
+import me.c7dev.dexterity.transaction.ScaleTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
@@ -265,6 +268,15 @@ public class EventListeners implements Listener {
 					e.setCancelled(true);
 					return;
 				}
+			}
+		}
+	}
+	
+	@EventHandler
+	public void onTransactionPush(TransactionCompletionEvent e) {
+		if (e.getSession().isShowingAxes()) {
+			if (e.getTransaction() instanceof ScaleTransaction || e.getTransaction() instanceof RotationTransaction) {
+				e.getSession().updateAxisDisplays();
 			}
 		}
 	}

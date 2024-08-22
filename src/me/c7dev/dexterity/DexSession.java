@@ -6,8 +6,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.util.Vector;
@@ -15,6 +18,9 @@ import org.joml.Vector3f;
 
 import com.sk89q.worldedit.regions.Region;
 
+import me.c7dev.dexterity.api.DexRotation;
+import me.c7dev.dexterity.api.DexterityAPI;
+import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
@@ -32,6 +38,11 @@ public class DexSession {
 		CLONE_MERGE,
 	}
 	
+	public enum AxisType {
+		SCALE,
+		ROTATE
+	}
+	
 	private Player p;
 	private Location l1, l2;
 	private DexterityDisplay selected, secondary;
@@ -46,6 +57,8 @@ public class DexSession {
 	private BuildTransaction t_build;
 	private Mask mask;
 	private boolean cancel_physics = false;
+	private BlockDisplay[] axis_x, axis_y, axis_z;
+	private AxisType showing_axis = null;
 	
 	/**
 	 * Initializes a new session for a player
@@ -204,15 +217,26 @@ public class DexSession {
 			toUndo.clear();
 		}
 		toRedo.clear();
+		TransactionCompletionEvent e2 = new TransactionCompletionEvent(this, t);
+		
 		if (t_build != null) {
 			if (t_build.size() > 0) {
 				t_build.commit();
 				toUndo.addFirst(t_build);
+				
+				TransactionCompletionEvent e1 = new TransactionCompletionEvent(this, t_build);
+				Bukkit.getPluginManager().callEvent(e1);
 			}
-			if (t != t_build) toUndo.addFirst(t);
+			if (t != t_build) {
+				toUndo.addFirst(t);
+				Bukkit.getPluginManager().callEvent(e2);
+			}
 			t_build = null;
 		}
-		else toUndo.addFirst(t);
+		else {
+			toUndo.addFirst(t);
+			Bukkit.getPluginManager().callEvent(e2);
+		}
 		trimToSize();
 	}
 	
@@ -542,6 +566,49 @@ public class DexSession {
 				selected = d;
 			}
 		} else volume = 0;
+	}
+	
+	public void setShowingAxes(AxisType a) {
+		showing_axis = a;
+		updateAxisDisplays();
+	}
+	
+	public void updateAxisDisplays() {
+		removeAxes();
+		if (selected == null || showing_axis == null) return;
+		
+		DexRotation rot = selected.getRotationManager(true);
+		DexterityAPI api = plugin.api();
+		Location c = selected.getCenter();
+		
+		switch (showing_axis) {
+		case SCALE:
+			Vector scale = selected.getScale();
+			axis_x = api.markerVector(c, c.clone().add(rot.getXAxis().multiply(scale.getX())), Material.RED_CONCRETE, Color.RED, -1);
+			axis_y = api.markerVector(c, c.clone().add(rot.getYAxis().multiply(scale.getY())), Material.LIME_CONCRETE, Color.LIME, -1);
+			axis_z = api.markerVector(c, c.clone().add(rot.getZAxis().multiply(scale.getZ())), Material.BLUE_CONCRETE, Color.BLUE, -1);
+			break;
+		case ROTATE:
+			axis_x = api.markerVector(c, c.clone().add(rot.getXAxis()), Material.RED_CONCRETE, Color.RED, -1);
+			axis_y = api.markerVector(c, c.clone().add(rot.getYAxis()), Material.LIME_CONCRETE, Color.LIME, -1);
+			axis_z = api.markerVector(c, c.clone().add(rot.getZAxis()), Material.BLUE_CONCRETE, Color.BLUE, -1);
+			break;
+		default:
+		}
+	}
+	
+	public boolean isShowingAxes() {
+		return showing_axis != null;
+	}
+	
+	public void removeAxes() {
+		DexterityAPI api = plugin.api();
+		api.removeMarker(axis_x);
+		api.removeMarker(axis_y);
+		api.removeMarker(axis_z);
+		axis_x = null;
+		axis_y = null;
+		axis_z = null;
 	}
 	
 	private void highlightSelected(DexterityDisplay new_disp) {

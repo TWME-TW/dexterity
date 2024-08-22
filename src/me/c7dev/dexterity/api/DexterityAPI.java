@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -424,12 +425,11 @@ public class DexterityAPI {
 	 * 
 	 * @param loc
 	 * @param glow The color of the marker point
-	 * @param seconds The number of seconds until the marker point is removed
+	 * @param seconds The number of seconds until the marker point is removed, negative if permanent
 	 * @return The {@link BlockDisplay} of the created marker point
 	 */
 	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
-		float size = 0.02f;
-		if (seconds <= 0) return null;
+		float size = 0.035f;
 		Location loc_ = loc.clone();
 		loc_.setPitch(0);
 		loc_.setYaw(0);
@@ -446,13 +446,121 @@ public class DexterityAPI {
 		});
 		markerPoints.add(disp.getUniqueId());
 
-		new BukkitRunnable() {
-			public void run() {
-				markerPoints.add(disp.getUniqueId());
-				disp.remove();
-			}
-		}.runTaskLater(plugin, seconds*20l);
+		if (seconds > 0) {
+			new BukkitRunnable() {
+				public void run() {
+					markerPoints.remove(disp.getUniqueId());
+					disp.remove();
+				}
+			}.runTaskLater(plugin, seconds*20l);
+		}
 		return disp;
+	}
+	
+	/**
+	 * Creates a small block display between the from_loc to the to_loc with precision. Useful for debugging or verifying location variables.
+	 * @param from_loc
+	 * @param to_loc
+	 * @param mat Required material type
+	 * @param glow The color of the vector
+	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
+	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
+	 */
+	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Material mat, Color glow, int seconds) {
+		float width = 0.035f;
+		Location from = from_loc.clone(), to = to_loc.clone();
+		double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
+		float yaw = (float) -(Math.toDegrees(Math.atan2(dx, dz)));
+		float pitch = (float) Math.toDegrees(Math.atan2(Math.sqrt(dz * dz + dx * dx), to.getY() - from.getY()));
+		
+		from.setYaw(yaw);
+		from.setPitch(pitch);
+		float len = (float) from_loc.distance(to_loc);
+		BlockData block = Bukkit.createBlockData(mat == null ? Material.WHITE_CONCRETE : mat);
+		
+		//body
+		BlockDisplay body = plugin.spawn(from, BlockDisplay.class, a -> {
+			a.setBlock(block);
+			if (glow != null) {
+				a.setGlowColorOverride(glow);
+				a.setGlowing(true);
+			}
+			a.setTransformation(new Transformation(
+					new Vector3f(-width/2, 0, -width/2), new Quaternionf(),
+					new Vector3f(width, len, width), new Quaternionf()
+					));
+		});
+		
+		//head
+		float head_disp = 0.08f;
+		Location tip_start = from.clone().add(to.clone().subtract(from).toVector().normalize().multiply(len - head_disp));
+		BlockDisplay head = null;
+		if (len > 0.25) {
+			head = plugin.spawn(tip_start, BlockDisplay.class, a -> {
+				a.setBlock(block);
+				if (glow != null) {
+					a.setGlowColorOverride(glow);
+					a.setGlowing(true);
+				}
+				a.setTransformation(new Transformation(
+						new Vector3f(-width*1.5f, 0, -width*1.5f), new Quaternionf(),
+						new Vector3f(width*3, width, width*3), new Quaternionf()
+						));
+			});
+			markerPoints.add(head.getUniqueId());
+		}
+
+		markerPoints.add(body.getUniqueId());
+		final BlockDisplay headf = head;
+		if (seconds > 0) {
+			new BukkitRunnable() {
+				public void run() {
+					markerPoints.remove(body.getUniqueId());
+					if (headf != null) markerPoints.remove(headf.getUniqueId());
+					body.remove();
+					headf.remove();
+				}
+			}.runTaskLater(plugin, seconds*20l);
+		}
+		BlockDisplay[] r = {body, head};
+		return r;
+	}
+	
+	/**
+	 * Removes a marker point before the timer expires
+	 * @param b Marker point block display entity
+	 */
+	public void removeMarker(BlockDisplay b) {
+		if (b == null) return;
+		if (markerPoints.contains(b.getUniqueId())) {
+			markerPoints.remove(b.getUniqueId());
+			b.remove();
+		}
+	}
+	
+	/**
+	 * Removes a marker vector before the timer expires
+	 * @param v Marker point block display entity
+	 */
+	public void removeMarker(BlockDisplay[] v) {
+		if (v == null) return;
+		for (BlockDisplay bd : v) {
+			if (markerPoints.contains(bd.getUniqueId())) {
+				markerPoints.remove(bd.getUniqueId());
+				bd.remove();
+			}
+		}
+	}
+	
+	/**
+	 * Deletes all marker points and marker vectors
+	 */
+	public void clearAllMarkers() {
+		for (UUID u : markerPoints) {
+			Entity e = Bukkit.getEntity(u);
+			if (e != null) e.remove();
+		}
+		markerPoints.clear();
 	}
 	
 	public String getAuthor() {
