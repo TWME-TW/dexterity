@@ -25,8 +25,12 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.api.events.PlayerClickBlockDisplayEvent;
 import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
+import me.c7dev.dexterity.api.events.TransactionEvent;
+import me.c7dev.dexterity.api.events.TransactionRedoEvent;
+import me.c7dev.dexterity.api.events.TransactionUndoEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.animation.RideAnimation;
+import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.transaction.RotationTransaction;
 import me.c7dev.dexterity.transaction.ScaleTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
@@ -62,9 +66,6 @@ public class EventListeners implements Listener {
 		
 	@EventHandler
 	public void onBlockClick(PlayerInteractEvent e) {
-				
-		//DexterityDisplay disp = plugin.getClickedDisplay(e.getPlayer());
-		//if (disp != null) Bukkit.getPluginManager().callEvent(new PlayerClickBlockDisplayEvent(e.getPlayer(), disp));
 		
 		if (e.getPlayer().hasPermission("dexterity.click") || e.getPlayer().hasPermission("dexterity.build")) {	
 			
@@ -73,7 +74,6 @@ public class EventListeners implements Listener {
 			
 			//calculate if player clicked a block display
 			ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
-			
 			ClickedBlockDisplay clicked = (DexUtils.isAllowedMaterial(hand.getType()) || !right_click || hand.getType() == Material.AIR) ? plugin.api().getLookingAt(e.getPlayer()) : null;
 			
 			boolean clicked_block;
@@ -272,13 +272,28 @@ public class EventListeners implements Listener {
 		}
 	}
 	
-	@EventHandler
-	public void onTransactionPush(TransactionCompletionEvent e) {
+	private void updateAxes(TransactionEvent e) {
 		if (e.getSession().isShowingAxes()) {
 			if (e.getTransaction() instanceof ScaleTransaction || e.getTransaction() instanceof RotationTransaction) {
 				e.getSession().updateAxisDisplays();
 			}
+			else if (e.getTransaction() instanceof RemoveTransaction) e.getSession().setShowingAxes(null);
 		}
+	}
+	
+	@EventHandler
+	public void onTransactionPush(TransactionCompletionEvent e) {
+		updateAxes(e);
+	}
+	
+	@EventHandler
+	public void onTransactionUndo(TransactionUndoEvent e) {
+		updateAxes(e);
+	}
+	
+	@EventHandler
+	public void onTransactionRedo(TransactionRedoEvent e) {
+		updateAxes(e);
 	}
 	
 	@EventHandler

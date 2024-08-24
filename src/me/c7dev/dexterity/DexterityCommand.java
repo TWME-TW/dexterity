@@ -48,7 +48,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	String noperm, cc, cc2, cc3, usage_format, selected_str, loclabel_prefix;
 	
 	private String[] commands = {
-		"align", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
+		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
 		"merge", "move", "name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
@@ -330,7 +330,37 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(getConfigString("align-success", session));
 		}
 		
-		else if (args[0].equals("replace") || args[0].equals("rep")) { //TODO add to= from=
+		else if (args[0].equals("axis")) {
+			DexterityDisplay d = getSelected(session, "axis");
+			if (d == null) return true;
+			
+			if (args.length == 1) {
+				p.sendMessage(getUsage("axis"));
+				return true;
+			}
+			
+			if (args[1].equalsIgnoreCase("show")) {
+				if (!p.hasPermission("dexterity.axis.show")) {
+					p.sendMessage(noperm);
+					return true;
+				}
+				
+				if (args.length == 2) session.setShowingAxes(AxisType.SCALE);
+				else {
+					if (args[2].equalsIgnoreCase("rotation")) session.setShowingAxes(AxisType.ROTATE);
+					else if (args[2].equalsIgnoreCase("scale")) session.setShowingAxes(AxisType.SCALE);
+					else {
+						p.sendMessage(plugin.getConfigString("unknown-input").replaceAll("\\Q%input%\\E", args[2]));
+						return true;
+					}
+				}
+			}
+			else if (args[1].equalsIgnoreCase("off") || args[1].equalsIgnoreCase("hide")) {
+				session.setShowingAxes(null);
+			}
+		}
+		
+		else if (args[0].equals("replace") || args[0].equals("rep")) {
 			DexterityDisplay d = getSelected(session, "replace");
 			if (d == null) return true;
 			
@@ -510,7 +540,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 				
-			if (args[1].equals("add")) {
+			if (args[1].equalsIgnoreCase("add")) {
 				if (defs.size() == 1 || args.length < 2){
 					p.sendMessage(getUsage("cmd-add"));
 					return true;
@@ -552,7 +582,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage(getConfigString("cmd-add-success", session).replaceAll("\\Q%id%\\E", "" + d.getCommandCount()));
 			}
 			
-			else if (args[1].equals("remove") || args[1].equals("rem")) {
+			else if (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("rem")) {
 				if (args.length < 3) {
 					p.sendMessage(getUsage("cmd-remove"));
 					return true;
@@ -574,7 +604,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				p.sendMessage(getConfigString("cmd-remove-success", session).replaceAll("\\Q%id%\\E", (index+1) + ""));			
 			}
 			
-			else if (args[1].equals("list")) {
+			else if (args[1].equalsIgnoreCase("list")) {
 				if (d.getCommandCount() == 0) p.sendMessage(getConfigString("list-empty", session));
 				else {
 					InteractionCommand[] cmds = d.getCommands();
@@ -1118,11 +1148,26 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("remove");
 				ret.add("list");
 			} 
-			else if (argsr[1].equals("add")) {
+			else if (argsr[1].equalsIgnoreCase("add")) {
 				ret.add("permission=");
 //				ret.add("-left_only");
 //				ret.add("-right_only");
 				ret.add("-player");
+			}
+		}
+		else if (argsr[0].equals("axis")) {
+			if (argsr.length == 2) {
+				ret.add("show");
+				ret.add("off");
+			}
+			else if (argsr[1].equalsIgnoreCase("show") || argsr[1].equalsIgnoreCase("set")) {
+				ret.add("rotation");
+				ret.add("scale");
+			}
+			else if (argsr.length >= 3 && argsr[2].equalsIgnoreCase("set")) {
+				ret.add("x=");
+				ret.add("y=");
+				ret.add("z=");
 			}
 		}
 		else if (argsr[0].equals("rotate") || argsr[0].equals("r")) {

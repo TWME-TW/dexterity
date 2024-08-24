@@ -21,6 +21,8 @@ import com.sk89q.worldedit.regions.Region;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
+import me.c7dev.dexterity.api.events.TransactionRedoEvent;
+import me.c7dev.dexterity.api.events.TransactionUndoEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
@@ -333,9 +335,10 @@ public class DexSession {
 		toRedo.addFirst(undo);
 		DexterityDisplay set = undo.undo();
 		
-		if (set != null) {
-			selected = set;
-		}
+		if (set != null) selected = set;
+		
+		TransactionUndoEvent event = new TransactionUndoEvent(this, undo);
+		Bukkit.getPluginManager().callEvent(event);
 		
 		if (count > 0) {
 			String msg = plugin.getConfigString("undo-success").replaceAll("\\Q%number%\\E", "" + count).replaceAll("\\Q(s)\\E", count == 1 ? "" : "s");
@@ -359,6 +362,9 @@ public class DexSession {
 		
 		toUndo.addFirst(redo);
 		redo.redo();
+		
+		TransactionRedoEvent event = new TransactionRedoEvent(this, redo);
+		Bukkit.getPluginManager().callEvent(event);
 
 		if (count > 0) {
 			String msg = plugin.getConfigString("redo-success").replaceAll("\\Q%number%\\E", "" + count).replaceAll("\\Q(s)\\E", count == 1 ? "" : "s");
