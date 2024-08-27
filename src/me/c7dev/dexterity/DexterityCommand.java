@@ -568,13 +568,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				InteractionCommand command = new InteractionCommand(cmd_str);
 
 				//set flags
-//				if (flags.contains("left_only") || flags.contains("r")) {
-//					command.setLeft(true);
-//					command.setRight(false);
-//				} else if (flags.contains("right_only") || flags.contains("l")) {
-//					command.setLeft(false);
-//					command.setRight(true);
-//				}
+				if (flags.contains("left_only") || flags.contains("r")) {
+					command.setLeft(true);
+					command.setRight(false);
+				} else if (flags.contains("right_only") || flags.contains("l")) {
+					command.setLeft(false);
+					command.setRight(true);
+				}
 				command.setByPlayer(flags.contains("player") || flags.contains("p"));
 				if (attr_str.containsKey("permission")) command.setPermission(attr_str.get("permission"));
 
@@ -1150,8 +1150,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			} 
 			else if (argsr[1].equalsIgnoreCase("add")) {
 				ret.add("permission=");
-//				ret.add("-left_only");
-//				ret.add("-right_only");
+				ret.add("-left_only");
+				ret.add("-right_only");
 				ret.add("-player");
 			}
 		}
