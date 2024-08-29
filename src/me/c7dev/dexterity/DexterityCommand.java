@@ -355,9 +355,49 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					}
 				}
 			}
+			else if (args[1].equalsIgnoreCase("set")) {
+				HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+				double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", 0d))),
+						y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", 0d))), 
+						z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", 0d)));
+				
+				if (args[2].equalsIgnoreCase("scale")) {
+					Vector curr_scale = d.getScale();
+					if (x == 0) x = curr_scale.getX();
+					if (y == 0) y = curr_scale.getY();
+					if (z == 0) z = curr_scale.getZ();
+					
+					if (x == 0 || y == 0 || z == 0) {
+						p.sendMessage(plugin.getConfigString("must-send-number"));
+						return true;
+					}
+					ScaleTransaction t = new ScaleTransaction(d);
+					d.resetScale(new Vector(x, y, z));
+					t.commitEmpty();
+					session.pushTransaction(t);
+					session.updateAxisDisplays();
+					
+					p.sendMessage(getConfigString("axis-set-success", session).replaceAll("\\Q%type%\\E", "scale"));
+				} 
+				else if (args[2].equalsIgnoreCase("rotation")) {
+					RotationTransaction t = new RotationTransaction(d);
+					d.setBaseRotation((float) y, (float) x, (float) z);
+					t.commitEmpty();
+					session.pushTransaction(t);
+					session.updateAxisDisplays();
+					
+					p.sendMessage(getConfigString("axis-set-success", session).replaceAll("\\Q%type%\\E", "rotation"));
+				}
+				else {
+					p.sendMessage(plugin.getConfigString("unknown-input").replaceAll("\\Q%input%\\E", args[2]));
+					return true;
+				}
+				
+			}
 			else if (args[1].equalsIgnoreCase("off") || args[1].equalsIgnoreCase("hide")) {
 				session.setShowingAxes(null);
 			}
+			else p.sendMessage(plugin.getConfigString("unknown-input").replaceAll("\\Q%input%\\E", args[1].toLowerCase()));
 		}
 		
 		else if (args[0].equals("replace") || args[0].equals("rep")) {
@@ -1159,15 +1199,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (argsr.length == 2) {
 				ret.add("show");
 				ret.add("off");
+				ret.add("set");
+			}
+			else if (argsr.length >= 4 && argsr[1].equalsIgnoreCase("set")) {
+				ret.add("x=");
+				ret.add("y=");
+				ret.add("z=");
 			}
 			else if (argsr[1].equalsIgnoreCase("show") || argsr[1].equalsIgnoreCase("set")) {
 				ret.add("rotation");
 				ret.add("scale");
-			}
-			else if (argsr.length >= 3 && argsr[2].equalsIgnoreCase("set")) {
-				ret.add("x=");
-				ret.add("y=");
-				ret.add("z=");
 			}
 		}
 		else if (argsr[0].equals("rotate") || argsr[0].equals("r")) {

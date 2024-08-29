@@ -1,7 +1,5 @@
 package me.c7dev.dexterity.transaction;
 
-import java.util.List;
-
 import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.api.DexRotation;
@@ -24,6 +22,16 @@ public class RotationTransaction extends BlockTransaction {
 	
 	public void commit() {
 		commit(disp.getBlocks());
+	}
+	
+	@Override
+	public void commitEmpty() {
+		trans.clear();
+		isCommitted = true;
+		DexRotation r = disp.getRotationManager();
+		x2 = r.getXAxis();
+		y2 = r.getYAxis();
+		z2 = r.getZAxis();
 	}
 	
 	@Override

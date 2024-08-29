@@ -31,8 +31,6 @@ import me.c7dev.dexterity.api.events.TransactionUndoEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.animation.RideAnimation;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
-import me.c7dev.dexterity.transaction.RotationTransaction;
-import me.c7dev.dexterity.transaction.ScaleTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
@@ -274,10 +272,8 @@ public class EventListeners implements Listener {
 	
 	private void updateAxes(TransactionEvent e) {
 		if (e.getSession().isShowingAxes()) {
-			if (e.getTransaction() instanceof ScaleTransaction || e.getTransaction() instanceof RotationTransaction) {
-				e.getSession().updateAxisDisplays();
-			}
-			else if (e.getTransaction() instanceof RemoveTransaction) e.getSession().setShowingAxes(null);
+			if (e.getTransaction() instanceof RemoveTransaction) e.getSession().setShowingAxes(null);
+			else e.getSession().updateAxisDisplays();
 		}
 	}
 	

@@ -1,10 +1,7 @@
 package me.c7dev.dexterity.transaction;
 
-import java.util.List;
-
 import org.bukkit.util.Vector;
 
-import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.DexBlock;
 
@@ -21,6 +18,12 @@ public class ScaleTransaction extends BlockTransaction {
 	
 	public void commit() {
 		commit(disp.getBlocks());
+	}
+	
+	public void commitEmpty() { //reset scale
+		s2 = disp.getScale();
+		trans.clear();
+		isCommitted = true;
 	}
 	
 	@Override

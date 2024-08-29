@@ -57,6 +57,7 @@ not-saved: "&4Error: &cThis selection is not saved!"
 
 #Success strings
 align-success: "&^Aligned %loclabel%!"
+axis-set-success: "&^Reset the %type% axis for %loclabel%&^!"
 clone-success: "&^Successfully cloned %loclabel%!"
 cmd-add-success: "&^Successfully added command to %label%&^!"
 cmd-remove-success: "&^Removed command &*%id%&^ from %label%&^!"

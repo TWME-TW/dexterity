@@ -215,9 +215,9 @@ public class DexRotation {
 	 */
 	public void setAxes(float yaw, float pitch, float roll) {
 		Quaterniond s = new Quaterniond(0, 0, 0, 1);
-		s.rotateZ(-Math.toRadians(yaw));
+		s.rotateZ(-Math.toRadians(roll));
 		s.rotateX(-Math.toRadians(pitch));
-		s.rotateY(Math.toRadians(roll));
+		s.rotateY(Math.toRadians(yaw));
 		
 		base_yaw = yaw;
 		base_pitch = pitch;

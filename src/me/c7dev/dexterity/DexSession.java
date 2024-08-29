@@ -155,8 +155,10 @@ public class DexSession {
 			selected = null;
 			return;
 		}
+		
+		//check edit lock
 		UUID editing_lock = null;
-		if (selected != null) editing_lock = o.getEditingLock();
+		if (selected != null && o != null) editing_lock = o.getEditingLock();
 		if (editing_lock != null) {
 			Player editor = Bukkit.getPlayer(editing_lock);
 			if (editor == null) o.setEditingLock(null);
@@ -168,6 +170,7 @@ public class DexSession {
 		}
 		
 		selected = o;
+		updateAxisDisplays();
 		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(plugin.getConfigString("selected-success").replaceAll("\\Q%label%\\E", o.getLabel()));
 			plugin.api().tempHighlight(o, 15);
@@ -570,6 +573,7 @@ public class DexSession {
 			else {
 				highlightSelected(d);
 				selected = d;
+				updateAxisDisplays();
 			}
 		} else volume = 0;
 	}
@@ -577,6 +581,14 @@ public class DexSession {
 	public void setShowingAxes(AxisType a) {
 		showing_axis = a;
 		updateAxisDisplays();
+	}
+	
+	public boolean isShowingAxes() {
+		return showing_axis != null;
+	}
+	
+	public AxisType getShowingAxisType() {
+		return showing_axis;
 	}
 	
 	public void updateAxisDisplays() {
@@ -603,15 +615,11 @@ public class DexSession {
 		}
 	}
 	
-	public boolean isShowingAxes() {
-		return showing_axis != null;
-	}
-	
 	public void removeAxes() {
 		DexterityAPI api = plugin.api();
-		api.removeMarker(axis_x);
-		api.removeMarker(axis_y);
-		api.removeMarker(axis_z);
+		if (axis_x != null) api.removeMarker(axis_x);
+		if (axis_y != null) api.removeMarker(axis_y);
+		if (axis_z != null) api.removeMarker(axis_z);
 		axis_x = null;
 		axis_y = null;
 		axis_z = null;

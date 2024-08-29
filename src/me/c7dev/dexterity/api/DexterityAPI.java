@@ -495,7 +495,7 @@ public class DexterityAPI {
 		float head_disp = 0.08f;
 		Location tip_start = from.clone().add(to.clone().subtract(from).toVector().normalize().multiply(len - head_disp));
 		BlockDisplay head = null;
-		if (len > 0.25) {
+		if (len > 0.25 && len <= 3) {
 			head = plugin.spawn(tip_start, BlockDisplay.class, a -> {
 				a.setBlock(block);
 				if (glow != null) {
@@ -545,6 +545,7 @@ public class DexterityAPI {
 	public void removeMarker(BlockDisplay[] v) {
 		if (v == null) return;
 		for (BlockDisplay bd : v) {
+			if (bd == null) continue;
 			if (markerPoints.contains(bd.getUniqueId())) {
 				markerPoints.remove(bd.getUniqueId());
 				bd.remove();
