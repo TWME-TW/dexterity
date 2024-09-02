@@ -59,6 +59,14 @@ public class DexUtils {
 		" Z:" + DexUtils.round(loc.getZ(), decimals);
 	}
 	
+	public static String quaternionString(Quaternionf q, int decimals) {
+		return quaternionString(new Quaterniond(q), decimals);
+	}
+	
+	public static String quaternionString(Quaterniond q, int decimals) {
+		return DexUtils.round(q.x, decimals) + ", " + DexUtils.round(q.y, decimals) + ", " + DexUtils.round(q.z, decimals) + ", " + DexUtils.round(q.w, decimals);  
+	}
+	
 	public static Location blockLoc(Location loc) {
 		loc.setX(loc.getBlockX());
 		loc.setY(loc.getBlockY());
@@ -66,6 +74,10 @@ public class DexUtils {
 		loc.setYaw(0);
 		loc.setPitch(0);
 		return loc;
+	}
+	
+	public static double minValue(Vector v) {
+		return Math.min(v.getX(), Math.min(v.getY(), v.getZ()));
 	}
 	
 	public static String attrAlias(String s) {

@@ -3,21 +3,24 @@ package me.c7dev.dexterity.displays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
+import org.joml.Vector3d;
 
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.displays.animation.Animation;
 import me.c7dev.dexterity.util.DexBlock;
-import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.InteractionCommand;
@@ -878,9 +881,62 @@ public class DexterityDisplay {
 	 * @param m Mask to use, or null for no mask
 	 */
 	public void consolidate(Mask m) {
-		consolidate(0, m);
-		consolidate(1, m);
-		consolidate(2, m);
+		HashMap<OrientationKey, List<DexBlock>> grouped = new HashMap<>();
+		HashMap<OrientationKey, Quaternionf> qmap = new HashMap<>();
+		Vector centerv = center.toVector();
+		
+		for (DexBlock db : blocks) {
+			OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
+			List<DexBlock> group = grouped.get(key);
+			Quaternionf q = qmap.get(key);
+			if (group == null) {
+				group = new ArrayList<DexBlock>();
+				grouped.put(key, group);
+				
+				q = DexUtils.cloneQ(key.getQuaternion());
+				q.w = -q.w;
+				q.rotateX((float) Math.toRadians(-key.getPitch()));
+				q.rotateY((float) Math.toRadians(key.getYaw()));
+				
+				qmap.put(key, q);
+			}
+			
+			group.add(db);
+			
+			Vector3d diff = DexUtils.vectord(db.getLocation().toVector().subtract(centerv));
+			q.transform(diff);
+			db.setTempVector(DexUtils.vector(diff));
+		}
+		
+		HashMap<Material, Vector> sizeMap = new HashMap<>();
+		for (Entry<OrientationKey, List<DexBlock>> entry : grouped.entrySet()) {
+			Quaternionf q = qmap.get(entry.getKey());
+			consolidate(entry.getValue(), 0, m, q, sizeMap);
+			consolidate(entry.getValue(), 1, m, q, sizeMap);
+			consolidate(entry.getValue(), 2, m, q, sizeMap);
+		}
+		
+		HashMap<OrientationKey, RollOffset> roMap = new HashMap<>();
+		for (DexBlock db : blocks) {
+			db.setTempVector(null);
+			if (db.getRoll() != 0) {
+				OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
+				RollOffset ro = roMap.get(key);
+				if (ro == null) {
+//					Vector blocksize = sizeMap.get(db.getEntity().getBlock().getMaterial());
+					ro = new RollOffset(db.getTransformation().getLeftRotation(), db.getTransformation().getScale());
+					roMap.put(key, ro);
+				}
+				db.getTransformation().setRollOffset(ro.getOffset());
+				db.updateTransformation();
+			}
+		}
+	}
+	
+	@Deprecated
+	public void consolidate(int axis, Mask m) {
+		Bukkit.getLogger().severe("Use DexterityDisplay#consolidate() instead of consolidate(int axis, Mask m), deprecated as of v1.1.3");
+		consolidate(m);
 	}
 
 	/**
@@ -888,40 +944,57 @@ public class DexterityDisplay {
 	 * @param axis 0 for X, 1 for Y, 2 for Z
 	 * @param m Mask to use, or null for no mask
 	 */
-	public void consolidate(int axis, Mask m) {
-		if (blocks.size() <= 1) return;
+	private void consolidate(List<DexBlock> rotblocks, int axis, Mask m, Quaternionf q, HashMap<Material, Vector> sizeMap) { //assumed all same rotation
+		if (rotblocks.size() <= 1) return;
 		double epsilon = 0.001;
-		blocks.sort((l, r) -> {
-			double a = DexUtils.getParameter(l.getLocation(), axis), b = DexUtils.getParameter(r.getLocation(), axis);
+		rotblocks.sort((l, r) -> {
+			double a = DexUtils.getParameter(l.getTempVector(), axis), b = DexUtils.getParameter(r.getTempVector(), axis);
 			if (Math.abs(a - b) < epsilon) return 0;
 			return a > b ? 1 : -1;
 		});
 		
-		for (int i = 0; i < blocks.size(); i++) {
-			DexBlock prev = blocks.get(i);
+		for (int i = 0; i < rotblocks.size(); i++) {
+			DexBlock prev = rotblocks.get(i);
 			if (m != null && !m.isAllowed(prev.getEntity().getBlock().getMaterial())) continue;
-			Location prev_loc = prev.getLocation();
+			Vector prev_loc = prev.getTempVector();
+			Vector s1 = prev.getTransformation().getScale();
+			double s1min = DexUtils.minValue(s1);
 			
-			for (int j = i+1; j < blocks.size(); j++) { //find the first block that is in the same column
-				DexBlock db = blocks.get(j);
-				Location loc = db.getLocation();
+			for (int j = i+1; j < rotblocks.size(); j++) { //find the first block that is in the same column
+				DexBlock db = rotblocks.get(j);
+				Vector loc = db.getTempVector();
+				Vector s2 = db.getTransformation().getScale();
+				double epsilon2 = 0.001*Math.min(s1min, DexUtils.minValue(s2));
 				
-				if (Math.abs(DexUtils.getParameter(loc, axis+1) - DexUtils.getParameter(prev_loc, axis+1)) < epsilon
-						&& Math.abs(DexUtils.getParameter(loc, axis+2) - DexUtils.getParameter(prev_loc, axis+2)) < epsilon) {
+				if (Math.abs(DexUtils.getParameter(loc, axis+1) - DexUtils.getParameter(prev_loc, axis+1)) < epsilon2
+						&& Math.abs(DexUtils.getParameter(loc, axis+2) - DexUtils.getParameter(prev_loc, axis+2)) < epsilon2) {
 
 					if (db.getEntity().getBlock().equals(prev.getEntity().getBlock())
-							&& db.getTransformation().getScale().equals(prev.getTransformation().getScale())
-							&& Math.abs(prev_loc.getYaw() - loc.getYaw()) < epsilon && Math.abs(prev_loc.getPitch() - loc.getPitch()) < epsilon && Math.abs(prev.getRoll() - db.getRoll()) < epsilon
-							&& prev.getTransformation().getLeftRotation().equals(db.getTransformation().getLeftRotation())) {
+							&& Math.abs(DexUtils.getParameter(s2, axis+1) - DexUtils.getParameter(s1, axis+1)) < epsilon2
+							&& Math.abs(DexUtils.getParameter(s2, axis+2) - DexUtils.getParameter(s1, axis+2)) < epsilon2) {
 
-						double diff = DexUtils.getParameter(loc, axis) - DexUtils.getParameter(prev_loc, axis); 
-						if (diff - DexUtils.getParameter(db.getTransformation().getScale(), axis) < epsilon) {
-							DexTransformation trans = prev.getTransformation();
-							DexUtils.setParameter(trans.getScale(), axis, DexUtils.getParameter(trans.getScale(), axis) + diff);
-							DexUtils.setParameter(trans.getDisplacement(), axis, DexUtils.getParameter(trans.getDisplacement(), axis) - (diff/2));
+						Vector blocksize = sizeMap.get(prev.getEntity().getBlock().getMaterial());
+						if (blocksize == null) {
+							blocksize = DexUtils.getBlockDimensions(prev.getEntity().getBlock());
+							sizeMap.put(prev.getEntity().getBlock().getMaterial(), blocksize);
+						}
+						
+						double diff = DexUtils.getParameter(loc, axis) - DexUtils.getParameter(prev_loc, axis),
+								threshold = DexUtils.getParameter(blocksize, axis)*(DexUtils.getParameter(s2, axis) + DexUtils.getParameter(s1, axis))/2;
+						
+						if (diff - threshold <= epsilon2) { //perform the consolidation between pair
+							double new_len = (threshold + diff) / DexUtils.getParameter(blocksize, axis);
+							double disp = DexUtils.getParameter(prev.getTransformation().getDisplacement(), axis);
+							
+							DexUtils.setParameter(s1, axis, new_len);
+							DexUtils.setParameter(prev.getTransformation().getDisplacement(), axis, -new_len/2);
 							prev.updateTransformation();
-							prev.move(DexUtils.oneHot(axis, diff/2));
+							
+							Vector del = DexUtils.oneHot(axis, disp + (new_len*0.5));
+							del = DexUtils.vector(q.transformInverse(DexUtils.vectord(del)));
+							prev.move(del);
 							db.remove();
+							rotblocks.remove(db);
 						}
 					}
 					break;

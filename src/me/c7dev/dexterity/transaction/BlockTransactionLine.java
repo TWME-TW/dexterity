@@ -2,6 +2,8 @@ package me.c7dev.dexterity.transaction;
 
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 
@@ -37,7 +39,7 @@ public class BlockTransactionLine {
 		
 		if (to == null || db.getEntity().isDead()) {
 			db = new DexBlock(from);
-			ret = db.getEntity().getUniqueId();
+			ret = db.getUniqueId();
 		} else {
 			db.loadState(from);
 		}

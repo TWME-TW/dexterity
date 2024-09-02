@@ -39,6 +39,8 @@ import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
+import me.c7dev.dexterity.util.OrientationKey;
+import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
@@ -231,7 +233,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				if (entity_centers) api.markerPoint(db.getEntity().getLocation(), Color.ORANGE, 6);
 			}
 		}
-
+		
 		else if (args[0].equals("debug:removetransformation") && p.hasPermission("dexterity.admin")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
@@ -1122,7 +1124,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("cancel");
 			ret.add("paste");
 		}
-		else if (argsr[0].equals("?") || argsr[0].equals("help") || argsr[0].equals("list")) {
+		else if (argsr[0].equals("?") || argsr[0].equals("help")) {
+			ret.add("page=");
+		}
+		else if (argsr[0].equals("list")) {
 			ret.add("page=");
 			ret.add("world=");
 		}

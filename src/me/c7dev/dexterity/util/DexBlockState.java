@@ -18,7 +18,7 @@ public class DexBlockState {
 	
 	public DexBlockState(DexBlock db) {
 		loc = db.getEntity().getLocation().clone();
-		uuid = db.getEntity().getUniqueId();
+		uuid = db.getUniqueId();
 		trans = db.getTransformation().clone();
 		block = db.getEntity().getBlock();
 		disp = db.getDexterityDisplay();

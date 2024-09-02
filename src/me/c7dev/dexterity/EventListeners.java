@@ -86,6 +86,8 @@ public class EventListeners implements Listener {
 			boolean holding_wand = hand.getType() == Material.WOODEN_AXE || (hand.getType() == Material.BLAZE_ROD && hand.getItemMeta().getDisplayName().equals(plugin.getConfigString("wand-title", "§fDexterity Wand")));
 
 			if (clicked != null) {
+				if (clicked.getBlockDisplay().getMetadata("dex-ignore").size() > 0) return;
+				
 				clicked_db = plugin.getMappedDisplay(clicked.getBlockDisplay().getUniqueId());
 				if (clicked_db != null) clicked_display = clicked_db.getDexterityDisplay();
 			}

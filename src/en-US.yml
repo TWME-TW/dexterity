@@ -88,7 +88,7 @@ unsave-success: "&^Unsaved &*%label%&^!"
 
 #Command descriptions
 align-description: "Align the selection to the nearest block"
-axis-description: "Show rotation and scale axes (Advanced)"
+axis-description: "Show or modify rotation and scale axes (Advanced)"
 animation-description: "Modify the display's animations"
 clone-description: "Clone the selection"
 command-description: "Set commands to run when clicked"

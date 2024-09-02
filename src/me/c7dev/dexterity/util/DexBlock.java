@@ -1,11 +1,14 @@
 package me.c7dev.dexterity.util;
 
 import java.util.HashMap;
+import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 
@@ -13,13 +16,12 @@ import me.c7dev.dexterity.displays.DexterityDisplay;
 
 public class DexBlock {
 
+	private UUID uuid;
 	private BlockDisplay entity;
 	private DexTransformation trans;
 	private DexterityDisplay disp;
 	private float roll = 0;
-	//private boolean armor_stand;
-	
-	//public static final Vector AS_OFFSET = new Vector(0.5, -0.5, 0.5);
+	private Vector tempv;
 	
 	public static final int TELEPORT_DURATION = 2;
 	
@@ -35,9 +37,11 @@ public class DexBlock {
 			spawned.setBlock(block.getBlockData());
 			spawned.setTransformation(trans.build());
 		});
+		uuid = entity.getUniqueId();
 		d.getPlugin().setMappedDisplay(this);
 		block.setType(Material.AIR);
 	}
+	
 	/**
 	 * Create a wrapper for a block display that is part of a selection
 	 * @param bd The block display to register
@@ -59,6 +63,7 @@ public class DexBlock {
 	public DexBlock(BlockDisplay bd, DexterityDisplay d, float roll) {
 		entity = bd;
 		disp = d;
+		uuid = bd.getUniqueId();
 		this.roll = roll;
 		if (!d.getPlugin().isLegacy()) bd.setTeleportDuration(TELEPORT_DURATION);
 		trans = new DexTransformation(bd.getTransformation());
@@ -77,11 +82,16 @@ public class DexBlock {
 			a.setBlock(state.getBlock());
 			a.setTransformation(state.getTransformation().build());
 		});
+		uuid = state.getUniqueId();
 		roll = state.getRoll();
 		if (state.getDisplay() != null) {
 			state.getDisplay().getPlugin().setMappedDisplay(this);
 			state.getDisplay().addBlock(this);
 		}
+	}
+	
+	public UUID getUniqueId() {
+		return uuid;
 	}
 	
 	/**
@@ -94,6 +104,7 @@ public class DexBlock {
 		OrientationKey key = new OrientationKey(trans.getScale().getX(), trans.getScale().getY(), r);
 		RollOffset cached = cache.get(key);
 		if (cached != null) {
+			trans.getDisplacement().add(trans.getRollOffset());
 			trans.setRollOffset(cached.getOffset());
 			trans.getDisplacement().subtract(cached.getOffset());
 			roll = cached.getRoll();
@@ -101,6 +112,7 @@ public class DexBlock {
 			if (r.w != 0) {
 				if (r.x == 0 && r.y == 0 && r.z != 0) {
 					RollOffset c = new RollOffset(r, trans.getScale());
+					trans.getDisplacement().add(trans.getRollOffset());
 					trans.setRollOffset(c.getOffset());
 					trans.getDisplacement().subtract(c.getOffset());
 					roll = c.getRoll();
@@ -119,6 +131,7 @@ public class DexBlock {
 		if (r.w != 0) {
 			if (r.x == 0 && r.y == 0 && r.z != 0) {
 				RollOffset c = new RollOffset(r, trans.getScale());
+				trans.getDisplacement().add(trans.getRollOffset());
 				trans.setRollOffset(c.getOffset());
 				trans.getDisplacement().subtract(c.getOffset());
 				roll = c.getRoll();
@@ -128,6 +141,20 @@ public class DexBlock {
 	
 	public BlockDisplay getEntity() {
 		return this.entity;
+	}
+	
+	/**
+	 * Get the temporary vector, used in processing
+	 */
+	public Vector getTempVector() {
+		return tempv;
+	}
+	
+	/**
+	 * Set the temporary vector, used in processing
+	 */
+	public void setTempVector(Vector v) {
+		tempv = v;
 	}
 	
 	@Deprecated
