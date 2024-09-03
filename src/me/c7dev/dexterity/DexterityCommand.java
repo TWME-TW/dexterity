@@ -509,8 +509,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equals("clone")) {
-			DexterityDisplay d = getSelected(session, "clone");
-			if (d == null || testInEdit(session)) return true;
+			if (!withPermission(p, "clone") || testInEdit(session)) return true;
+			DexterityDisplay d = session.getSelected();
+			if (d == null && def == null) {
+				p.sendMessage(plugin.getConfigString("must-select-display"));
+				return true;
+			}
+			
+			if (def != null) {
+				d = plugin.api().getDisplay(def);
+				if (d == null) {
+					p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));
+					return true;
+				}
+				session.setSelected(d, false);
+			}
 			
 			boolean mergeafter = flags.contains("merge");
 			if (mergeafter && !d.canHardMerge()) {
@@ -533,6 +546,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				blocks.add(new DexBlock(state));
 			}
 			clone.setBlocks(blocks, false);
+			
+			if (!clone.getCenter().getWorld().getName().equals(p.getWorld().getName()) || clone.getCenter().distance(p.getLocation()) >= 80) clone.teleport(p.getLocation());
 			
 			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
 			

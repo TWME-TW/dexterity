@@ -257,7 +257,7 @@ public class DexBlock {
 	 */
 	public void remove() {
 		disp.removeBlock(this);
-		disp.getPlugin().clearMappedDisplay(entity.getUniqueId());
+		disp.getPlugin().clearMappedDisplay(this);
 		entity.remove();
 		if (disp.getBlocks().length == 0 && disp.getSubdisplayCount() == 0) {
 			disp.remove(false);

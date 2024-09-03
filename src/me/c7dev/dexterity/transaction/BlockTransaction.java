@@ -54,6 +54,7 @@ public class BlockTransaction implements Transaction {
 	public void commit(DexBlock[] blocks) {
 		commit(blocks, null, false);
 	}
+	
 	public void commit(DexBlock[] blocks, Mask mask, boolean all) {
 		if (isCommitted) return;
 		isCommitted = true;
@@ -83,7 +84,10 @@ public class BlockTransaction implements Transaction {
 	public DexterityDisplay undo() {
 		if (!isCommitted || isUndone) return null;
 		isUndone = true;
-		for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) entry.getValue().undo();
+		for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) {
+			entry.getValue().refresh(disp.getPlugin());
+			entry.getValue().undo();
+		}
 		if (new_center != null && old_center != null) disp.setCenter(old_center);
 		return null;
 	}

@@ -189,13 +189,15 @@ public class Dexterity extends JavaPlugin {
 	@Deprecated
 	public void setMappedDisplay(DexBlock b) {
 		display_map.put(b.getEntity().getUniqueId(), b);
+		if (!b.getUniqueId().equals(b.getEntity().getUniqueId())) display_map.put(b.getUniqueId(), b);
 	}
 	public DexBlock getMappedDisplay(UUID block) {
 		return display_map.get(block);
 	}
 	@Deprecated
-	public void clearMappedDisplay(UUID block) {
-		display_map.remove(block);
+	public void clearMappedDisplay(DexBlock block) {
+		display_map.remove(block.getEntity().getUniqueId());
+		display_map.remove(block.getUniqueId());
 	}
 	
 	public String getConfigString(String dir, String def) {

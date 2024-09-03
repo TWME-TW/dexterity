@@ -238,13 +238,9 @@ public class DexterityDisplay {
 	 */
 	public void removeBlock(DexBlock db) {
 		if (blocks.remove(db)) {
-			plugin.clearMappedDisplay(db.getEntity().getUniqueId());
+			plugin.clearMappedDisplay(db);
 		}
 	}
-	
-//	public List<Animation> getAnimationss(){
-//		return animations;
-//	}
 	
 	/**
 	 * @return The integer number of animations registered, active or not.

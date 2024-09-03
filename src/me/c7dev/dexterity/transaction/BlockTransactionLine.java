@@ -1,9 +1,11 @@
 package me.c7dev.dexterity.transaction;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 
+import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 
@@ -30,6 +32,10 @@ public class BlockTransactionLine {
 	
 	public DexBlockState getFromState() {
 		return from;
+	}
+	
+	public void refresh(Dexterity plugin) {
+		if (to == null || db.getEntity().isDead()) db = plugin.getMappedDisplay(db.getUniqueId());
 	}
 	
 	public UUID undo() {
