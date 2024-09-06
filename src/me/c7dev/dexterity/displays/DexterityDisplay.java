@@ -11,6 +11,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
 import org.joml.Quaterniond;
@@ -20,6 +21,7 @@ import org.joml.Vector3d;
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.displays.animation.Animation;
+import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
@@ -564,6 +566,7 @@ public class DexterityDisplay {
 		if (label == null) return 1;
 		return getGroupSize(this);
 	}
+	
 	private int getGroupSize(DexterityDisplay s) {
 		int i = 1;
 		for (DexterityDisplay sub : s.getSubdisplays()) i += getGroupSize(sub);
@@ -820,7 +823,7 @@ public class DexterityDisplay {
 	 * @param yaw_deg
 	 * @param pitch_deg
 	 * @param roll_deg
-	 * @return
+	 * @return The quaternion representing the rotation
 	 */
 	public Quaterniond setRotation(float yaw_deg, float pitch_deg, float roll_deg) {
 		RotationPlan plan = new RotationPlan();
@@ -877,56 +880,86 @@ public class DexterityDisplay {
 	 * @param m Mask to use, or null for no mask
 	 */
 	public void consolidate(Mask m) {
-		HashMap<OrientationKey, List<DexBlock>> grouped = new HashMap<>();
-		HashMap<OrientationKey, Quaternionf> qmap = new HashMap<>();
-		Vector centerv = center.toVector();
-		
-		for (DexBlock db : blocks) {
-			OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
-			List<DexBlock> group = grouped.get(key);
-			Quaternionf q = qmap.get(key);
-			if (group == null) {
-				group = new ArrayList<DexBlock>();
-				grouped.put(key, group);
+		consolidate(m, null);
+	}
+	
+	/**
+	 * Consolidate along all axes to reduce the number of entities where possible without altering the selection's shape
+	 * @param m Mask to use, or null for no mask
+	 * @param t The transaction to set blocks to or null
+	 */
+	public void consolidate(Mask m, BlockTransaction t) {
+
+		new BukkitRunnable() {
+			@Override
+			public void run() {
+				HashMap<OrientationKey, List<DexBlock>> grouped = new HashMap<>();
+				HashMap<OrientationKey, Quaternionf> qmap = new HashMap<>();
+				HashMap<DexBlock, Vector> deltas = new HashMap<>();
+				List<DexBlock> toRemove = new ArrayList<>();
+				Vector centerv = center.toVector();
 				
-				q = DexUtils.cloneQ(key.getQuaternion());
-				q.w = -q.w;
-				q.rotateX((float) Math.toRadians(-key.getPitch()));
-				q.rotateY((float) Math.toRadians(key.getYaw()));
-				
-				qmap.put(key, q);
-			}
-			
-			group.add(db);
-			
-			Vector3d diff = DexUtils.vectord(db.getLocation().toVector().subtract(centerv));
-			q.transform(diff);
-			db.setTempVector(DexUtils.vector(diff));
-		}
-		
-		HashMap<Material, Vector> sizeMap = new HashMap<>();
-		for (Entry<OrientationKey, List<DexBlock>> entry : grouped.entrySet()) {
-			Quaternionf q = qmap.get(entry.getKey());
-			consolidate(entry.getValue(), 0, m, q, sizeMap);
-			consolidate(entry.getValue(), 1, m, q, sizeMap);
-			consolidate(entry.getValue(), 2, m, q, sizeMap);
-		}
-		
-		HashMap<OrientationKey, RollOffset> roMap = new HashMap<>();
-		for (DexBlock db : blocks) {
-			db.setTempVector(null);
-			if (db.getRoll() != 0) {
-				OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
-				RollOffset ro = roMap.get(key);
-				if (ro == null) {
-//					Vector blocksize = sizeMap.get(db.getEntity().getBlock().getMaterial());
-					ro = new RollOffset(db.getTransformation().getLeftRotation(), db.getTransformation().getScale());
-					roMap.put(key, ro);
+
+				for (DexBlock db : blocks) {
+					if (m != null && !m.isAllowed(db.getEntity().getBlock().getMaterial())) continue;
+					OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
+					List<DexBlock> group = grouped.get(key);
+					Quaternionf q = qmap.get(key);
+					if (group == null) {
+						group = new ArrayList<DexBlock>();
+						grouped.put(key, group);
+
+						q = DexUtils.cloneQ(key.getQuaternion());
+						q.w = -q.w;
+						q.rotateX((float) Math.toRadians(-key.getPitch()));
+						q.rotateY((float) Math.toRadians(key.getYaw()));
+
+						qmap.put(key, q);
+					}
+
+					group.add(db);
+
+					Vector3d diff = DexUtils.vectord(db.getLocation().toVector().subtract(centerv));
+					q.transform(diff);
+					db.setTempVector(DexUtils.vector(diff));
 				}
-				db.getTransformation().setRollOffset(ro.getOffset());
-				db.updateTransformation();
+
+				HashMap<Material, Vector> sizeMap = new HashMap<>();
+				for (Entry<OrientationKey, List<DexBlock>> entry : grouped.entrySet()) {
+					Quaternionf q = qmap.get(entry.getKey());
+					consolidate(entry.getValue(), 0, q, toRemove, deltas, sizeMap);
+					consolidate(entry.getValue(), 1, q, toRemove, deltas, sizeMap);
+					consolidate(entry.getValue(), 2, q, toRemove, deltas, sizeMap);
+				}
+
+				HashMap<OrientationKey, RollOffset> roMap = new HashMap<>();
+				for (DexBlock db : blocks) {
+					db.setTempVector(null);
+					if (db.getRoll() != 0) {
+						OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
+						RollOffset ro = roMap.get(key);
+						if (ro == null) {
+							ro = new RollOffset(db.getTransformation().getLeftRotation(), db.getTransformation().getScale());
+							roMap.put(key, ro);
+						}
+						db.getTransformation().setRollOffset(ro.getOffset());
+					}
+				}
+				
+				new BukkitRunnable() {
+					@Override
+					public void run() {
+						for (DexBlock db : toRemove) db.remove();
+						for (Entry<DexBlock, Vector> entry : deltas.entrySet()) {
+							entry.getKey().move(entry.getValue());
+							entry.getKey().updateTransformation();
+						}
+						if (t != null) t.commit(getBlocks(), m, true);
+					}
+				}.runTask(plugin);
+				
 			}
-		}
+		}.runTaskAsynchronously(plugin);
 	}
 	
 	@Deprecated
@@ -940,7 +973,7 @@ public class DexterityDisplay {
 	 * @param axis 0 for X, 1 for Y, 2 for Z
 	 * @param m Mask to use, or null for no mask
 	 */
-	private void consolidate(List<DexBlock> rotblocks, int axis, Mask m, Quaternionf q, HashMap<Material, Vector> sizeMap) { //assumed all same rotation
+	private void consolidate(List<DexBlock> rotblocks, int axis, Quaternionf q, List<DexBlock> toRemove, HashMap<DexBlock, Vector> deltas, HashMap<Material, Vector> sizeMap) { //assumed all same rotation
 		if (rotblocks.size() <= 1) return;
 		double epsilon = 0.001;
 		rotblocks.sort((l, r) -> {
@@ -951,7 +984,6 @@ public class DexterityDisplay {
 		
 		for (int i = 0; i < rotblocks.size(); i++) {
 			DexBlock prev = rotblocks.get(i);
-			if (m != null && !m.isAllowed(prev.getEntity().getBlock().getMaterial())) continue;
 			Vector prev_loc = prev.getTempVector();
 			Vector s1 = prev.getTransformation().getScale();
 			double s1min = DexUtils.minValue(s1);
@@ -984,12 +1016,16 @@ public class DexterityDisplay {
 							
 							DexUtils.setParameter(s1, axis, new_len);
 							DexUtils.setParameter(prev.getTransformation().getDisplacement(), axis, -new_len/2);
-							prev.updateTransformation();
+//							prev.updateTransformation();
 							
 							Vector del = DexUtils.oneHot(axis, disp + (new_len*0.5));
 							del = DexUtils.vector(q.transformInverse(DexUtils.vectord(del)));
-							prev.move(del);
-							db.remove();
+//							prev.move(del);
+//							db.remove();
+							Vector existing_del = deltas.get(prev);
+							if (existing_del != null) del.add(existing_del);
+							deltas.put(prev, del);
+							toRemove.add(db);
 							rotblocks.remove(db);
 						}
 					}

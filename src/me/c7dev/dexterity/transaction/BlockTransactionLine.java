@@ -35,7 +35,7 @@ public class BlockTransactionLine {
 	}
 	
 	public void refresh(Dexterity plugin) {
-		if (to == null || db.getEntity().isDead()) db = plugin.getMappedDisplay(db.getUniqueId());
+		if (to == null || (db != null && db.getEntity().isDead())) db = plugin.getMappedDisplay(db.getUniqueId());
 	}
 	
 	public UUID undo() {

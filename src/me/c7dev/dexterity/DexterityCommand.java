@@ -284,8 +284,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			BlockTransaction t = new BlockTransaction(d, mask);
-			d.consolidate(mask);
-			t.commit(d.getBlocks(), mask, true);
+			d.consolidate(mask, t);
 			session.pushTransaction(t);
 			
 			p.sendMessage(getConfigString("consolidate-success", session));

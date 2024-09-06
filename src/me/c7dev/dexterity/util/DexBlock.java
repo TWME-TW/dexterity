@@ -3,12 +3,10 @@ package me.c7dev.dexterity.util;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 
@@ -154,6 +152,7 @@ public class DexBlock {
 	 * Set the temporary vector, used in processing
 	 */
 	public void setTempVector(Vector v) {
+		if (tempv != null && v != null) throw new IllegalArgumentException("Illegal concurrent modification to block!");
 		tempv = v;
 	}
 	
@@ -262,6 +261,16 @@ public class DexBlock {
 		if (disp.getBlocks().length == 0 && disp.getSubdisplayCount() == 0) {
 			disp.remove(false);
 		}
+	}
+	
+	public int hashCode() {
+		return uuid.hashCode();
+	}
+	
+	public boolean equals(Object o) {
+		if (!(o instanceof DexBlock)) return false;
+		DexBlock db = (DexBlock) o;
+		return entity.getUniqueId().equals(db.getEntity().getUniqueId());
 	}
 	
 	/**
