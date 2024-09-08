@@ -1,5 +1,5 @@
 name: Dexterity
-version: 1.1.5
+version: 1.1.6
 author: c7dev
 main: me.c7dev.dexterity.Dexterity
 api-version: 1.19
@@ -10,3 +10,73 @@ commands:
   dex:
     aliases: [d, dexterity]
     description: Dexterity main command
+    
+permissions:
+  dexterity.click:
+    description: Required for the engine to calculate whether a player clicked a display (such as for attached commands)
+  dexterity.build:
+    description: Ability to place or break a block display and click with the worldedit wand
+  dexterity.admin:
+    description: Access to debug commands or actions that should only be given to admins
+  dexterity.maxvolume.\#:
+    description: Replace \# with a number to set a maximum volume or entity selection count
+  dexterity.command.*:
+    description: Access the /d command
+    children:
+      dexterity.command: true
+      dexterity.command.move: true
+      dexterity.command.axis: true
+      dexterity.command.clone: true
+      dexterity.command.cmd: true
+      dexterity.command.consolidate: true
+      dexterity.command.convert: true
+      dexterity.command.deconvert: true
+      dexterity.command.highlight: true
+      dexterity.command.glow: true
+      dexterity.command.list: true
+      dexterity.command.merge: true
+      dexterity.command.save: true
+      dexterity.command.recenter: true
+      dexterity.command.remove: true
+      dexterity.command.replace: true
+      dexterity.command.rotate: true
+      dexterity.command.scale: true
+      dexterity.command.wand: true
+  dexterity.command:
+    description: Use /d select, /d undo, /d redo, /d help
+  dexterity.command.move:
+    description: Use /d move, /d align
+  dexterity.command.axis:
+    description: Use /d axis
+  dexterity.command.clone:
+    description: Use /d clone
+  dexterity.command.cmd:
+    description: Use /d cmd
+  dexterity.command.consolidate:
+    description: Use /d consolidate
+  dexterity.command.convert:
+    description: Use /d convert
+  dexterity.command.deconvert:
+    description: Use /d deconvert
+  dexterity.command.highlight:
+    description: Use /d highlight #
+  dexterity.command.glow:
+    description: Use /d glow
+  dexterity.command.list:
+    description: Use /d list
+  dexterity.command.merge:
+    description: Use /d merge
+  dexterity.command.save:
+    description: Use /d save, /d unsave
+  dexterity.command.recenter:
+    description: Use /d recenter
+  dexterity.command.remove:
+    description: Use /d remove
+  dexterity.command.replace:
+    description: Use /d replace
+  dexterity.command.rotate:
+    description: Use /d rotate
+  dexterity.command.scale:
+    description: Use /d scale
+  dexterity.command.wand:
+    description: Use /d wand #

@@ -184,6 +184,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equals("wand")) {
+			if (!withPermission(p, "wand")) return true;
 			ItemStack wand = new ItemStack(Material.BLAZE_ROD);
 			ItemMeta meta = wand.getItemMeta();
 			meta.setDisplayName(plugin.getConfigString("wand-title", "§fDexterity Wand"));
@@ -356,13 +357,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					}
 				}
 			}
-			else if (args[1].equalsIgnoreCase("set")) {
+			else if (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("reset")) {
 				HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
-				double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", 0d))),
-						y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", 0d))), 
-						z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", 0d)));
+				boolean set_scale = args.length < 3 || args[2].equals("scale");
+				double s = set_scale ? 1d : 0d;
+				double x = Math.abs(attrs_d.getOrDefault("x", attrs_d.getOrDefault("pitch", s))),
+						y = Math.abs(attrs_d.getOrDefault("y", attrs_d.getOrDefault("yaw", s))), 
+						z = Math.abs(attrs_d.getOrDefault("z", attrs_d.getOrDefault("roll", s)));
 				
-				if (args[2].equalsIgnoreCase("scale")) {
+				if (set_scale) {
 					Vector curr_scale = d.getScale();
 					if (x == 0) x = curr_scale.getX();
 					if (y == 0) y = curr_scale.getY();
@@ -502,7 +505,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equals("highlight") || args[0].equals("h")) {
-			DexterityDisplay d = getSelected(session, null);
+			DexterityDisplay d = getSelected(session, "highlight");
 			if (d == null) return true;
 			api.tempHighlight(d, 50, Color.ORANGE);
 		}
