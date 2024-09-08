@@ -117,8 +117,6 @@ public class DexterityDisplay {
 		int n = 0;
 		zero_pitch = true;
 		
-		boolean set_dir = false;
-		
 		if (blocks.size() == 0) {
 			w = plugin.getDefaultWorld();
 			n = 1;
@@ -136,13 +134,6 @@ public class DexterityDisplay {
 				if (scale.getZ() > scalez) scalez = scale.getZ();
 				
 				if (zero_pitch && db.getEntity().getLocation().getPitch() != 0) zero_pitch = false;
-//				if (!set_dir) { //TODO
-//					base_yaw = db.getEntity().getLocation().getYaw();
-//					base_pitch = db.getEntity().getLocation().getPitch();
-//				} else {
-//					if (db.getEntity().getLocation().getYaw() != base_yaw) base_yaw = 0;
-//					if (db.getEntity().getLocation().getPitch() != base_pitch) base_pitch = 0;
-//				}
 			}
 			scale = new Vector(scalex, scaley, scalez);
 		}
