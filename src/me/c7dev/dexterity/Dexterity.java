@@ -88,8 +88,8 @@ public class Dexterity extends JavaPlugin {
 	
 	@Override
 	public void onDisable() {
-		saveDisplays();
 		api.clearAllMarkers();
+		saveDisplays();
 	}
 	
 	public void loadConfigSettings() {
@@ -100,6 +100,14 @@ public class Dexterity extends JavaPlugin {
 		if (config_mv > 0) max_volume = config_mv;
 		loadLanguageFile(false);
 		//TODO wand item type
+	}
+	
+	public void reload() {
+		api.clearAllMarkers();
+		saveDisplays();
+		
+		reloadConfig();
+		loadConfigSettings();
 	}
 	
 	public DexterityAPI api() {

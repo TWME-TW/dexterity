@@ -39,8 +39,6 @@ import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
-import me.c7dev.dexterity.util.OrientationKey;
-import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.RotationPlan;
 
 public class DexterityCommand implements CommandExecutor, TabCompleter {
@@ -51,7 +49,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
-		"merge", "move", "name", "pos1", "recenter", "redo", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
+		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -402,6 +400,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setShowingAxes(null);
 			}
 			else p.sendMessage(plugin.getConfigString("unknown-input").replaceAll("\\Q%input%\\E", args[1].toLowerCase()));
+		}
+		
+		else if (args[0].equals("reload")) {
+			if (!withPermission(p, "admin")) return true;
+			plugin.reload();
+			p.sendMessage(plugin.getConfigString("reload-success"));
 		}
 		
 		else if (args[0].equals("replace") || args[0].equals("rep")) {
