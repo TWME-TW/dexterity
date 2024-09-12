@@ -586,7 +586,7 @@ public class DexterityDisplay {
 	 */
 	public void setCenter(Location loc) {
 		if (center != null && !loc.getWorld().getName().equals(center.getWorld().getName())) throw new IllegalArgumentException("Cannot recenter into a different world!");
-		center = loc;
+		center = loc.clone();
 	}
 	
 	/**

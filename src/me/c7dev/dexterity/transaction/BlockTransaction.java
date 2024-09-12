@@ -55,7 +55,7 @@ public class BlockTransaction implements Transaction {
 		commit(blocks, null, false);
 	}
 	
-	public void commit(DexBlock[] blocks, Mask mask, boolean all) {
+	public void commit(DexBlock[] blocks, Mask mask, boolean include_removed_blocks) {
 		if (isCommitted) return;
 		isCommitted = true;
 		if (mask == null) {
@@ -66,12 +66,13 @@ public class BlockTransaction implements Transaction {
 			}
 		}
 		
-		if (all) {
+		if (include_removed_blocks) {
 			for (Entry<UUID, BlockTransactionLine> entry : trans.entrySet()) {
 				if (!entry.getValue().isCommitted() && Bukkit.getEntity(entry.getKey()) == null) entry.getValue().commit(null);
 			}
 		}
 	}
+	
 	public void commitEmpty() { //no blocks
 		isCommitted = true;
 	}

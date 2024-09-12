@@ -33,6 +33,7 @@ import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.DexBlock;
+import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.OrientationKey;
@@ -418,6 +419,26 @@ public class DexterityAPI {
 		
 		if (!found || b == null || b.getType() == Material.AIR) return null;
 		return new ClickedBlock(b, i*step_multiplier);
+	}
+	
+	/**
+	 * Creates a clone of the passed in display or selection and returns the clone. Does not merge the new clone.
+	 * @param d The display or selection to clone
+	 */
+	public DexterityDisplay clone(DexterityDisplay d) {
+		DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale());
+		unTempHighlight(d);
+		
+		//start clone
+		List<DexBlock> blocks = new ArrayList<>();
+		for (DexBlock db : d.getBlocks()) {
+			DexBlockState state = db.getState();
+			state.setDisplay(clone);
+			blocks.add(new DexBlock(state));
+		}
+		clone.setBlocks(blocks, false);
+		
+		return clone;
 	}
 	
 	/**

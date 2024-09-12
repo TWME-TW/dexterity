@@ -24,6 +24,7 @@ import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.transaction.BlockTransaction;
+import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
 import me.c7dev.dexterity.transaction.DeconvertTransaction;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
@@ -33,7 +34,6 @@ import me.c7dev.dexterity.transaction.Transaction;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
 import me.c7dev.dexterity.util.ColorEnum;
 import me.c7dev.dexterity.util.DexBlock;
-import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
@@ -49,7 +49,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
-		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "wand"
+		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "tile", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -284,7 +284,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			BlockTransaction t = new BlockTransaction(d, mask);
 			d.consolidate(mask, t);
-			session.pushTransaction(t);
+			session.pushTransaction(t); //commit is async
 			
 			p.sendMessage(getConfigString("consolidate-success", session));
 		}
@@ -539,25 +539,65 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			p.sendMessage(getConfigString("to-finish-edit", session));
 			
-			DexterityDisplay clone = new DexterityDisplay(plugin, d.getCenter(), d.getScale().clone());
-//			clone.setBaseRotation((float) d.getYaw(), (float) d.getPitch(), 0f); //TODO
-			
-			api.unTempHighlight(d);
-			
-			//start clone
-			List<DexBlock> blocks = new ArrayList<>();
-			for (DexBlock db : d.getBlocks()) {
-				DexBlockState state = db.getState();
-				state.setDisplay(clone);
-				blocks.add(new DexBlock(state));
-			}
-			clone.setBlocks(blocks, false);
+			DexterityDisplay clone = api.clone(d);
 			
 			if (!clone.getCenter().getWorld().getName().equals(p.getWorld().getName()) || clone.getCenter().distance(p.getLocation()) >= 80) clone.teleport(p.getLocation());
 			
 			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
 			
 			if (!flags.contains("nofollow")) session.startFollowing();
+			
+		}
+		
+		else if (args[0].equals("tile")) {
+			DexterityDisplay d = getSelected(session, "tile");
+			if (d == null) return true;
+			
+			Vector delta = new Vector();
+			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+			int count = Math.abs(attrs_d.getOrDefault("count", 0d).intValue());
+			
+			if (count <= 0) { //check valid count
+				p.sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "count"));
+				return true;
+			}
+			
+			if (d.getBlocksCount()*(count+1) > session.getPermittedVolume()) { //check volume
+				p.sendMessage(plugin.getConfigString("exceeds-max-volume"));
+				return true;
+			}
+			
+			if (attrs_d.containsKey("x")) delta.setX(attrs_d.get("x"));
+			if (attrs_d.containsKey("y")) delta.setY(attrs_d.get("y"));
+			if (attrs_d.containsKey("z")) delta.setZ(attrs_d.get("z"));
+			
+			if (delta.getX() == 0 && delta.getY() == 0 && delta.getZ() == 0) { //cannot be 0 delta
+				p.sendMessage(plugin.getConfigString("must-send-number"));
+				return true;
+			}
+			
+			Location loc = d.getCenter();
+			DexterityDisplay toMerge = new DexterityDisplay(plugin, d.getCenter(), d.getScale());
+			BuildTransaction t = new BuildTransaction(d);
+			Vector centerv = d.getCenter().toVector();
+			
+			for (int i = 0; i < count; i++) {
+				loc.add(delta);
+				DexterityDisplay c = api.clone(d);
+//				c.teleport(loc);
+				for (DexBlock db : c.getBlocks()) {
+					Vector diff = new Vector(loc.getX() - centerv.getX(), loc.getY() - centerv.getY(), loc.getZ() - centerv.getZ());
+					db.move(diff);
+					t.addBlock(db);
+				}
+				toMerge.hardMerge(c);
+			}
+			
+			d.hardMerge(toMerge);
+			t.commit();
+			session.pushTransaction(t);
+			
+			p.sendMessage(getConfigString("tile-success", session));
 			
 		}
 		
@@ -1187,6 +1227,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("-none");
 //			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
+		}
+		else if (argsr[0].equals("tile")) {
+			ret.add("x=");
+			ret.add("y=");
+			ret.add("z=");
+			ret.add("count=");
 		}
 		else if (argsr[0].equals("move") || argsr[0].equals("m")) {
 			ret.add("x=");

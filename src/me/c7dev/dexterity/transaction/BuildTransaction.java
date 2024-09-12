@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
-
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
@@ -69,6 +67,7 @@ public class BuildTransaction implements Transaction {
 		
 		for (DexBlock db : blocks) {
 			states.add(db.getState());
+			
 			db.remove();
 		}
 		blocks = to_add;
