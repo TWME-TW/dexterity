@@ -563,7 +563,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			if (d.getBlocksCount()*(count+1) > session.getPermittedVolume()) { //check volume
-				p.sendMessage(plugin.getConfigString("exceeds-max-volume"));
+				p.sendMessage(plugin.getConfigString("exceeds-max-volume").replaceAll("\\Q%volume%\\E", "" + (int) session.getPermittedVolume()));
 				return true;
 			}
 			
@@ -854,28 +854,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		else if (args[0].equals("mask")) {
-			if (args.length < 2) {
-				p.sendMessage(getUsage("mask"));
-				return true;
-			}
-			if (flags.contains("none") || flags.contains("off") || def.equals("none") || def.equals("off")) {
+			if (args.length < 2 || flags.contains("none") || flags.contains("off") || def.equals("none") || def.equals("off")) {
 				session.setMask(null);
 				p.sendMessage(getConfigString("mask-success-disable", session));
 			} else {
-				Material mat; //TODO invert with !material
-				try {
-					mat = Material.valueOf(def.toUpperCase());
-				} catch (Exception ex) {
-					p.sendMessage(getConfigString("unknown-material", session).replaceAll("\\Q%input%\\E", def.toLowerCase()));
-					return true;
+				Mask m = new Mask();
+				for (String mat : defs) {
+					try {
+						m.addMaterialsList(mat);
+					} catch (IllegalArgumentException ex) {
+						p.sendMessage(plugin.getConfigString("unknown-material").replaceAll("\\Q%input%\\E", mat));
+						return true;
+					}
 				}
-				if (!DexUtils.isAllowedMaterial(mat)) return true;
 				
-				Mask m = new Mask(mat);
-				
+				if (flags.contains("invert")) m.setNegative(true);
+
 				session.setMask(m);
 				
-				p.sendMessage(getConfigString("mask-success", session).replaceAll("\\Q%input%\\E", mat.toString().toLowerCase()));;
+				p.sendMessage(getConfigString("mask-success", session).replaceAll("\\Q%input%\\E", m.toString()));
 			}
 		}
 		
@@ -1200,10 +1197,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
 			}
 		}
-		else if (argsr[0].equals("mask") || argsr[0].equals("consolidate")) {
+		else if (argsr[0].equals("mask")) {
+			String lastarg = argsr[argsr.length-1];
+			String[] larg_split = lastarg.split(",");
+
+			if (larg_split[larg_split.length-1].length() >= 2) {
+				StringBuilder prevarg_b = new StringBuilder();
+				for (int i = 0; i < larg_split.length-1; i++) {
+					prevarg_b.append(larg_split[i]);
+					prevarg_b.append(",");
+				}
+				
+				ret = DexUtils.materials(larg_split[larg_split.length - 1], prevarg_b.toString());
+			}
+			ret.add("-none");
+			ret.add("-invert");
+		}
+		else if (argsr[0].equals("consolidate")) {
 			if (argsr.length <= 2 && argsr[argsr.length - 1].length() >= 2) {
 				ret = DexUtils.materials(argsr[argsr.length - 1]);
-				if (argsr[0].equals("mask")) ret.add("-none");
 			}
 		}
 		else if (argsr[0].equals("remove") || argsr[0].equals("restore") || argsr[0].equals("deconvert") || argsr[0].equals("deconv")) {

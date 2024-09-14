@@ -1,5 +1,5 @@
 name: Dexterity
-version: 1.1.8
+version: 1.1.9
 author: c7dev
 main: me.c7dev.dexterity.Dexterity
 api-version: 1.19
@@ -41,6 +41,7 @@ permissions:
       dexterity.command.replace: true
       dexterity.command.rotate: true
       dexterity.command.scale: true
+      dexterity.command.tile: true
       dexterity.command.wand: true
   dexterity.command:
     description: Use /d select, /d undo, /d redo, /d help
@@ -78,5 +79,7 @@ permissions:
     description: Use /d rotate
   dexterity.command.scale:
     description: Use /d scale
+  dexterity.command.tile:
+    description: Use /d tile
   dexterity.command.wand:
     description: Use /d wand #

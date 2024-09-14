@@ -14,6 +14,26 @@ public class Mask {
 		
 	}
 	
+	public void addMaterialsList(String s) { //split by ,
+		for (String section : s.split(",")) {
+			try {
+				blocks.add(Material.valueOf(section.toUpperCase()));
+			} catch (Exception ex) {
+				throw new IllegalArgumentException(section);
+			}
+		}
+	}
+	
+	public String toString() {
+		StringBuilder s = new StringBuilder();
+		if (negative) s.append("(-) ");
+		for (int i = 0; i < blocks.size(); i++) {
+			s.append(blocks.get(i).toString().toLowerCase());
+			if (i < blocks.size() - 1) s.append(", ");
+		}
+		return s.toString();
+	}
+	
 	public Mask(Material m) {
 		blocks.add(m);
 	}

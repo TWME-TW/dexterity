@@ -351,10 +351,18 @@ public class DexUtils {
 	}
 	
 	public static List<String> materials(String start) {
+		return materials(start, null);
+	}
+	
+	public static List<String> materials(String start, String prefix) {
 		List<String> r = new ArrayList<>();
 		start = start.toUpperCase();
 		for (Material m : Material.values()) { 
-			if (m.toString().startsWith(start)) r.add(m.toString().toLowerCase());
+			if (m.toString().startsWith(start)) {
+				String s = m.toString().toLowerCase();
+				if (prefix != null) s = prefix + s;
+				r.add(s);
+			}
 		}
 		return r;
 	}

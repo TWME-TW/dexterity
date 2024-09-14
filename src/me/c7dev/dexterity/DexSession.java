@@ -632,6 +632,7 @@ public class DexSession {
 	
 	public void setMask(Mask mask) {
 		this.mask = mask;
+		selectFromLocations();
 		if (mask != null) {
 			if (selected != null) {
 				DexterityDisplay s = new DexterityDisplay(plugin, selected.getCenter(), selected.getScale());
@@ -648,7 +649,7 @@ public class DexSession {
 					setSelected(s, false);
 				}
 			}
-		} else selectFromLocations();
+		}
 	}
 	
 	public void clearLocationSelection() {
