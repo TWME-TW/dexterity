@@ -43,7 +43,7 @@ public class BlockTransactionLine {
 		if (to == null || (db != null && db.getEntity().isDead())) {
 			db = new DexBlock(from);
 			ret = db.getUniqueId();
-		} else {
+		} else if (db != null) {
 			db.loadState(from);
 		}
 		return ret;

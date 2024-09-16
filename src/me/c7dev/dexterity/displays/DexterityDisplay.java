@@ -620,7 +620,6 @@ public class DexterityDisplay {
 		
 		if (loc.getWorld().getName().equals(center.getWorld().getName())) {
 			Vector diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
-			//else diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
 			teleport(diff);
 		} else {
 			for (DexBlock db : blocks) {
@@ -672,7 +671,6 @@ public class DexterityDisplay {
 		Vector centerv = center.toVector();
 		for (DexBlock db : blocks) {
 			
-//			Vector disp = db.getEntity().getLocation().toVector().subtract(center.toVector());
 			Vector diff = db.getLocation().toVector().subtract(centerv).multiply(s-1);
 			Vector block_scale = db.getTransformation().getScale().multiply(s);
 			
@@ -714,7 +712,7 @@ public class DexterityDisplay {
 		if (blocks.size() == 0) return;
 		if (v.getX() == 0 || v.getY() == 0 || v.getZ() == 0) throw new IllegalArgumentException("Scale cannot be zero!");
 		if (v.getX() == v.getY() && v.getY() == v.getZ()) {
-			scale(v.getX());
+			scale(v.getX()); //much faster calculation with scalar
 			return;
 		}
 		
@@ -741,7 +739,7 @@ public class DexterityDisplay {
 		Vector centerv = center.toVector();
 		for (DexBlock db : blocks) {
 			Vector diff = db.getLocation().toVector().subtract(centerv);
-			Vector unit_composition = DexUtils.vector(unitVecs.transform(DexUtils.vector(diff)));
+			Vector unit_composition = DexUtils.vector(unitVecs.transform(DexUtils.vector(diff))); //gets displacement in terms of unitVecs
 			Vector unit_diff = DexUtils.hadimard(unit_composition, v);
 			
 			Vector scaled_diff = DexUtils.linearCombination(x1, y1, z1, unit_diff);
@@ -775,7 +773,7 @@ public class DexterityDisplay {
 	/**
 	 * Teleport the selection so that its corner aligns with the nearest block
 	 */
-	public void align() { //TODO add -from_center
+	public void align() {
 		DexBlock block = null;
 		double minx = 0, miny = 0, minz = 0;
 		for (DexBlock b : blocks) {
@@ -867,6 +865,25 @@ public class DexterityDisplay {
 	}
 	
 	/**
+	 * Re-sorts the blocks list in the standard y, x, z order
+	 */
+	public void sortBlocks() {
+		double epsilon = 0.00001;
+		blocks.sort((l, r) -> {
+			Location l1 = l.getEntity().getLocation(), l2 = r.getEntity().getLocation();
+			
+			if (Math.abs(l1.getY() - l2.getY()) < epsilon) {
+				if (Math.abs(l1.getX() - l2.getX()) < epsilon) {
+					if (Math.abs(l1.getZ() - l2.getZ()) < epsilon) return 0;
+					return l1.getZ() > l2.getZ() ? 1 : -1;
+				}
+				return l1.getX() > l2.getX() ? 1 : -1;
+			}
+			return l1.getY() > l2.getY() ? 1 : -1;
+		});
+	}
+	
+	/**
 	 * Consolidate along all axes to reduce the number of entities where possible without altering the selection's shape
 	 * @param m Mask to use, or null for no mask
 	 */
@@ -890,7 +907,7 @@ public class DexterityDisplay {
 				List<DexBlock> toRemove = new ArrayList<>();
 				Vector centerv = center.toVector();
 				
-
+				//group blocks by rotation orientation
 				for (DexBlock db : blocks) {
 					if (m != null && !m.isAllowed(db.getEntity().getBlock().getMaterial())) continue;
 					OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
@@ -915,6 +932,7 @@ public class DexterityDisplay {
 					db.setTempVector(DexUtils.vector(diff));
 				}
 
+				//perform consolidation for each group
 				HashMap<Material, Vector> sizeMap = new HashMap<>();
 				for (Entry<OrientationKey, List<DexBlock>> entry : grouped.entrySet()) {
 					Quaternionf q = qmap.get(entry.getKey());
@@ -926,7 +944,7 @@ public class DexterityDisplay {
 				HashMap<OrientationKey, RollOffset> roMap = new HashMap<>();
 				for (DexBlock db : blocks) {
 					db.setTempVector(null);
-					if (db.getRoll() != 0) {
+					if (db.getRoll() != 0) { //update roll
 						OrientationKey key = new OrientationKey(db.getEntity().getLocation().getYaw(), db.getEntity().getLocation().getPitch(), db.getTransformation().getLeftRotation());
 						RollOffset ro = roMap.get(key);
 						if (ro == null) {
@@ -937,7 +955,7 @@ public class DexterityDisplay {
 					}
 				}
 				
-				new BukkitRunnable() {
+				new BukkitRunnable() { //sync thread to send packets
 					@Override
 					public void run() {
 						for (DexBlock db : toRemove) db.remove();
@@ -979,15 +997,17 @@ public class DexterityDisplay {
 			Vector s1 = prev.getTransformation().getScale();
 			double s1min = DexUtils.minValue(s1);
 			
-			for (int j = i+1; j < rotblocks.size(); j++) { //find the first block that is in the same column
+			for (int j = i+1; j < rotblocks.size(); j++) { //find the first block that is in the same axis, optimized by sort
 				DexBlock db = rotblocks.get(j);
 				Vector loc = db.getTempVector();
 				Vector s2 = db.getTransformation().getScale();
 				double epsilon2 = 0.001*Math.min(s1min, DexUtils.minValue(s2));
 				
+				//if differs only by current axis
 				if (Math.abs(DexUtils.getParameter(loc, axis+1) - DexUtils.getParameter(prev_loc, axis+1)) < epsilon2
 						&& Math.abs(DexUtils.getParameter(loc, axis+2) - DexUtils.getParameter(prev_loc, axis+2)) < epsilon2) {
 
+					//if same type
 					if (db.getEntity().getBlock().equals(prev.getEntity().getBlock())
 							&& Math.abs(DexUtils.getParameter(s2, axis+1) - DexUtils.getParameter(s1, axis+1)) < epsilon2
 							&& Math.abs(DexUtils.getParameter(s2, axis+2) - DexUtils.getParameter(s1, axis+2)) < epsilon2) {
@@ -1001,18 +1021,16 @@ public class DexterityDisplay {
 						double diff = DexUtils.getParameter(loc, axis) - DexUtils.getParameter(prev_loc, axis),
 								threshold = DexUtils.getParameter(blocksize, axis)*(DexUtils.getParameter(s2, axis) + DexUtils.getParameter(s1, axis))/2;
 						
-						if (diff - threshold <= epsilon2) { //perform the consolidation between pair
+						//if close enough to be touching/overlapping, perform the consolidation between pair
+						if (diff - threshold <= epsilon2) {
 							double new_len = (threshold + diff) / DexUtils.getParameter(blocksize, axis);
 							double disp = DexUtils.getParameter(prev.getTransformation().getDisplacement(), axis);
 							
 							DexUtils.setParameter(s1, axis, new_len);
 							DexUtils.setParameter(prev.getTransformation().getDisplacement(), axis, -new_len/2);
-//							prev.updateTransformation();
 							
 							Vector del = DexUtils.oneHot(axis, disp + (new_len*0.5));
 							del = DexUtils.vector(q.transformInverse(DexUtils.vectord(del)));
-//							prev.move(del);
-//							db.remove();
 							Vector existing_del = deltas.get(prev);
 							if (existing_del != null) del.add(existing_del);
 							deltas.put(prev, del);

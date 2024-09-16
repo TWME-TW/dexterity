@@ -68,12 +68,10 @@ public class Dexterity extends JavaPlugin {
 		}
 		api = new DexterityAPI(this);
 		
-		loadConfigSettings();
-		
+		loadConfigSettings();		
 		
 		new DexterityCommand(this);
 		new EventListeners(this);
-		
 		
 		Plugin we_plugin = Bukkit.getServer().getPluginManager().getPlugin("WorldEdit");
 		if (we_plugin != null) we = (WorldEditPlugin) we_plugin;
@@ -84,6 +82,9 @@ public class Dexterity extends JavaPlugin {
 				loadDisplays();				
 			}
 		}.runTask(this);
+		
+		File schem = new File(getDataFolder().getAbsolutePath() + "/schematics");
+		if (!schem.exists()) schem.mkdirs();
 	}
 	
 	@Override
@@ -195,15 +196,17 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	@Deprecated
-	public void setMappedDisplay(DexBlock b) {
+	public void setMappedDisplay(DexBlock b) { //handled by Dexterity - do not use in API
 		display_map.put(b.getEntity().getUniqueId(), b);
 		if (!b.getUniqueId().equals(b.getEntity().getUniqueId())) display_map.put(b.getUniqueId(), b);
 	}
+	
 	public DexBlock getMappedDisplay(UUID block) {
 		return display_map.get(block);
 	}
+	
 	@Deprecated
-	public void clearMappedDisplay(DexBlock block) {
+	public void clearMappedDisplay(DexBlock block) { //handled by Dexterity - do not use in API
 		display_map.remove(block.getEntity().getUniqueId());
 		display_map.remove(block.getUniqueId());
 	}
@@ -256,6 +259,7 @@ public class Dexterity extends JavaPlugin {
 			if (!langName.contains(".")) langName += ".yml";
 		}
 
+		//load file
 		String dir = this.getDataFolder().getAbsolutePath() + "/" + langName;
 		try {
 			File f = new File(dir);
@@ -274,7 +278,8 @@ public class Dexterity extends JavaPlugin {
 			File df1 = new File(langPath + "/" + defaultLangName);
 			if (df1.exists()) {
 				defaultLang = YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(defaultLangName)));
-			} else { //from scratch
+			} else { 
+				//from scratch
 				saveResource(defaultLangName, false);
 				File df2 = new File(this.getDataFolder().getAbsolutePath() + "/" + defaultLangName);
 				defaultLang = YamlConfiguration.loadConfiguration(df2);
@@ -326,6 +331,7 @@ public class Dexterity extends JavaPlugin {
 					Bukkit.getLogger().warning("Some of the blocks for display '" + label + "' are missing!");
 				}
 
+				//basic metadata
 				Location center = DexUtils.deserializeLocation(afile, "center");
 				double sx = afile.getDouble("scale-x");
 				double sy = afile.getDouble("scale-y");
@@ -337,6 +343,7 @@ public class Dexterity extends JavaPlugin {
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
 				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
 				
+				//get click commands
 				ConfigurationSection cmd_section = afile.getConfigurationSection("commands");
 				if (cmd_section != null) {
 					for (String key : cmd_section.getKeys(false)) {
@@ -358,6 +365,7 @@ public class Dexterity extends JavaPlugin {
 					}
 				}.runTaskAsynchronously(this);
 
+				//set parent display
 				String parent_label = afile.getString("parent");
 				if (parent_label != null) {
 					DexterityDisplay parent = getDisplay(parent_label);
@@ -415,6 +423,7 @@ public class Dexterity extends JavaPlugin {
 		FileConfiguration afile = YamlConfiguration.loadConfiguration(f);
 		for (String s : afile.getKeys(false)) afile.set(s, null);
 		
+		//basic metadata
 		afile.set("center", disp.getCenter().serialize());
 		if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
@@ -429,6 +438,7 @@ public class Dexterity extends JavaPlugin {
 			if (res.getZ() != 0) afile.set("roll", res.getZ());
 		}
 		
+		//click commands
 		if (disp.getCommandCount() > 0) {
 			afile.set("commands", null);
 			InteractionCommand[] cmds = disp.getCommands();
@@ -437,13 +447,14 @@ public class Dexterity extends JavaPlugin {
 			}
 		}
 		
+		//save block uuids
 		List<String> uuids = new ArrayList<>();
 		DexBlock[] blocks = disp.getBlocks();
 		if (blocks.length > 0) {
 			for (DexBlock db : disp.getBlocks()) uuids.add(db.getEntity().getUniqueId().toString());
 			afile.set("uuids", uuids);
 		} else {
-			Bukkit.getLogger().warning("Jar modified, skipping save of " + disp.getLabel());
+			Bukkit.getLogger().warning("JAR modified, skipping save of " + disp.getLabel());
 			return;
 		}
 				
@@ -459,6 +470,9 @@ public class Dexterity extends JavaPlugin {
 		for (DexterityDisplay sub : disp.getSubdisplays()) saveDisplay(sub);
 	}
 	
+	/**
+	 * Maps the label to the display. For API use, see {@link DexterityDisplay#setLabel(String)}
+	 */
 	public void registerDisplay(String label, DexterityDisplay d) {
 		if (label == null || d == null) throw new IllegalArgumentException("Parameters cannot be null!");
 		if (all_displays.containsKey(label) && all_displays.get(label) != d) return;
@@ -467,10 +481,16 @@ public class Dexterity extends JavaPlugin {
 		saveDisplay(d);
 	}
 	
+	/**
+	 * Unmaps the label to the display. For API use, see {@link DexterityDisplay#setLabel(String)} for null label
+	 */
 	public void unregisterDisplay(DexterityDisplay d) {
 		unregisterDisplay(d, false);
 	}
 	
+	/**
+	 * Unmaps the label to the display. For API use, see {@link DexterityDisplay#setLabel(String)} for null label
+	 */
 	public void unregisterDisplay(DexterityDisplay d, boolean from_merge) {
 		if (!d.isSaved()) return;
 		if (!from_merge) all_displays.remove(d.getLabel());
@@ -488,7 +508,6 @@ public class Dexterity extends JavaPlugin {
 	
 	public Set<String> getDisplayLabels(){
 		return all_displays.keySet();
-		//return new ArrayList<DexterityDisplay>(displays.values());
 	}
 	
 	public Collection<DexterityDisplay> getDisplays() {

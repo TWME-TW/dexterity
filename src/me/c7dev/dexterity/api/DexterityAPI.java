@@ -227,7 +227,6 @@ public class DexterityAPI {
 			Vector scale_raw = DexUtils.vector(e.getTransformation().getScale());
 			if (scale_raw.getX() < 0 || scale_raw.getY() < 0 || scale_raw.getZ() < 0) continue; //TODO figure out displacement to center
 			scale_raw.multiply(0.5);
-			//Location loc = e.getLocation().add(scale);
 			Vector scale = DexUtils.hadimard(DexUtils.getBlockDimensions(e.getBlock()), scale_raw);
 			
 			//check if the player is looking in the general direction of the block, accounting for scale
@@ -239,13 +238,12 @@ public class DexterityAPI {
 			Vector[][] basis_vecs;
 			DexBlock db = plugin.getMappedDisplay(e.getUniqueId());
 			
-			RollOffset ro = null;
-			Location loc;// = e.getLocation().add(displacement).add(scale_raw);
 			//calculate roll and its offset
+			RollOffset ro = null;
+			Location loc;
 			if (db == null) {
 				Vector displacement = DexUtils.vector(e.getTransformation().getTranslation());
 				if (e.getTransformation().getLeftRotation().w != 0) {
-//				float key = e.getTransformation().getLeftRotation().w;
 					OrientationKey key = new OrientationKey(e.getTransformation().getScale().x, 
 							e.getTransformation().getScale().y,
 							e.getTransformation().getLeftRotation());
@@ -258,11 +256,11 @@ public class DexterityAPI {
 				}
 				loc = e.getLocation().add(displacement).add(scale_raw);
 			} else {
-				loc = db.getLocation();
-//				plugin.getAPI().markerPoint(db.getLocation(), Color.AQUA, 4); //TODO center not working for scaled blocks
+				loc = db.getLocation(); //already handled by DexTransformation
 			}
 			
-			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 0) { //if rotated, we need to transform the displacement vecs and basis vectors accordingly
+			//if rotated, we need to transform the displacement vecs and basis vectors accordingly
+			if (e.getLocation().getYaw() != 0 || e.getLocation().getPitch() != 0 || e.getTransformation().getLeftRotation().w != 0) {
 				
 				OrientationKey key = new OrientationKey(e.getLocation().getYaw(), e.getLocation().getPitch(), e.getTransformation().getLeftRotation());
 				Vector[] res = axes.get(key);
@@ -315,7 +313,6 @@ public class DexterityAPI {
 //			plugin.api().markerPoint(loc, Color.AQUA, 4);
 			
 			for (int i = 0; i < locs.length; i++) {
-				
 //				plugin.api().markerPoint(DexUtils.location(loc.getWorld(), locs[i]), Color.LIME, 4);
 				
 				Vector basis1 = basis_vecs[i][0];

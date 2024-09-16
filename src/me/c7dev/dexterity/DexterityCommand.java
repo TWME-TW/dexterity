@@ -23,6 +23,7 @@ import me.c7dev.dexterity.DexSession.AxisType;
 import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.displays.schematics.SchematicBuilder;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
@@ -222,6 +223,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			d.addAnimation(r);
 //			r.start();
 //		}
+		
+		else if (args[0].equals("test") && p.hasPermission("dexterity.admin")) {
+			DexterityDisplay d = getSelected(session, null);
+			if (d == null) return true;
+			SchematicBuilder builder = new SchematicBuilder(plugin, d);
+			if (!builder.save("abcd", "Unfaxed (c7dev)")) p.sendMessage("Failed");
+		}
 		
 		else if (args[0].equals("debug:centers") && p.hasPermission("dexterity.admin")){
 			DexterityDisplay d = getSelected(session, null);
