@@ -74,13 +74,27 @@ public class DexBlock {
 	 * @param state
 	 */
 	public DexBlock(DexBlockState state) {
+		this(state, null);
+	}
+	
+	/**
+	 * Spawn a block display wrapper based on a previously recorded state
+	 * 
+	 * @param state
+	 * @param offset Translation to put block at a different location
+	 */
+	public DexBlock(DexBlockState state, Vector offset) {
 		disp = state.getDisplay();
 		trans = state.getTransformation();
-		entity = state.getDisplay().getPlugin().spawn(state.getLocation(), BlockDisplay.class, a -> {
+		Location loc = state.getLocation();
+		if (offset != null) loc = loc.clone().add(offset);
+		entity = state.getDisplay().getPlugin().spawn(loc, BlockDisplay.class, a -> {
 			a.setBlock(state.getBlock());
 			a.setTransformation(state.getTransformation().build());
 		});
 		uuid = state.getUniqueId();
+		if (uuid == null) uuid = UUID.randomUUID();
+		
 		roll = state.getRoll();
 		if (state.getDisplay() != null) {
 			state.getDisplay().getPlugin().setMappedDisplay(this);

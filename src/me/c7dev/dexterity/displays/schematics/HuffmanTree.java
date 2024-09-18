@@ -2,15 +2,18 @@ package me.c7dev.dexterity.displays.schematics;
 
 import java.util.LinkedList;
 
-import me.c7dev.dexterity.displays.schematics.nbt.NBT;
+import org.bukkit.Bukkit;
+
+import me.c7dev.dexterity.displays.schematics.token.Token;
 import me.c7dev.dexterity.util.BinaryTag;
+import me.c7dev.dexterity.util.DexterityException;
 
 public class HuffmanTree {
 	
 	private int freq = 1;
 	private LinkedList<Boolean> tag = new LinkedList<>(); //easier to add vals
 	private HuffmanTree left, right;
-	private NBT leaf;
+	private Token leaf;
 	
 	public HuffmanTree(HuffmanTree left, HuffmanTree right) {
 		this.left = left;
@@ -20,7 +23,7 @@ public class HuffmanTree {
 		if (freq < 1) freq = 1;
 	}
 	
-	public HuffmanTree(NBT leaf, int freq) {
+	public HuffmanTree(Token leaf, int freq) {
 		this.leaf = leaf;
 		this.freq = freq;
 		if (this.freq < 1) this.freq = 1;
@@ -34,6 +37,27 @@ public class HuffmanTree {
 		return left;
 	}
 	
+	
+	public void setLeft(HuffmanTree l) {
+		if (leaf != null) {
+			Bukkit.broadcastMessage("Occupying node: " + leaf.toString() + ", tag=" + leaf.getTag().toString());
+			throw new DexterityException("Invalid tag: " + leaf.toString());
+		}
+		if (left != null) throw new DexterityException("Cannot reset left when already defined!");
+		left = l;
+	}
+	
+	public void setRight(HuffmanTree r) {
+		if (leaf != null) throw new DexterityException("Invalid tag: " + leaf.toString());
+		if (right != null) throw new DexterityException("Cannot reset right when already defined!");
+		right = r;
+	}
+	
+	public void setLeaf(Token leaf) {
+		if (leaf != null && (left != null || right != null)) throw new DexterityException("Invalid tag: " + leaf.toString());
+		this.leaf = leaf;
+	}
+	
 	public HuffmanTree getRight() {
 		return right;
 	}
@@ -42,7 +66,7 @@ public class HuffmanTree {
 		freq = f;
 	}
 	
-	public NBT getLeafNBT() {
+	public Token getLeafToken() {
 		return leaf;
 	}
 	

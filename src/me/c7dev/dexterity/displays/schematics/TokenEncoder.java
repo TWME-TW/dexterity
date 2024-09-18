@@ -5,12 +5,12 @@ import java.util.List;
 
 import me.c7dev.dexterity.util.BinaryTag;
 
-public class NBTEncoder {
+public class TokenEncoder {
 	
 	private List<Byte> data = new ArrayList<>();
 	private byte count = 7, buffer = 0;
 	
-	public NBTEncoder() {
+	public TokenEncoder() {
 		
 	}
 	

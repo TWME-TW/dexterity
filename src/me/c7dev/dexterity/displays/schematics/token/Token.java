@@ -1,22 +1,19 @@
-package me.c7dev.dexterity.displays.schematics.nbt;
+package me.c7dev.dexterity.displays.schematics.token;
 
 import java.util.UUID;
 
 import me.c7dev.dexterity.util.BinaryTag;
 
-public class NBT {
+public class Token {
 	
-	public enum NBTType {
+	public enum TokenType {
 		//for backwards compatability, the order is FINAL - add new tokens to bottom.
 		DISPLAY_DELIMITER,
-		SECTION_DELIMITER,
 		BLOCK_DELIMITER,
 		DATA_END,
 		ASCII,
-		SPECIFIER,
 		BLOCKDATA,
-		HASH,
-		SIGNATURE,
+		LABEL,
 		DX, //offset from center
 		DY,
 		DZ,
@@ -36,16 +33,44 @@ public class NBT {
 		ROFFSET_X,
 		ROFFSET_Y,
 		ROFFSET_Z,
+		GLOW_R,
+		GLOW_G,
+		GLOW_B,
 		//add any new types here
 	}
 	
 	private UUID uuid = UUID.randomUUID();
-	private NBTType type;
+	private TokenType type;
 	private BinaryTag tag;
 	private int depth = 0;
 	
-	public NBT(NBTType p) {
+	public Token(TokenType p) {
 		type = p;
+	}
+	
+	public static Token createToken(TokenType type, String val) {
+		Token r;
+		switch(type) {
+		case DISPLAY_DELIMITER:
+		case BLOCK_DELIMITER:
+		case DATA_END: //special types
+			r = new Token(type);
+			break;
+		
+		case BLOCKDATA: //strings
+			if (!val.startsWith("minecraft:")); val = "minecraft:" + val; //only for blockdata
+		case LABEL:
+			r = new StringToken(type, val);
+			break;
+		
+		case ASCII: //chars
+			r = new CharToken((char) Byte.parseByte(val));
+			break;
+			
+		default: //doubles
+			r = new DoubleToken(type, Double.parseDouble(val));
+		}
+		return r;
 	}
 	
 	public UUID getUniqueId() {
@@ -53,8 +78,8 @@ public class NBT {
 	}
 	
 	public boolean equals(Object o) {
-		if (o instanceof NBT) {
-			NBT n = (NBT) o;
+		if (o instanceof Token) {
+			Token n = (Token) o;
 			return n.getUniqueId().equals(uuid);
 		}
 		return false;
@@ -72,7 +97,7 @@ public class NBT {
 		return tag;
 	}
 	
-	public NBTType getType() {
+	public TokenType getType() {
 		return type;
 	}
 	
@@ -86,6 +111,10 @@ public class NBT {
 	
 	public void setDepth(int d) {
 		depth = d;
+	}
+	
+	public String toString() {
+		return type.toString();
 	}
 	
 }

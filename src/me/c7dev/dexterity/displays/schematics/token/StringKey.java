@@ -1,13 +1,13 @@
-package me.c7dev.dexterity.displays.schematics.nbt;
+package me.c7dev.dexterity.displays.schematics.token;
 
-import me.c7dev.dexterity.displays.schematics.nbt.NBT.NBTType;
+import me.c7dev.dexterity.displays.schematics.token.Token.TokenType;
 
 public class StringKey {
 	
 	private String val;
-	private NBTType type;
+	private TokenType type;
 
-	public StringKey(NBTType type, String val) {
+	public StringKey(TokenType type, String val) {
 		this.val = val;
 		this.type = type;
 	}
@@ -26,7 +26,7 @@ public class StringKey {
 		return val;
 	}
 
-	public NBTType getType() {
+	public TokenType getType() {
 		return type;
 	}
 

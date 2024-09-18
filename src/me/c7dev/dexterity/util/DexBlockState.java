@@ -2,6 +2,7 @@ package me.c7dev.dexterity.util;
 
 import java.util.UUID;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.block.data.BlockData;
 
@@ -25,8 +26,14 @@ public class DexBlockState {
 		roll = db.getRoll();
 	}
 	
-	public void setDisplay(DexterityDisplay d) {
-		disp = d;
+	public DexBlockState(Location loc, UUID uuid, DexTransformation trans, BlockData block, DexterityDisplay disp, float roll, Color glow) {
+		this.loc = loc;
+		this.uuid = uuid;
+		this.trans = trans;
+		this.block = block;
+		this.disp = disp;
+		this.roll = roll;
+		//TODO glow
 	}
 	
 	public Location getLocation() {
@@ -45,8 +52,20 @@ public class DexBlockState {
 		return block;
 	}
 	
+	public void setBlock(BlockData bd) {
+		block = bd;
+	}
+	
 	public DexterityDisplay getDisplay() {
 		return disp;
+	}
+	
+	public void setDisplay(DexterityDisplay d) {
+		disp = d;
+	}
+	
+	public void setRoll(float f) {
+		roll = f;
 	}
 	
 	public float getRoll() {
