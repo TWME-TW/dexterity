@@ -162,7 +162,8 @@ public class DexterityDisplay {
 			return true;
 		}
 		s = s.toLowerCase();
-		if (s.startsWith("-") || s.contains(".")) throw new IllegalArgumentException("Invalid label! Cannot contain '-' or '.' symbols.");
+		if (s.startsWith("-") || s.contains(".") || s.contains(" ")) throw new IllegalArgumentException("Invalid label! Cannot start with '-' or contain '.' or ' ' symbols.");
+
 		if (plugin.getDisplayLabels().contains(s)) return false;
 		if (label != null) plugin.unregisterDisplay(this);
 		label = s;

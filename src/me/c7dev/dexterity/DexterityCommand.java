@@ -51,7 +51,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
-		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "undo", "unsave", "tile", "wand"
+		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "schem", "undo", "unsave", "tile", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -224,19 +224,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			d.addAnimation(r);
 //			r.start();
 //		}
-		
-		else if (args[0].equals("test") && p.hasPermission("dexterity.admin")) {
-			DexterityDisplay d = getSelected(session, null);
-			if (d == null) return true;
-			SchematicBuilder builder = new SchematicBuilder(plugin, d);
-			if (!builder.save("abcd", "Unfaxed (c7dev)", true)) p.sendMessage("Failed");
-		}
-		else if (args.length >= 1 && args[0].equals("test2") && sender.hasPermission("dexterity.admin")) {
-			Schematic schem = new Schematic(plugin, "abcd");
-			DexterityDisplay d = schem.paste(p.getLocation());
-			session.setSelected(d, false);
-			p.sendMessage("pasted display by " + schem.getAuthor());
-		}
 		
 		else if (args[0].equals("debug:centers") && p.hasPermission("dexterity.admin")){
 			DexterityDisplay d = getSelected(session, null);
@@ -972,15 +959,58 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			//t.commit(); //async, done in callback
 			session.pushTransaction(t);
 		}
+		
+		else if (args[0].equals("schem") || args[0].equals("schematic")) {
+			if (!withPermission(p, "schem")) return true;
+
+			if (args.length == 1) p.sendMessage(getUsage("schematic"));
+			else if (args[1].equalsIgnoreCase("import")) {
+				if (!withPermission(p, "schem.import") || testInEdit(session)) return true;
+				
+				if (args.length == 2 || defs.size() < 2) p.sendMessage(getUsage("import"));
+
+				String name = defs.get(1);
+				DexterityDisplay d;
+				Schematic schem;
+				try {
+					schem = new Schematic(plugin, name);
+					d = schem.paste(p.getLocation());
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					p.sendMessage(plugin.getConfigString("console-exception"));
+					return true;
+				}
+				session.setSelected(d, false);
+				p.sendMessage(getConfigString("schem-import-success", session).replaceAll("\\Q%author%\\E", schem.getAuthor()));
+			}
+			else if (args[1].equalsIgnoreCase("export")) {
+				if (!withPermission(p, "schem.export")) return true;
+				DexterityDisplay d = getSelected(session, "export");
+				if (d == null || testInEdit(session)) return true;
+
+				if (!d.isSaved()) {
+					p.sendMessage(plugin.getConfigString("not-saved"));
+					return true;
+				}
+				
+				SchematicBuilder builder = new SchematicBuilder(plugin, d);
+				String author = p.getName();
+				if (attr_str.containsKey("author")) author = attr_str.get("author");
+				boolean overwrite = flags.contains("overwrite");
+				
+				int res = builder.save(d.getLabel().toLowerCase(), author, overwrite);
+				
+				if (res == 0) p.sendMessage(getConfigString("schem-export-success", session));
+				else if (res == 1) p.sendMessage(getConfigString("file-already-exists", session).replaceAll("\\Q%input%\\E", "/schematics/" + d.getLabel().toLowerCase() + ".dexterity"));
+				else if (res == -1) p.sendMessage(getConfigString("console-exception", session));
+			}
+		}
+		
 		else if (args[0].equals("info") || args[0].equals("i")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
 			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName() + (d.getLabel() != null ? cc + " labelled " + cc2 + d.getLabel() : ""));
 			api.markerPoint(d.getCenter(), Color.AQUA, 4);
-//			if (d.getLabel() != null) {
-//				p.sendMessage(cc + "Selected " + cc2 + d.getLabel());
-//				p.sendMessage(cc + "Parent: " + cc2 + (d.getParent() == null ? "[None]" : d.getParent().getLabel()));
-//			}
 		}
 		else if (args[0].equals("remove") || args[0].equals("restore") || args[0].equals("deconvert") || args[0].equals("deconv")) {
 			boolean res = !args[0].equals("remove");
@@ -1009,10 +1039,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		else if (args[0].equals("list") || args[0].equals("lsit")) {
 			if (!withPermission(p, "list")) return true;
-//			if (plugin.getDisplays().size() == 0) {
-//				p.sendMessage(plugin.getConfigString("no-saved-displays"));
-//				return true;
-//			}
 			
 			int page = 0;
 			if (attrs.containsKey("page")) {
@@ -1111,10 +1137,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			String new_group = attr_str.get("new_group");
-//			if (d.getLabel() == null) {
-//				p.sendMessage(plugin.getConfigString("must-save-display"));
-//				return true;
-//			}
 			if (d == parent || d.equals(parent)) {
 				p.sendMessage(getConfigString("must-be-different", session));
 				return true;
@@ -1176,7 +1198,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(plugin.getConfigString("unknown-subcommand"));
 		}
 		
-		//plugin.createAnimation(p.getLocation().add(0, -1, 0));
 		return true;
 	}
 	
@@ -1252,7 +1273,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //		}
 		else if (argsr[0].equals("glow")) {
 			ret.add("-none");
-//			ret.add("-propegate");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
 		}
 		else if (argsr[0].equals("tile")) {
@@ -1311,12 +1331,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 		}
 		else if (argsr[0].equals("rotate") || argsr[0].equals("r")) {
-//			if (!params.contains("plane")) ret.add("plane=");
-//			else if (params.size() == 2) {
-//				ret.add("plane=XY");
-//				ret.add("plane=XZ");
-//				ret.add("plane=ZY");
-//			}
 			ret.add("yaw=");
 			ret.add("pitch=");
 			ret.add("roll=");
@@ -1326,6 +1340,17 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("-set");
 			ret.add("-reset");
 		}
+		else if (argsr[0].equals("schem")) {
+			if (argsr.length == 2) {
+				ret.add("import");
+				ret.add("export");
+			}
+			else if (argsr[1].equalsIgnoreCase("export")) {
+				ret.add("author=");
+				ret.add("-overwrite");
+			}
+		}
+		
 		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
 		return ret;
 	}

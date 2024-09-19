@@ -2,6 +2,8 @@ package me.c7dev.dexterity.displays.schematics;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -9,7 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.bukkit.Bukkit;
 import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.Dexterity;
@@ -41,11 +42,14 @@ public class SchematicBuilder {
 	private List<Token> encoded_output = new ArrayList<>();
 	private HashMap<Token,Integer> freq = new HashMap<>();
 	private boolean assigned_tags = false;
+	private MessageDigest sha256;
+	private String hash_progress = "";
+	private StringBuilder hash_line = new StringBuilder("NaCl, why not");
 	
 	/* SCHEMA FORMAT
 	 * schema-version: <version>
 	 * author: <author>
-	 * charset: [index: char, len], [index: specifier, len]
+	 * charset: [index: char, len], [index: specifier, len
 	 * 
 	 * Huffman Encoded:
 	 * objects: Codes definitions [type chars_val]
@@ -65,6 +69,13 @@ public class SchematicBuilder {
 		if (d == null) throw new IllegalArgumentException("Display cannot be null!");
 		center = d.getCenter().toVector();
 		this.plugin = plugin;
+		
+		try {
+			sha256 = MessageDigest.getInstance("SHA-256");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 		for (TokenType type : TokenType.values()) {
 			Token stoken = new Token(type);
 			specifier_map.put(type, stoken);
@@ -82,22 +93,30 @@ public class SchematicBuilder {
 		assignTags();
 	}
 	
-	public boolean save(String file_name, String author, boolean override) {
+	private String hash(String s) {
+		return hash(s.getBytes());
+	}
+	
+	private String hash(byte[] data) {
+		return DexUtils.bytesToHex(sha256.digest(data));
+	}
+	
+	public int save(String file_name, String author, boolean override) {
 		if (file_name == null || file_name.length() == 0) throw new IllegalArgumentException("File name cannot be null!");
 		if (author == null || author.length() == 0) throw new IllegalArgumentException("Must provide an author!");
 		if (author.contains(";")) throw new IllegalArgumentException("Author name cannot have ; in it!");
 		try {
-			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + file_name + ".dex");
+			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + file_name + ".dexterity");
 			if (f.exists()) {
-				if (!override) return false;
+				if (!override) return 1;
 			} else f.createNewFile();
 			
 			save(f, author);
 			
-			return true;
+			return 0;
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			return false;
+			return -1;
 		}
 	}
 	
@@ -113,13 +132,16 @@ public class SchematicBuilder {
 			if (!f.exists()) f.createNewFile();
 			FileWriter writer = new FileWriter(f);
 
-			writer.write("#DO NOT MODIFY\n");
-			writer.write("schema-version: ");
-			writer.write("" + SCHEMA_VERSION);
-			writer.write("\nauthor: ");
-			writer.write(author);
-			writer.write("\ncharset: ");
-
+			writer.write("#DO NOT MODIFY");
+			write("\n", writer);
+			write("schema-version: ", writer);
+			write("" + SCHEMA_VERSION, writer);
+			write("\n", writer);
+			write("author: ", writer);
+			write(author, writer);
+			write("\n", writer);
+			write("charset: ", writer);
+			
 			//define char tags
 			boolean writeindex = true;
 			for (int i = 32; i <= 254; i++) {
@@ -128,14 +150,14 @@ public class SchematicBuilder {
 
 				if (token != null) {
 					if (writeindex) {
-						writer.write(i + ":");
+						write(i + ":", writer);
 						writeindex = false;
 					}
 					if (token.getTag() == null) {
 						writer.close();
 						throw new DexterityException("Tag is undefined: " + token.toString());
 					}
-					writer.write(token.getTag().serialize() + ";");
+					write(token.getTag().serialize() + ";", writer);
 				}
 				else writeindex = true;
 			}
@@ -147,25 +169,32 @@ public class SchematicBuilder {
 				Token spec = specifier_map.get(types[i]);
 				if (spec.getTag() != null && freq.getOrDefault(spec, 0) >= 1) {
 					if (writeindex) {
-						writer.write((i+256) + ":");
+						write((i+256) + ":", writer);
 						writeindex = false;
 					}
-					writer.write(spec.getTag().serialize() + ";");
+					write(spec.getTag().serialize() + ";", writer);
 				} else writeindex = true;
 			}
+			write("\n", writer);
 			
 			//define object tokens
-			writer.write("\nobjects: ");
+			write("objects: ", writer);
 			TokenEncoder obj_encoder = new TokenEncoder();
 			for (Token token : definitions) {
 				obj_encoder.append(token.getTag());
 			}
-			writer.write(Base64.getEncoder().encodeToString(obj_encoder.getData()));
+			write(Base64.getEncoder().encodeToString(obj_encoder.getData()), writer);
+			write("\n", writer);
 			
-			writer.write("\ndata: ");
+			
+			write("data: ", writer);
 			TokenEncoder encoder = new TokenEncoder();
 			for (Token token : encoded_output) encoder.append(token.getTag());
-			writer.write(Base64.getEncoder().encodeToString(encoder.getData()));
+			write(Base64.getEncoder().encodeToString(encoder.getData()), writer);
+			write("\n", writer);
+			
+			writer.write("hash: ");
+			writer.write(hash_progress);
 			writer.write("\n");
 
 			writer.close();
@@ -174,6 +203,16 @@ public class SchematicBuilder {
 			ex.printStackTrace();
 			return false;
 		}
+	}
+	
+	private void write(String s, FileWriter writer) throws IOException {
+		writer.write(s);
+		
+		if (s.equals("\n")) {
+			hash_progress = hash(hash_line.toString() + hash_progress);
+			hash_line = new StringBuilder();
+		}
+		else hash_line.append(s);
 	}
 	
 	public DoubleToken getDouble(TokenType type, double x) {

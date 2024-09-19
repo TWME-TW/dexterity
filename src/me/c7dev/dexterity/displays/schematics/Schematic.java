@@ -1,6 +1,9 @@
 package me.c7dev.dexterity.displays.schematics;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedList;
@@ -23,6 +26,7 @@ import me.c7dev.dexterity.util.BinaryTag;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 import me.c7dev.dexterity.util.DexTransformation;
+import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 
 public class Schematic {
@@ -34,11 +38,18 @@ public class Schematic {
 	private boolean loaded = false;
 	private LinkedList<SimpleDisplayState> displays = new LinkedList<>();
 	private Dexterity plugin;
+	private MessageDigest sha256;
 
 	public Schematic(Dexterity plugin, String file_name) {
-		if (!file_name.endsWith("\\.dex")) file_name += ".dex";
 		this.file_name = file_name;
+		if (!file_name.endsWith("\\.dexterity")) file_name += ".dexterity";
 		this.plugin = plugin;
+		try {
+			sha256 = MessageDigest.getInstance("SHA-256");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 		try {
 			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + file_name);
 			if (f.exists()) {
@@ -52,6 +63,35 @@ public class Schematic {
 				
 				version = schem.getInt("schema-version");
 				author = schem.getString("author");
+				
+				String hashval = schem.getString("hash");
+				if (hashval == null) throw new DexterityException("Schematic is missing hash");
+				String hashread = "NaCl, why not";
+				
+				//validate hash
+				StringBuilder hashinput = new StringBuilder("NaCl, why not");
+				try {
+					BufferedReader reader = new BufferedReader(new FileReader(f));
+					String line = reader.readLine();
+					hashread = hash(hashread);
+					
+					while(line != null) {
+						if (line.startsWith("#") || line.startsWith("hash")) {
+							line = reader.readLine();
+							continue;
+						}
+						hashread = hash(line + hashread);
+						hashinput.append(line);
+						line = reader.readLine();
+					}
+					
+					reader.close();
+				} catch (Exception ex) {
+					ex.printStackTrace();
+					Bukkit.getLogger().severe("Could not read schematic hash!");
+				}
+				
+				if (!hashread.equals(hashval)) throw new DexterityException("Could not load schematic: Hashes do not match");
 				
 				load(schem);
 				
@@ -69,6 +109,14 @@ public class Schematic {
 	
 	public int getSchemaVersion() {
 		return version;
+	}
+	
+	private String hash(String s) {
+		return hash(s.getBytes());
+	}
+	
+	private String hash(byte[] data) {
+		return DexUtils.bytesToHex(sha256.digest(data));
 	}
 	
 	private HuffmanTree search(Token token, int i, HuffmanTree node) {
@@ -286,7 +334,7 @@ public class Schematic {
 	 */
 	public void reloadBlocks(List<Token> data) { //block data interpreter
 		displays.clear();
-		SimpleDisplayState w = new SimpleDisplayState(file_name);
+		SimpleDisplayState w = new SimpleDisplayState(plugin.getNextLabel(file_name));
 		World world = Bukkit.getWorlds().get(0); //placeholder
 		DexBlockState state = newState(world);
 		
@@ -296,7 +344,7 @@ public class Schematic {
 				w.addBlock(state); //won't add if data not set
 				if (w.getBlocks().size() > 0) {
 					displays.addLast(w);
-					w = new SimpleDisplayState(file_name);
+					w = new SimpleDisplayState(plugin.getNextLabel(file_name));
 					state = newState(world);
 				}
 				continue;
@@ -388,7 +436,7 @@ public class Schematic {
 					state.setBlock(Bukkit.createBlockData(st.getStringValue()));
 					break;
 				case LABEL:
-					w.setLabel(st.getStringValue());
+					w.setLabel(plugin.getNextLabel(st.getStringValue()));
 					break;
 				default:
 				}
@@ -409,11 +457,11 @@ public class Schematic {
 		for (SimpleDisplayState display : displays) {
 			DexterityDisplay working_disp;
 			if (d == null) {
-				d = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), null);
+				d = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), display.getLabel());
 				working_disp = d;
 			}
 			else {
-				working_disp = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), null);
+				working_disp = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), display.getLabel());
 				d.addSubdisplay(working_disp);
 			}
 			
@@ -425,6 +473,5 @@ public class Schematic {
 		
 		return d;
 	}
-	
 	
 }

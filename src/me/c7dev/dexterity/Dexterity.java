@@ -504,6 +504,16 @@ public class Dexterity extends JavaPlugin {
 		}
 	}
 	
+	public String getNextLabel(String s) {
+		if (!all_displays.containsKey(s)) return s;
+		return getNextLabelHelper(s, 1);
+	}
+	
+	private String getNextLabelHelper(String s, int num) {
+		if (!all_displays.containsKey(s + "-" + num)) return s + "-" + num;
+		return getNextLabelHelper(s, num+1);
+	}
+	
 	//////////////////////////////////////////////////////////
 	
 	public Set<String> getDisplayLabels(){
