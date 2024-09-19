@@ -40,7 +40,6 @@ public class HuffmanTree {
 	
 	public void setLeft(HuffmanTree l) {
 		if (leaf != null) {
-			Bukkit.broadcastMessage("Occupying node: " + leaf.toString() + ", tag=" + leaf.getTag().toString());
 			throw new DexterityException("Invalid tag: " + leaf.toString());
 		}
 		if (left != null) throw new DexterityException("Cannot reset left when already defined!");

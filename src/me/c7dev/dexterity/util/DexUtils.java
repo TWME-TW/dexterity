@@ -1,5 +1,6 @@
 package me.c7dev.dexterity.util;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,10 +39,11 @@ public class DexUtils {
 		return item;
 	}
 	
-	public static double round(double d, int decimals) {
-		int a = (int) (d * Math.pow(10, decimals));
-		if (decimals == 0) return a;
-		return a / (double) Math.pow(10, decimals);
+	public static String round(double d, int decimals) {
+		StringBuilder hashs = new StringBuilder();
+		for (int i = 0; i < decimals; i++) hashs.append('#');
+		DecimalFormat df = new DecimalFormat("#." + hashs.toString());
+		return df.format(d);
 	}
 	
 	public static String locationString(Location loc, int decimals) {

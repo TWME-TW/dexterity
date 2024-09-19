@@ -23,8 +23,8 @@ import me.c7dev.dexterity.DexSession.AxisType;
 import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
-import me.c7dev.dexterity.displays.schematics.SchematicBuilder;
 import me.c7dev.dexterity.displays.schematics.Schematic;
+import me.c7dev.dexterity.displays.schematics.SchematicBuilder;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.transaction.BuildTransaction;
 import me.c7dev.dexterity.transaction.ConvertTransaction;
@@ -145,11 +145,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		
-		if (args.length >= 1 && args[0].equals("test2") && sender.hasPermission("dexterity.admin")) {
-			Schematic reader = new Schematic(plugin, "abcd");
-		}
-		
 		if (!(sender instanceof Player)) return true;
 		
 		Player p = (Player) sender;
@@ -235,6 +230,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (d == null) return true;
 			SchematicBuilder builder = new SchematicBuilder(plugin, d);
 			if (!builder.save("abcd", "Unfaxed (c7dev)", true)) p.sendMessage("Failed");
+		}
+		else if (args.length >= 1 && args[0].equals("test2") && sender.hasPermission("dexterity.admin")) {
+			Schematic schem = new Schematic(plugin, "abcd");
+			DexterityDisplay d = schem.paste(p.getLocation());
+			session.setSelected(d, false);
+			p.sendMessage("pasted display by " + schem.getAuthor());
 		}
 		
 		else if (args[0].equals("debug:centers") && p.hasPermission("dexterity.admin")){

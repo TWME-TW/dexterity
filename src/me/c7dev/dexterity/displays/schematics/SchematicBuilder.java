@@ -79,7 +79,6 @@ public class SchematicBuilder {
 		encodeBlocks(d);
 		encodeMetadata(d);
 		addToken(TokenType.DATA_END);
-		Bukkit.broadcastMessage("saved " + encoded_output.size() + " tokens");
 		assignTags();
 	}
 	
@@ -156,11 +155,9 @@ public class SchematicBuilder {
 			}
 			
 			//define object tokens
-			Bukkit.broadcastMessage("objects:");
 			writer.write("\nobjects: ");
 			TokenEncoder obj_encoder = new TokenEncoder();
 			for (Token token : definitions) {
-				Bukkit.broadcastMessage(token.toString() + ", " + token.getTag().toString());
 				obj_encoder.append(token.getTag());
 			}
 			writer.write(Base64.getEncoder().encodeToString(obj_encoder.getData()));
@@ -170,7 +167,6 @@ public class SchematicBuilder {
 			for (Token token : encoded_output) encoder.append(token.getTag());
 			writer.write(Base64.getEncoder().encodeToString(encoder.getData()));
 			writer.write("\n");
-			Bukkit.broadcastMessage("encoded " + encoded_output.size() + " tokens for data");
 
 			writer.close();
 			return true;
@@ -181,7 +177,6 @@ public class SchematicBuilder {
 	}
 	
 	public DoubleToken getDouble(TokenType type, double x) {
-		x = DexUtils.round(x, DECIMAL_PRECISION);
 		DoubleKey key = new DoubleKey(type, x);
 		DoubleToken r = double_map.get(key);
 		if (r == null) {
@@ -289,7 +284,7 @@ public class SchematicBuilder {
 	}
 	
 	private void encodeMetadata(DexterityDisplay d) {
-		addToken(getString(TokenType.LABEL, d.getLabel())); //TODO improve token interpreter to not have to put this in the objects header
+		if (d.getLabel() != null) addToken(getString(TokenType.LABEL, d.getLabel())); //TODO improve token interpreter to not have to put this in the objects header
 	}
 
 	private List<Token> createObjectTokens(boolean create_list) {
@@ -316,7 +311,6 @@ public class SchematicBuilder {
 			addToken(token, defs);
 			addString(token.getStringValue(), defs);
 			addToken(delimiter, defs);
-//			Bukkit.broadcastMessage("added " + token.toString() + " to obj: tag len = " + token.getTag().length);
 		}
 		
 		addToken(TokenType.DATA_END, defs); //end objects token definition

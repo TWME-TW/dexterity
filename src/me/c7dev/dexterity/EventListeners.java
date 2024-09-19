@@ -159,13 +159,11 @@ public class EventListeners implements Listener {
 
 							Vector blockscale = DexUtils.vector(clicked.getBlockDisplay().getTransformation().getScale());
 							Vector blockdimensions = DexUtils.getBlockDimensions(clicked.getBlockDisplay().getBlock());
-							//Vector placingScale = DexUtils.hadimard(blockscale, DexUtils.getBlockDimensions(bdata));
 
 							//calculate dimensions of clicked block display
 							Vector avgPlaceDimensions;
 							if (clicked.getBlockFace() == BlockFace.DOWN) {
 								avgPlaceDimensions = blockdimensions.clone().multiply(0.5).add(placingDimensions).add(new Vector(-0.5, -0.5, -0.5));
-								//avgPlaceDimensions = new Vector(0, (blockdimensions.getY()/2) + placingDimensions.getY() - 0.5, 0); //new Vector(0, (blockdimensions.getY()/2) + placingDimensions.getY() - 0.5, 0); //blockscale.clone().add(placingDimensions).multiply(0.5);
 							}
 							else {
 								placingDimensions.setY(1); //account for block's y axis asymmetry

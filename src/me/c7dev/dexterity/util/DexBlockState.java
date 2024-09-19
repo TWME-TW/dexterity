@@ -44,6 +44,10 @@ public class DexBlockState {
 		return uuid;
 	}
 	
+	public void setUniqueId(UUID u) {
+		uuid = u;
+	}
+	
 	public DexTransformation getTransformation() {
 		return trans;
 	}

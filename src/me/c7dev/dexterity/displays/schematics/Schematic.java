@@ -10,8 +10,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.Dexterity;
+import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.schematics.token.CharToken;
 import me.c7dev.dexterity.displays.schematics.token.DoubleToken;
 import me.c7dev.dexterity.displays.schematics.token.StringToken;
@@ -31,10 +33,12 @@ public class Schematic {
 	private List<Token> data = new ArrayList<>();
 	private boolean loaded = false;
 	private LinkedList<SimpleDisplayState> displays = new LinkedList<>();
+	private Dexterity plugin;
 
 	public Schematic(Dexterity plugin, String file_name) {
 		if (!file_name.endsWith("\\.dex")) file_name += ".dex";
 		this.file_name = file_name;
+		this.plugin = plugin;
 		try {
 			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + file_name);
 			if (f.exists()) {
@@ -93,7 +97,6 @@ public class Schematic {
 	private void addToken(Token token) {
 		HuffmanTree node = search(token, 0, root);
 		node.setLeaf(token);
-//		Bukkit.broadcastMessage("added token " + token.toString() + " with tag " + token.getTag().toString());
 	}
 	
 	private boolean bit(byte in, int index) {
@@ -116,7 +119,6 @@ public class Schematic {
 			
 			if (curr.getLeafToken() != null) {
 				out.add(curr.getLeafToken());
-				Bukkit.broadcastMessage("added data token: " + curr.getLeafToken().toString());
 				if (curr.getLeafToken().getType() == TokenType.DATA_END) break; //eof
 				curr = root;
 				continue;
@@ -162,7 +164,6 @@ public class Schematic {
 					if (b) tagread.bits.set(tagread_index);
 					tagread_index++;
 					if (tagread_index == taglen) {
-						Bukkit.broadcastMessage("finished tag: " + tagread.toString());
 						state = 3; //read value
 					}
 				} else {
@@ -173,14 +174,12 @@ public class Schematic {
 
 					if (curr.getLeafToken() != null) {
 						Token token = curr.getLeafToken();
-						Bukkit.broadcastMessage("popped " + token.toString());
 
 						if (token.getType() == TokenType.ASCII) {
 							CharToken ctk = (CharToken) token;
 							if (state == 0 || state == 1) { //tag length int
 								if (ctk.getCharValue() < 48 || ctk.getCharValue() > 57) throw new DexterityException("Malformed objects header: Expected tag length to be number");
 								taglen = (10*taglen) + (ctk.getCharValue() - 48);
-								Bukkit.broadcastMessage("new taglen = " + taglen);
 								state = 1; //allow 'type' token
 							}
 							else if (state == 3) {
@@ -192,7 +191,6 @@ public class Schematic {
 								Token t = Token.createToken(type, val.toString());
 								t.setTag(tagread);
 								addToken(t);
-								Bukkit.broadcastMessage("Added token " + t.toString() + " with tag " + tagread.toString());
 							}
 
 							//reset state
@@ -270,8 +268,6 @@ public class Schematic {
 		String datastr = schem.getString("data");
 		data = decode(Base64.getDecoder().decode(datastr));
 		
-		Bukkit.broadcastMessage("decoded " + data.size() + " tokens for data section");
-		
 		loaded = true;
 		reloadBlocks(data);
 		
@@ -319,16 +315,68 @@ public class Schematic {
 
 			if (t instanceof DoubleToken) {
 				DoubleToken dt = (DoubleToken) t;
+				double val = dt.getDoubleValue();
 
 				switch(t.getType()) {
 				case DX:
-					state.getLocation().setX(dt.getDoubleValue());
+					state.getLocation().setX(val);
 					break;
 				case DY:
-					state.getLocation().setY(dt.getDoubleValue());
+					state.getLocation().setY(val);
 					break;
 				case DZ:
-					state.getLocation().setZ(dt.getDoubleValue());
+					state.getLocation().setZ(val);
+					break;
+				case YAW:
+					state.getLocation().setYaw((float) val);
+					break;
+				case PITCH:
+					state.getLocation().setPitch((float) val);
+					break;
+				case ROLL:
+					state.setRoll((float) val);
+					break;
+				case SCALE_X:
+					state.getTransformation().getScale().setX(val);
+					state.getTransformation().getDisplacement().setX(-0.5*val);
+					break;
+				case SCALE_Y:
+					state.getTransformation().getScale().setY(val);
+					state.getTransformation().getDisplacement().setY(-0.5*val);
+					break;
+				case SCALE_Z:
+					state.getTransformation().getScale().setZ(val);
+					state.getTransformation().getDisplacement().setZ(-0.5*val);
+					break;
+				case TRANS_X:
+					state.getTransformation().getDisplacement().setX(val);
+					break;
+				case TRANS_Y:
+					state.getTransformation().getDisplacement().setY(val);
+					break;
+				case TRANS_Z:
+					state.getTransformation().getDisplacement().setZ(val);
+					break;
+				case ROFFSET_X:
+					state.getTransformation().getRollOffset().setX(val);
+					break;
+				case ROFFSET_Y:
+					state.getTransformation().getRollOffset().setY(val);
+					break;
+				case ROFFSET_Z:
+					state.getTransformation().getRollOffset().setZ(val);
+					break;
+				case QUAT_X:
+					state.getTransformation().getLeftRotation().x = (float) val;
+					break;
+				case QUAT_Y:
+					state.getTransformation().getLeftRotation().y = (float) val;
+					break;
+				case QUAT_Z:
+					state.getTransformation().getLeftRotation().z = (float) val;
+					break;
+				case QUAT_W:
+					state.getTransformation().getLeftRotation().w = (float) val;
 					break;
 				default:
 				}
@@ -348,5 +396,35 @@ public class Schematic {
 			
 		}
 	}
+	
+	/**
+	 * Create a copy of the schematic centered at the specified location
+	 * @param loc
+	 */
+	public DexterityDisplay paste(Location loc) {
+		if (!loaded) throw new DexterityException("This schematic did not load! Cannot paste.");
+		DexterityDisplay d = null;
+		Vector locv = loc.toVector();
+		
+		for (SimpleDisplayState display : displays) {
+			DexterityDisplay working_disp;
+			if (d == null) {
+				d = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), null);
+				working_disp = d;
+			}
+			else {
+				working_disp = new DexterityDisplay(plugin, loc, new Vector(1, 1, 1), null);
+				d.addSubdisplay(working_disp);
+			}
+			
+			for (DexBlockState state : display.getBlocks()) {
+				state.setDisplay(working_disp);
+				new DexBlock(state, locv);
+			}
+		}
+		
+		return d;
+	}
+	
 	
 }

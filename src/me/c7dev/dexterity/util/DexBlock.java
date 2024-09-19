@@ -3,6 +3,7 @@ package me.c7dev.dexterity.util;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -93,7 +94,7 @@ public class DexBlock {
 			a.setTransformation(state.getTransformation().build());
 		});
 		uuid = state.getUniqueId();
-		if (uuid == null) uuid = UUID.randomUUID();
+		if (uuid == null) uuid = entity.getUniqueId();
 		
 		roll = state.getRoll();
 		if (state.getDisplay() != null) {

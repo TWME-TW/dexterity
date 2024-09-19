@@ -431,6 +431,7 @@ public class DexterityAPI {
 		for (DexBlock db : d.getBlocks()) {
 			DexBlockState state = db.getState();
 			state.setDisplay(clone);
+			state.setUniqueId(null);
 			blocks.add(new DexBlock(state));
 		}
 		clone.setBlocks(blocks, false);
