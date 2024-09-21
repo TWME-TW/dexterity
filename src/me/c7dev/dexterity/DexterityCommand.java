@@ -21,6 +21,7 @@ import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.DexSession.AxisType;
 import me.c7dev.dexterity.DexSession.EditType;
+import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.schematics.Schematic;
@@ -572,6 +573,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (attrs_d.containsKey("x")) delta.setX(attrs_d.get("x"));
 			if (attrs_d.containsKey("y")) delta.setY(attrs_d.get("y"));
 			if (attrs_d.containsKey("z")) delta.setZ(attrs_d.get("z"));
+			if (attrs_d.containsKey("rx") || attrs_d.containsKey("ry") || attrs_d.containsKey("rz")) {
+				DexRotation rot = d.getRotationManager(true);
+				if (attrs_d.containsKey("rx")) delta.add(rot.getXAxis().multiply(attrs_d.get("rx")));
+				if (attrs_d.containsKey("ry")) delta.add(rot.getYAxis().multiply(attrs_d.get("ry")));
+				if (attrs_d.containsKey("rz")) delta.add(rot.getZAxis().multiply(attrs_d.get("rz")));
+			}
 			
 			if (delta.getX() == 0 && delta.getY() == 0 && delta.getZ() == 0) { //cannot be 0 delta
 				p.sendMessage(plugin.getConfigString("must-send-number"));
@@ -779,6 +786,23 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (attr_d.containsKey("x")) loc.add(attr_d.get("x"), 0, 0);
 			if (attr_d.containsKey("y")) loc.add(0, attr_d.get("y"), 0);
 			if (attr_d.containsKey("z")) loc.add(0, 0, attr_d.get("z"));
+			if (attr_d.containsKey("rx") || attr_d.containsKey("ry") || attr_d.containsKey("rz")) {
+				DexRotation rot = d.getRotationManager(false);
+				Vector x, y, z;
+				if (rot == null) {
+					x = new Vector(1, 0, 0);
+					y = new Vector(0, 1, 0);
+					z = new Vector(0, 0, 1);
+				} else {
+					x = rot.getXAxis();
+					y = rot.getYAxis();
+					z = rot.getZAxis();
+				}
+				
+				if (attr_d.containsKey("rx")) loc.add(x.multiply(attr_d.get("rx")));
+				if (attr_d.containsKey("ry")) loc.add(y.multiply(attr_d.get("ry")));
+				if (attr_d.containsKey("rz")) loc.add(z.multiply(attr_d.get("rz")));
+			}
 						
 			d.teleport(loc);
 			
@@ -958,10 +982,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (!withPermission(p, "schem")) return true;
 
 			if (args.length == 1) p.sendMessage(getUsage("schematic"));
-			else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("save")) {
+			else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("load")) {
 				if (!withPermission(p, "schem.import") || testInEdit(session)) return true;
 				
-				if (args.length == 2 || defs.size() < 2) p.sendMessage(getUsage("import"));
+				if (args.length == 2 || defs.size() < 2) {
+					p.sendMessage(getUsage("schem"));
+					return true;
+				}
 
 				String name = defs.get(1);
 				DexterityDisplay d;
@@ -977,7 +1004,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setSelected(d, false);
 				p.sendMessage(getConfigString("schem-import-success", session).replaceAll("\\Q%author%\\E", schem.getAuthor()));
 			}
-			else if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("load")) {
+			else if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("save")) {
 				if (!withPermission(p, "schem.export")) return true;
 				DexterityDisplay d = getSelected(session, "export");
 				if (d == null || testInEdit(session)) return true;
@@ -1273,12 +1300,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
+			ret.add("rx=");
+			ret.add("ry=");
+			ret.add("rz=");
 			ret.add("count=");
 		}
 		else if (argsr[0].equals("move") || argsr[0].equals("m")) {
 			ret.add("x=");
 			ret.add("y=");
 			ret.add("z=");
+			ret.add("rx=");
+			ret.add("ry=");
+			ret.add("rz=");
 			ret.add("north=");
 			ret.add("south=");
 			ret.add("east=");
@@ -1339,7 +1372,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("import");
 				ret.add("export");
 			}
-			else if (argsr[1].equalsIgnoreCase("export")) {
+			else if (argsr[1].equalsIgnoreCase("export") || argsr[1].equalsIgnoreCase("load")) {
 				ret.add("author=");
 				ret.add("-overwrite");
 			}
