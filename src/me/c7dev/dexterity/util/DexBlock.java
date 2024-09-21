@@ -3,7 +3,6 @@ package me.c7dev.dexterity.util;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -92,6 +91,10 @@ public class DexBlock {
 		entity = state.getDisplay().getPlugin().spawn(loc, BlockDisplay.class, a -> {
 			a.setBlock(state.getBlock());
 			a.setTransformation(state.getTransformation().build());
+			if (state.getGlow() != null) {
+				a.setGlowColorOverride(state.getGlow());
+				a.setGlowing(true);
+			}
 		});
 		uuid = state.getUniqueId();
 		if (uuid == null) uuid = entity.getUniqueId();

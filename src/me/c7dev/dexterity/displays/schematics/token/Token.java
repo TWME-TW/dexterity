@@ -33,9 +33,7 @@ public class Token {
 		ROFFSET_X,
 		ROFFSET_Y,
 		ROFFSET_Z,
-		GLOW_R,
-		GLOW_G,
-		GLOW_B,
+		GLOW_ARGB,
 		//add any new types here
 	}
 	

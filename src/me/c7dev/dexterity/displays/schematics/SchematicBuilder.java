@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.bukkit.Color;
 import org.bukkit.util.Vector;
 
 import me.c7dev.dexterity.Dexterity;
@@ -55,10 +56,10 @@ public class SchematicBuilder {
 	 * objects: Codes definitions [type chars_val]
 	 * <end data>
 	 * 
-	 * Section 2: DexBlock[] data, ordered by y, x, z coordinates
-	 * Section 3 (last): DexterityDisplay metadata
+	 * data:
+	 * DexBlock[] data, ordered by y, x, z coordinates, DexterityDisplay metadata
 	 * 
-	 * <end of display token>, Repeat 2-3 for any additional sub-displays
+	 * <end of display token>, Repeat data for any additional sub-displays
 	 * <end data token>
 	 * 
 	 * hash
@@ -314,6 +315,12 @@ public class SchematicBuilder {
 			if (Math.abs(db.getTransformation().getLeftRotation().y) >= epsilon) addToken(getDouble(TokenType.QUAT_Y, db.getTransformation().getLeftRotation().y));
 			if (Math.abs(db.getTransformation().getLeftRotation().z) >= epsilon) addToken(getDouble(TokenType.QUAT_Z, db.getTransformation().getLeftRotation().z));
 			if (Math.abs(db.getTransformation().getLeftRotation().w - 1) >= epsilon) addToken(getDouble(TokenType.QUAT_W, db.getTransformation().getLeftRotation().w));
+			
+			if (db.getEntity().isGlowing()) {
+				Color glow = db.getEntity().getGlowColorOverride();
+				if (glow == null) glow = Color.WHITE;
+				addToken(getDouble(TokenType.GLOW_ARGB, glow.asARGB()));
+			}
 			
 			addToken(block_delimiter);
 		}

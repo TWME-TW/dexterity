@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -426,6 +427,8 @@ public class Schematic {
 				case QUAT_W:
 					state.getTransformation().getLeftRotation().w = (float) val;
 					break;
+				case GLOW_ARGB:
+					state.setGlow(Color.fromARGB((int) val));
 				default:
 				}
 			}

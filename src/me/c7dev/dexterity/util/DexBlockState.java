@@ -16,6 +16,7 @@ public class DexBlockState {
 	private BlockData block;
 	private DexterityDisplay disp;
 	private float roll;
+	private Color glow;
 	
 	public DexBlockState(DexBlock db) {
 		loc = db.getEntity().getLocation().clone();
@@ -24,6 +25,10 @@ public class DexBlockState {
 		block = db.getEntity().getBlock();
 		disp = db.getDexterityDisplay();
 		roll = db.getRoll();
+		if (db.getEntity().isGlowing()) {
+			glow = db.getEntity().getGlowColorOverride();
+			if (glow == null) glow = Color.WHITE;
+		}
 	}
 	
 	public DexBlockState(Location loc, UUID uuid, DexTransformation trans, BlockData block, DexterityDisplay disp, float roll, Color glow) {
@@ -33,7 +38,7 @@ public class DexBlockState {
 		this.block = block;
 		this.disp = disp;
 		this.roll = roll;
-		//TODO glow
+		this.glow = glow;
 	}
 	
 	public Location getLocation() {
@@ -70,6 +75,14 @@ public class DexBlockState {
 	
 	public void setRoll(float f) {
 		roll = f;
+	}
+	
+	public Color getGlow() {
+		return glow;
+	}
+	
+	public void setGlow(Color c) {
+		glow = c;
 	}
 	
 	public float getRoll() {

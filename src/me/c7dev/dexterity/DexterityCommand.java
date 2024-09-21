@@ -760,7 +760,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			DexterityDisplay d = getSelected(session, "move");
 			if (d == null) return true;
 			
-			if (args.length == 1) {
+			boolean same_world = d.getCenter().getWorld().getName().equals(p.getWorld().getName());
+			if (args.length == 1 || !same_world) {
+				if (!same_world) d.teleport(p.getLocation());
 				session.startFollowing();
 				session.startEdit(d, EditType.TRANSLATE, false, new BlockTransaction(d));
 				p.sendMessage(getConfigString("to-finish-edit", session));
@@ -769,22 +771,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			BlockTransaction t = new BlockTransaction(d);
 			Location loc;
-			if (flags.contains("continuous") || flags.contains("c") || flags.contains("here")) {
-				if (flags.contains("continuous") || flags.contains("c")) loc = p.getLocation();
-				else loc = DexUtils.blockLoc(p.getLocation()).add(0.5, 0.5, 0.5);
-			}
+			if (flags.contains("continuous") || flags.contains("c")) loc = p.getLocation();
+			else if (flags.contains("here")) loc = DexUtils.blockLoc(p.getLocation()).add(0.5, 0.5, 0.5);
 			else loc = d.getCenter();
 						
 			HashMap<String,Double> attr_d = DexUtils.getAttributesDoubles(args);
-//			if (defs.contains("west")) loc.add(-1, 0, 0); //alias will not pick these up
 			if (attr_d.containsKey("x")) loc.add(attr_d.get("x"), 0, 0);
-			
-//			if (defs.contains("down")) loc.add(0, -1, 0);
 			if (attr_d.containsKey("y")) loc.add(0, attr_d.get("y"), 0);
-			
-//			if (defs.contains("south")) loc.add(0, 0, -1);
 			if (attr_d.containsKey("z")) loc.add(0, 0, attr_d.get("z"));
-			
 						
 			d.teleport(loc);
 			
@@ -964,7 +958,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (!withPermission(p, "schem")) return true;
 
 			if (args.length == 1) p.sendMessage(getUsage("schematic"));
-			else if (args[1].equalsIgnoreCase("import")) {
+			else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("save")) {
 				if (!withPermission(p, "schem.import") || testInEdit(session)) return true;
 				
 				if (args.length == 2 || defs.size() < 2) p.sendMessage(getUsage("import"));
@@ -983,7 +977,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setSelected(d, false);
 				p.sendMessage(getConfigString("schem-import-success", session).replaceAll("\\Q%author%\\E", schem.getAuthor()));
 			}
-			else if (args[1].equalsIgnoreCase("export")) {
+			else if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("load")) {
 				if (!withPermission(p, "schem.export")) return true;
 				DexterityDisplay d = getSelected(session, "export");
 				if (d == null || testInEdit(session)) return true;
@@ -1012,8 +1006,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName() + (d.getLabel() != null ? cc + " labelled " + cc2 + d.getLabel() : ""));
 			api.markerPoint(d.getCenter(), Color.AQUA, 4);
 		}
-		else if (args[0].equals("remove") || args[0].equals("restore") || args[0].equals("deconvert") || args[0].equals("deconv")) {
-			boolean res = !args[0].equals("remove");
+		else if (args[0].equals("rm") || args[0].equals("remove") || args[0].equals("restore") || args[0].equals("deconvert") || args[0].equals("deconv")) {
+			boolean res = !(args[0].equals("remove") || args[0].equals("rm"));
 			if ((res && !withPermission(p, "remove")) || (!res && !withPermission(p, "deconvert"))) return true;
 			
 			if (testInEdit(session)) return true;
