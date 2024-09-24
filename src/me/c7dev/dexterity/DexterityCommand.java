@@ -687,7 +687,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 					command.setLeft(false);
 					command.setRight(true);
 				}
-				command.setByPlayer(flags.contains("player") || flags.contains("p"));
+				
+				boolean by_player = flags.contains("player") || flags.contains("p") || !p.hasPermission("dexterity.command.cmd.console");
+				command.setByPlayer(by_player);
+				
 				if (attr_str.containsKey("permission")) command.setPermission(attr_str.get("permission"));
 
 				d.addCommand(command);

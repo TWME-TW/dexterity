@@ -1,5 +1,5 @@
 name: Dexterity
-version: 1.2.2
+version: 1.2.3
 author: c7dev
 main: me.c7dev.dexterity.Dexterity
 api-version: 1.19
@@ -54,6 +54,8 @@ permissions:
     description: Use /d clone
   dexterity.command.cmd:
     description: Use /d cmd
+  dexterity.command.cmd.console:
+    description: Use /d cmd to add console commands
   dexterity.command.consolidate:
     description: Use /d consolidate
   dexterity.command.convert:
