@@ -251,7 +251,7 @@ public class Dexterity extends JavaPlugin {
 		String langName;
 		if (default_lang) langName = defaultLangName;
 		else {
-			langName = getConfig().getString("lang-path");
+			langName = getConfig().getString("lang-file");
 			if (langName == null) {
 				langName = defaultLangName;
 				Bukkit.getLogger().warning("No language file specified in config, loading default.");

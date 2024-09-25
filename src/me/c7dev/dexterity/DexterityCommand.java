@@ -48,7 +48,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;
 	private DexterityAPI api;
-	String noperm, cc, cc2, cc3, usage_format, selected_str, loclabel_prefix;
+	private String noperm, cc, cc2, usage_format, selected_str, loclabel_prefix;
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
@@ -61,7 +61,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		this.plugin= plugin;
 		cc = plugin.getChatColor();
 		cc2 = plugin.getChatColor2();
-		cc3 = plugin.getChatColor3();
 		api = plugin.api();
 		plugin.getCommand("dex").setExecutor(this);
 		noperm = plugin.getConfigString("no-permission");
@@ -225,7 +224,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			d.addAnimation(r);
 //			r.start();
 //		}
-		
+				
 		else if (args[0].equals("debug:centers") && p.hasPermission("dexterity.admin")){
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
@@ -552,7 +551,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 		}
 		
-		else if (args[0].equals("tile")) {
+		else if (args[0].equals("tile") || args[0].equals("stack")) {
 			DexterityDisplay d = getSelected(session, "tile");
 			if (d == null) return true;
 			
