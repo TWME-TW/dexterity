@@ -3,6 +3,7 @@ package me.c7dev.dexterity;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -329,6 +330,12 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			t.commit(d.getBlocks());
 			session.pushTransaction(t);
 			
+			if (session.getFollowingOffset() != null) {
+				Location loc2 = p.getLocation();
+				if (!p.isSneaking()) DexUtils.blockLoc(loc2);
+				session.setFollowingOffset(d.getCenter().toVector().subtract(loc2.toVector()));
+			}
+			
 			p.sendMessage(getConfigString("align-success", session));
 		}
 		
@@ -559,9 +566,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 			int count = Math.abs(attrs_d.getOrDefault("count", 0d).intValue());
 			
-			if (count <= 0) { //check valid count
-				p.sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "count"));
-				return true;
+			if (count == 0) { //check valid count
+				if (def != null) {
+					try {
+						count = Integer.parseInt(def);
+					} catch(Exception ex) {
+						p.sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "count"));
+						return true;
+					}
+				}
+				else {
+					p.sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "count"));
+					return true;
+				}
 			}
 			
 			if (d.getBlocksCount()*(count+1) > session.getPermittedVolume()) { //check volume
@@ -572,7 +589,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			if (attrs_d.containsKey("x")) delta.setX(attrs_d.get("x"));
 			if (attrs_d.containsKey("y")) delta.setY(attrs_d.get("y"));
 			if (attrs_d.containsKey("z")) delta.setZ(attrs_d.get("z"));
-			if (attrs_d.containsKey("rx") || attrs_d.containsKey("ry") || attrs_d.containsKey("rz")) {
+			if (attrs_d.containsKey("rx") || attrs_d.containsKey("ry") || attrs_d.containsKey("rz") || def != null) {
 				DexRotation rot = d.getRotationManager(true);
 				if (attrs_d.containsKey("rx")) delta.add(rot.getXAxis().multiply(attrs_d.get("rx")));
 				if (attrs_d.containsKey("ry")) delta.add(rot.getYAxis().multiply(attrs_d.get("ry")));
@@ -580,7 +597,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			if (delta.getX() == 0 && delta.getY() == 0 && delta.getZ() == 0) { //cannot be 0 delta
-				p.sendMessage(plugin.getConfigString("must-send-number"));
+				p.sendMessage(plugin.getConfigString("must-send-numbers-xyz"));
 				return true;
 			}
 			

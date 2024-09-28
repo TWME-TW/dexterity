@@ -28,7 +28,7 @@ must-save-display: "&^No display selected! Use &*/d save&^ to convert selection.
 must-select-display: "&4Error: &cYou must select a display to do this!"
 must-same-world: "&4Error: &cMust be in the same world!"
 must-same-world-points: "&4Error: &cPoints must be set in the same world! Use /d desel"
-must-send-numbers-xyz: "&4Error: &cx, y, and z must be numbers!"
+must-send-numbers-xyz: "&4Error: &cMust set x, y, and z!"
 must-send-number: "&4Error: &cYou must send a number!"
 must-be-different: "&4Error: &cMust be a different display than selected!"
 must-enter-value: "&4Error: &cMissing required value '%value%'!"
