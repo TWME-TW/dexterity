@@ -32,6 +32,9 @@ import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.Mask;
 
+/**
+ * Holds a player's in-game command state and transaction history
+ */
 public class DexSession {
 	
 	public enum EditType {

@@ -12,6 +12,9 @@ import org.joml.Quaternionf;
 
 import me.c7dev.dexterity.displays.DexterityDisplay;
 
+/**
+ * Provides a wrapper for a {@link BlockDisplay} entity that holds data about its {@link DexTransformation}, roll offset, and more
+ */
 public class DexBlock {
 
 	private UUID uuid;

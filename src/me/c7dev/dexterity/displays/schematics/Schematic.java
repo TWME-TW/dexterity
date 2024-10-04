@@ -30,6 +30,9 @@ import me.c7dev.dexterity.util.DexTransformation;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 
+/**
+ * Reads and pastes an existing schematic file
+ */
 public class Schematic {
 	
 	private String author = null, file_name;

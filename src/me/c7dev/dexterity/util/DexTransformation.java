@@ -6,13 +6,19 @@ import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+/**
+ * Provides a factory for the {@link Transformation} class
+ */
 public class DexTransformation {
 	
 	private Vector disp, scale, disp2 = new Vector(0, 0, 0);
 	private Quaternionf r, l;
 	
 	public DexTransformation() {
-		
+		disp = new Vector(0, 0, 0);
+		scale = new Vector(1, 1, 1);
+		r = new Quaternionf();
+		l = new Quaternionf();
 	}
 	
 	public DexTransformation(Transformation trans) {

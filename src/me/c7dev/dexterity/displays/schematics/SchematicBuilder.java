@@ -28,6 +28,9 @@ import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 
+/**
+ * Creates and exports a schematic file
+ */
 public class SchematicBuilder {
 	
 	public static final int SCHEMA_VERSION = 1, DECIMAL_PRECISION = 10;
@@ -77,11 +80,13 @@ public class SchematicBuilder {
 			ex.printStackTrace();
 		}
 		
+		plugin.api().unTempHighlight(d);
 		for (TokenType type : TokenType.values()) {
 			Token stoken = new Token(type);
 			specifier_map.put(type, stoken);
 			freq.put(stoken, 0);
 		}
+		
 		for (char i = 48; i <= 57; i++) { //define all digits because used afterward encoding for obj tag lengths
 			CharToken ctoken = new CharToken(i);
 			char_map.put(i, ctoken);

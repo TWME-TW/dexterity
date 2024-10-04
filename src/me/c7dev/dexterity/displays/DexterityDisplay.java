@@ -31,6 +31,9 @@ import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.RotationPlan;
 
+/**
+ * Defines a selection of {@link DexBlock}, possibly with a saved display label or sub-displays
+ */
 public class DexterityDisplay {
 	
 	private Dexterity plugin;
@@ -625,7 +628,10 @@ public class DexterityDisplay {
 		} else {
 			for (DexBlock db : blocks) {
 				Vector diff = new Vector(db.getEntity().getLocation().getX() - center.getX(), db.getEntity().getLocation().getY() - center.getY(), db.getEntity().getLocation().getZ() - center.getZ());
+				
+				float yaw = db.getEntity().getLocation().getYaw(), pitch = db.getEntity().getLocation().getPitch();
 				db.getEntity().teleport(loc.clone().add(diff));
+				db.getEntity().setRotation(yaw, pitch);
 			}
 			center = loc.clone();
 			for (DexterityDisplay subd : subdisplays) subd.teleport(loc);

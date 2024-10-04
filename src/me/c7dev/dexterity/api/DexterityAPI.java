@@ -169,7 +169,7 @@ public class DexterityAPI {
 			for (int y = ymin; y <= ymax; y++) {
 				for (int z = zmin; z <= zmax; z++) {
 					Block b = new Location(l1.getWorld(), x, y, z).getBlock();
-					if (b.getType() != Material.BARRIER && b.getType() != Material.AIR) {
+					if (DexUtils.isAllowedMaterial(b.getType())) {
 						SavedBlockState saved = null;
 						if (t != null) saved = new SavedBlockState(b);
 						
@@ -178,6 +178,8 @@ public class DexterityAPI {
 						if (t != null) {
 							t.addBlock(saved, db);
 						}
+					} else if (b.getType() != Material.AIR && b.getType() != Material.BARRIER && b.getType() != Material.LIGHT) {
+						b.setType(Material.AIR);
 					}
 				}
 			}

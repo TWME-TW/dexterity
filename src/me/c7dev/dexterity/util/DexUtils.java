@@ -26,6 +26,9 @@ import org.joml.Vector3f;
 
 import com.sk89q.worldedit.math.BlockVector3;
 
+/**
+ * Defines commonly used static methods used globally in the plugin or API
+ */
 public class DexUtils {
 	
 	public static ItemStack createItem(Material material, int amount, String name, String... lore) {
@@ -479,6 +482,8 @@ public class DexUtils {
 		case ZOMBIE_HEAD:
 		case PIGLIN_HEAD:
 		case DRAGON_HEAD:
+		case STRUCTURE_VOID:
+		case LIGHT:
 			return false;
 		default: return true;
 		}
