@@ -1066,10 +1066,14 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 			}
 			
+			api.unTempHighlight(d);
+			
 			Transaction t;
 			if (res) t = new DeconvertTransaction(d);
 			else t = new RemoveTransaction(d);
+			
 			d.remove(res);
+			
 			if (res) p.sendMessage(getConfigString("restore-success", session));
 			else p.sendMessage(getConfigString("remove-success", session));
 			session.setSelected(null, false);
