@@ -127,6 +127,7 @@ unsave-description: "Unsave a display so it can be edited"
 wand-description: "Get a wand to select block locations"
 
 #Command usage
+axis-usage: "/d axis <show | set | off>"
 cmd-usage: "/d command <add | remove | list>"
 cmd-add-usage: "/d command add <cmd>"
 cmd-remove-usage: "/d command remove <id>"

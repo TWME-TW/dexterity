@@ -538,6 +538,13 @@ public class DexterityDisplay {
 		if (parent != null) parent.removeSubdisplay(this);
 		removeHelper(restore);
 	}
+	
+	/**
+	 * Delete this display and sub-displays from the world
+	 */
+	public void remove() {
+		remove(false);
+	}
 		
 	private void removeHelper(boolean restore) {
 		if (restore) {
