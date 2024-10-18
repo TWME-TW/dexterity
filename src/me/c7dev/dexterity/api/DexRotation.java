@@ -8,9 +8,11 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.joml.Matrix3d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -96,20 +98,6 @@ public class DexRotation {
 	public void refreshAxis() {
 		
 		clearCached();
-		
-		//alternate way to check the block closest to 0
-//		double min_yaw = Double.MAX_VALUE, yaw_val = 0, min_pitch = Double.MAX_VALUE, pitch_val = 0, min_roll = Double.MAX_VALUE, roll_val = 0;
-//		for (DexBlock db : d.getBlocks()) {
-//			double yaw = Math.abs(db.getEntity().getLocation().getYaw()), pitch = Math.abs(db.getEntity().getLocation().getPitch()), roll = Math.abs(db.getRoll());
-//			if (yaw < min_yaw && pitch < min_pitch && roll < min_roll) {
-//				min_yaw = yaw;
-//				yaw_val = db.getEntity().getLocation().getYaw();
-//				min_pitch = pitch;
-//				pitch_val = -db.getEntity().getLocation().getPitch();
-//				min_roll = roll;
-//				roll_val = -db.getRoll();
-//			}
-//		}
 		
 		//Finds the mode of all three axes, rather than the closest to zero
 		double yaw_mode = 0, pitch_mode = 0, roll_mode = 0;
@@ -467,7 +455,18 @@ public class DexRotation {
 		
 		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
 		Bukkit.getPluginManager().callEvent(event);
-		if (event.isCancelled()) return;
+		if (event.isCancelled()) {
+			dequeue();
+			return;
+		}
+		
+		//y rotation simple
+		if (q1.x == 0 && q1.z == 0) {
+			last = rot;
+			processing = true;
+			simpleRotateY(q1, trans);
+			return;
+		}
 		
 		if (!rot.equals(last)) dirs.clear(); //TODO only do this when different rotation
 		
@@ -509,7 +508,18 @@ public class DexRotation {
 		
 		DisplayRotationEvent event = new DisplayRotationEvent(d, q1);
 		Bukkit.getPluginManager().callEvent(event);
-		if (event.isCancelled()) return;
+		if (event.isCancelled()) {
+			dequeue();
+			return;
+		}
+		
+		//y rotation simple
+		if (q1.x == 0 && q1.z == 0) {
+			last = rot;
+			processing = true;
+			simpleRotateY(q1, trans);
+			return;
+		}
 		
 		if (!rot.equals(last)) dirs.clear();
 		
@@ -567,6 +577,32 @@ public class DexRotation {
 				
 			}
 		}.runTaskAsynchronously(d.getPlugin());
+	}
+	
+	private void simpleRotateY(Quaterniond q, RotationTransaction trans) {
+		float rad = 2 * (float) Math.asin(q.y);
+		double cosy = Math.cos(rad), siny = Math.sin(rad);
+		float deg = (float) Math.toDegrees(rad);
+		
+		Matrix3d rotmat = new Matrix3d(
+				cosy, 0, -siny,
+				0, 1, 0,
+				siny, 0, cosy
+				);
+		Vector centerv = d.getCenter().toVector();
+		
+		for (DexBlock db : d.getBlocks()) {
+			Vector3d r = DexUtils.vectord(db.getLocation().toVector().subtract(centerv));
+			rotmat.transform(r);
+			Location to = DexUtils.location(d.getWorld(), DexUtils.vector(r).add(centerv));
+			to.setYaw(db.getEntity().getLocation().getYaw() - deg);
+			to.setPitch(db.getEntity().getLocation().getPitch());
+			db.teleport(to);
+		}
+		
+		if (trans != null) trans.commit();
+		
+		dequeue();
 	}
 	
 	/**

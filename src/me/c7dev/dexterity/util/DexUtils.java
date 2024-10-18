@@ -195,6 +195,17 @@ public class DexUtils {
 		return r;
 	}
 	
+	public static List<String> getDefaultAttributesWithFlags(String[] args) { //could have negative numbers
+		List<String> r = new ArrayList<>();
+		for (int i = 1; i < args.length; i++) {
+			String arg = args[i];
+			if (!arg.contains("=") && !arg.contains(":")) {
+				r.add(arg.toLowerCase());
+			}
+		}
+		return r;
+	}
+	
 	public static double faceToDirection(BlockFace face, Vector scale) {
 		switch(face) {
 		case UP: return scale.getY();

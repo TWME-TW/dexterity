@@ -930,6 +930,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				set = true;
 			}
 			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+			List<String> defs_n = DexUtils.getDefaultAttributesWithFlags(args);
 			
 			plan.yaw_deg = attrs_d.getOrDefault("yaw", Double.MAX_VALUE);
 			plan.pitch_deg = attrs_d.getOrDefault("pitch", Double.MAX_VALUE);
@@ -938,20 +939,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			plan.x_deg = attrs_d.getOrDefault("x", Double.MAX_VALUE);
 			plan.z_deg = attrs_d.getOrDefault("z", Double.MAX_VALUE);
 			
+			
 			try {
 				switch(Math.min(defs.size(), 6)) {
 				case 6:
-					if (plan.z_deg == Double.MAX_VALUE) plan.z_deg = Double.parseDouble(defs.get(5));
+					if (plan.z_deg == Double.MAX_VALUE) plan.z_deg = Double.parseDouble(defs_n.get(5));
 				case 5:
-					if (plan.x_deg == Double.MAX_VALUE) plan.x_deg = Double.parseDouble(defs.get(4));
+					if (plan.x_deg == Double.MAX_VALUE) plan.x_deg = Double.parseDouble(defs_n.get(4));
 				case 4: 
-					if (plan.yaw_deg == Double.MAX_VALUE) plan.yaw_deg = Double.parseDouble(defs.get(3));
+					if (plan.yaw_deg == Double.MAX_VALUE) plan.yaw_deg = Double.parseDouble(defs_n.get(3));
 				case 3: 
-					if (plan.roll_deg == Double.MAX_VALUE) plan.roll_deg = Double.parseDouble(defs.get(2));
+					if (plan.roll_deg == Double.MAX_VALUE) plan.roll_deg = Double.parseDouble(defs_n.get(2));
 				case 2: 
-					if (plan.pitch_deg == Double.MAX_VALUE) plan.pitch_deg = Double.parseDouble(defs.get(1));
+					if (plan.pitch_deg == Double.MAX_VALUE) plan.pitch_deg = Double.parseDouble(defs_n.get(1));
 				case 1: 
-					if (plan.y_deg == Double.MAX_VALUE) plan.y_deg = Double.parseDouble(defs.get(0));
+					if (plan.y_deg == Double.MAX_VALUE) plan.y_deg = Double.parseDouble(defs_n.get(0));
 				default:
 				}
 			} catch (Exception ex) {

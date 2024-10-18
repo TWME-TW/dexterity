@@ -591,6 +591,10 @@ public class DexterityDisplay {
 		return center.clone();
 	}
 	
+	public World getWorld() {
+		return center.getWorld();
+	}
+	
 	/**
 	 * Sets the center of the display
 	 * @param loc
