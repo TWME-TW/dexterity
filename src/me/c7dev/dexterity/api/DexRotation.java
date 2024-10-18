@@ -25,6 +25,9 @@ import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.QueuedRotation;
 import me.c7dev.dexterity.util.RotationPlan;
 
+/**
+ * Manages all rotation events of a {@link DexterityDisplay}
+ */
 public class DexRotation {
 	
 	private HashMap<Vector, Vector> dirs = new HashMap<>();
@@ -579,6 +582,7 @@ public class DexRotation {
 		}.runTaskAsynchronously(d.getPlugin());
 	}
 	
+	//if rotating around absolute y axis, only need a simple rotation matrix
 	private void simpleRotateY(Quaterniond q, RotationTransaction trans) {
 		float rad = 2 * (float) Math.asin(q.y);
 		double cosy = Math.cos(rad), siny = Math.sin(rad);

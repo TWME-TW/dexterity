@@ -43,6 +43,9 @@ import me.c7dev.dexterity.util.OrientationKey;
 import me.c7dev.dexterity.util.RollOffset;
 import net.md_5.bungee.api.ChatColor;
 
+/**
+ * Plugin main class
+ */
 public class Dexterity extends JavaPlugin {
 	
 	private HashMap<String,DexterityDisplay> displays = new HashMap<>();

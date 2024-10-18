@@ -11,6 +11,10 @@ import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.Mask;
 
+/**
+ * Essentially stores the {@link BlocktransactionLine} list
+ * This is the most common transaction type
+ */
 public class BlockTransaction implements Transaction {
 	
 	protected HashMap<UUID, BlockTransactionLine> trans = new HashMap<>();

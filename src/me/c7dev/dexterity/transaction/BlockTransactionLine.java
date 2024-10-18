@@ -6,6 +6,9 @@ import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexBlockState;
 
+/**
+ * Stores the old and new state of a particular {@link DexBlock}
+ */
 public class BlockTransactionLine {
 	
 	private DexBlock db;

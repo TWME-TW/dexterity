@@ -7,6 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
+/**
+ * Stores information about a configured command that is to run when a player clicks a display
+ */
 public class InteractionCommand {
 	
 	private String cmd, perm;

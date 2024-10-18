@@ -4,6 +4,9 @@ import org.bukkit.util.Vector;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 
+/**
+ * Used to calculate the roll degrees, roll offset vector, or transformation quaternion for a DexBlock
+ */
 public class RollOffset {
 	
 	private Vector offset;

@@ -44,6 +44,9 @@ import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
 import me.c7dev.dexterity.util.RotationPlan;
 
+/**
+ * Defines all sub-commands for the /d or /dex in-game command
+ */
 public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private Dexterity plugin;

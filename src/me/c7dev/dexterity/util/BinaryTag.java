@@ -1,13 +1,13 @@
 package me.c7dev.dexterity.util;
 
-import java.util.Base64;
 import java.util.BitSet;
-
-import org.bukkit.Bukkit;
 
 import me.c7dev.dexterity.displays.schematics.TokenEncoder;
 
-public class BinaryTag { //fixed length bit set
+/**
+ * Fixed length BitSet for Huffman Tree (schematics)
+ */
+public class BinaryTag {
 	
 	public BitSet bits;
 	public int length;

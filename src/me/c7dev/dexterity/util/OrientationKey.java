@@ -2,6 +2,9 @@ package me.c7dev.dexterity.util;
 
 import org.joml.Quaternionf;
 
+/**
+ * Hashable object to represent a unique yaw, pitch, and rotation transformation's quaternion in a map
+ */
 public class OrientationKey {
 	
 	private Quaternionf q;

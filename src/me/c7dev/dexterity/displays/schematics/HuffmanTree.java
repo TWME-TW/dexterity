@@ -2,12 +2,13 @@ package me.c7dev.dexterity.displays.schematics;
 
 import java.util.LinkedList;
 
-import org.bukkit.Bukkit;
-
 import me.c7dev.dexterity.displays.schematics.token.Token;
 import me.c7dev.dexterity.util.BinaryTag;
 import me.c7dev.dexterity.util.DexterityException;
 
+/**
+ * Used to construct the binary tags in schematic tokens
+ */
 public class HuffmanTree {
 	
 	private int freq = 1;

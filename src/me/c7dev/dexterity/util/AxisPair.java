@@ -5,6 +5,9 @@ import org.bukkit.util.Vector;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
+/**
+ * Used to calculate the new yaw, pitch, and roll of a DexBlock in a rotation
+ */
 public class AxisPair {
 	
 	private Vector3d dir1, dir2;

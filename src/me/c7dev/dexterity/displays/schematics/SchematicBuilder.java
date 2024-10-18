@@ -107,6 +107,13 @@ public class SchematicBuilder {
 		return DexUtils.bytesToHex(sha256.digest(data));
 	}
 	
+	/**
+	 * Save the schematic to a file name
+	 * @param file_name Does not include path to schematics folder
+	 * @param author
+	 * @param override
+	 * @return
+	 */
 	public int save(String file_name, String author, boolean override) {
 		if (file_name == null || file_name.length() == 0) throw new IllegalArgumentException("File name cannot be null!");
 		if (author == null || author.length() == 0) throw new IllegalArgumentException("Must provide an author!");
@@ -126,6 +133,12 @@ public class SchematicBuilder {
 		}
 	}
 	
+	/**
+	 * Save the schematic to a File
+	 * @param f
+	 * @param author
+	 * @return
+	 */
 	public boolean save(File f, String author) {
 		if (f == null) throw new IllegalArgumentException("File cannot be null!");
 		if (author == null || author.length() == 0) throw new IllegalArgumentException("Must provide an author!");
