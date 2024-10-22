@@ -638,13 +638,13 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equals("glow")) { //TODO add transaction
 			DexterityDisplay d = getSelected(session, "glow");
 			if (d == null) return true;
-			if (args.length < 2 || (def == null && flags.size() == 0)) {
-				p.sendMessage(getUsage("glow"));
-				return true;
-			}
+//			if (args.length < 2 || (def == null && flags.size() == 0)) {
+//				p.sendMessage(getUsage("glow"));
+//				return true;
+//			}
 			
 			boolean propegate = false; //flags.contains("propegate");
-			if ((def != null && (def.equals("none") || def.equals("off"))) || flags.contains("none") || flags.contains("off")) {
+			if (args.length < 2 || (def != null && (def.equals("none") || def.equals("off"))) || flags.contains("none") || flags.contains("off")) {
 				d.setGlow(null, propegate);
 				p.sendMessage(getConfigString("glow-success-disable", session));
 				return true;
@@ -1074,12 +1074,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			api.unTempHighlight(d);
 			
 			Transaction t;
-			if (res) t = new DeconvertTransaction(d);
+			if (res) {
+				t = new DeconvertTransaction(d);
+				session.setCancelPhysics(true);
+			}
 			else t = new RemoveTransaction(d);
 			
 			d.remove(res);
 			
-			if (res) p.sendMessage(getConfigString("restore-success", session));
+			if (res) {
+				p.sendMessage(getConfigString("restore-success", session));
+				session.setCancelPhysics(false);
+			}
 			else p.sendMessage(getConfigString("remove-success", session));
 			session.setSelected(null, false);
 			session.pushTransaction(t);
