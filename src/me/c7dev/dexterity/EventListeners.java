@@ -104,7 +104,9 @@ public class EventListeners implements Listener {
 				e.setCancelled(true);
 
 				InteractionCommand[] cmds = clicked_display.getCommands();
-				for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
+				if (cmds.length == 0) {
+					if (e.getPlayer().hasPermission("dexterity.buid") || e.getPlayer().hasPermission("dexterity.command.cmd")) session.clickMsg();
+				} else for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
 
 			} else if (e.getPlayer().hasPermission("dexterity.build")) {
 				//wand click

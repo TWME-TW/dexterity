@@ -61,7 +61,7 @@ public class DexSession {
 	private LinkedList<Transaction> toUndo = new LinkedList<>(), toRedo = new LinkedList<>(); //push/pop from first element
 	private BuildTransaction t_build;
 	private Mask mask;
-	private boolean cancel_physics = false;
+	private boolean cancel_physics = false, sent_click_msg = false;
 	private BlockDisplay[] axis_x, axis_y, axis_z;
 	private AxisType showing_axis = null;
 	
@@ -156,6 +156,8 @@ public class DexSession {
 		if (o == null) {
 			cancelEdit();
 			selected = null;
+			sent_click_msg = false;
+			updateAxisDisplays();
 			return;
 		}
 		
@@ -173,6 +175,7 @@ public class DexSession {
 		}
 		
 		selected = o;
+		sent_click_msg = false;
 		updateAxisDisplays();
 		if (msg && o.getLabel() != null && p.isOnline()) {
 			p.sendMessage(plugin.getConfigString("selected-success").replaceAll("\\Q%label%\\E", o.getLabel()));
@@ -478,6 +481,15 @@ public class DexSession {
 	 */
 	public boolean hasLocationsSet() {
 		return (l1 != null && l2 != null && l1.getWorld().getName().equals(l2.getWorld().getName()));
+	}
+	
+	/**
+	 * Simple function to send the default click message for a saved display
+	 */
+	public void clickMsg() {
+		if (sent_click_msg) return;
+		sent_click_msg = true;
+		p.sendMessage(plugin.getConfigString("saved-click-default"));
 	}
 	
 	/**
