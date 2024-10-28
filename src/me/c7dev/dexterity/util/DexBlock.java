@@ -37,6 +37,7 @@ public class DexBlock {
 		entity = d.getPlugin().spawn(block.getLocation().clone().add(0.5, 0.5, 0.5), BlockDisplay.class, spawned -> {
 			spawned.setBlock(block.getBlockData());
 			spawned.setTransformation(trans.build());
+			spawned.setInterpolationDuration(TELEPORT_DURATION);
 		});
 		uuid = entity.getUniqueId();
 		d.getPlugin().setMappedDisplay(this);
@@ -66,7 +67,8 @@ public class DexBlock {
 		disp = d;
 		uuid = bd.getUniqueId();
 		this.roll = roll;
-		if (!d.getPlugin().isLegacy()) bd.setTeleportDuration(TELEPORT_DURATION);
+//		if (!d.getPlugin().isLegacy()) bd.setTeleportDuration(TELEPORT_DURATION);
+		bd.setInterpolationDuration(TELEPORT_DURATION);
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
 	}

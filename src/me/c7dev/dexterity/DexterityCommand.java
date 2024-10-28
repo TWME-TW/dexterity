@@ -1,5 +1,6 @@
 package me.c7dev.dexterity;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -106,6 +107,22 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			return true;
 		}
 		return false;
+	}
+	
+	public List<String> listSchematics() {
+		List<String> r = new ArrayList<>();
+		try {
+			File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics");
+			for (File sub : f.listFiles()) {
+				String name = sub.getName().toLowerCase();
+				if (name.endsWith(".dex") || name.endsWith(".dexterity")) {
+					r.add(name.replaceAll("\\.dexterity|\\.dex", ""));
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return r;
 	}
 	
 	public int constructList(String[] strs, DexterityDisplay disp, String selected, int i, int level) {
@@ -1048,6 +1065,21 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else if (res == 1) p.sendMessage(getConfigString("file-already-exists", session).replaceAll("\\Q%input%\\E", "/schematics/" + d.getLabel().toLowerCase() + ".dexterity"));
 				else if (res == -1) p.sendMessage(getConfigString("console-exception", session));
 			}
+			else if (args[1].equalsIgnoreCase("delete")) {
+				String name = args[2].toLowerCase();
+				if (!name.endsWith(".dexterity")) name += ".dexterity";
+				File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + name);
+				if (f.exists()) {
+					try {
+						f.delete();
+						p.sendMessage(plugin.getConfigString("schem-delete-success").replaceAll("\\Q%label%\\E", args[2].toLowerCase()).replaceAll("\\Q%input%\\E", name));
+					} catch (Exception ex) {
+						ex.printStackTrace();
+						p.sendMessage(plugin.getConfigString("file-not-found").replaceAll("\\Q%input%\\E", name));
+					}
+				} else p.sendMessage(plugin.getConfigString("file-not-found").replaceAll("\\Q%input%\\E", name));
+			}
+			else p.sendMessage(plugin.getConfigString("unknown-subcommand"));
 		}
 		
 		else if (args[0].equals("info") || args[0].equals("i")) {
@@ -1402,12 +1434,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equals("schem")) {
 			if (argsr.length == 2) {
-				ret.add("import");
-				ret.add("export");
+				ret.add("load");
+				ret.add("save");
+				ret.add("delete");
 			}
-			else if (argsr[1].equalsIgnoreCase("export") || argsr[1].equalsIgnoreCase("load")) {
-				ret.add("author=");
-				ret.add("-overwrite");
+			else if (argsr.length == 3) {
+				if (argsr[1].equalsIgnoreCase("export") || argsr[1].equalsIgnoreCase("save")) {
+					ret.add("author=");
+					ret.add("-overwrite");
+				}
+				else if (argsr[1].equalsIgnoreCase("import") || argsr[1].equalsIgnoreCase("load") || argsr[1].equalsIgnoreCase("delete")) {
+					ret = listSchematics();
+				}
 			}
 		}
 		
