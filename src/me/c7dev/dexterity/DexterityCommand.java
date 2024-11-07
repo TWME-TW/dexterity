@@ -1297,6 +1297,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		
 		List<String> ret = new ArrayList<String>();
+		if (!sender.hasPermission("dexterity.command")) return ret;
 		boolean add_labels = false;
 		
 		if (argsr.length <= 1) {
@@ -1400,10 +1401,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("list");
 			} 
 			else if (argsr[1].equalsIgnoreCase("add")) {
-				ret.add("permission=");
-				ret.add("-left_only");
-				ret.add("-right_only");
-				ret.add("-player");
+				if (argsr.length == 3) {
+					ret.add("permission=");
+					ret.add("-left_only");
+					ret.add("-right_only");
+					ret.add("-player");
+				}
+				else if (argsr.length == 4) {
+					Player p = (Player) sender;
+					DexSession session = plugin.getEditSession(p.getUniqueId());
+					int len = 0;
+					if (session != null && session.getSelected() != null) len = session.getSelected().getCommandCount();
+					for (int i = 0; i < len; i++) ret.add("" + (i+1));
+				}
 			}
 		}
 		else if (argsr[0].equals("axis")) {

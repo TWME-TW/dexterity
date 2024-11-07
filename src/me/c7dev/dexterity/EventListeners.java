@@ -154,7 +154,13 @@ public class EventListeners implements Listener {
 								break;
 							default:
 								if (hand.getType() == clicked.getBlockDisplay().getBlock().getMaterial()) bdata = clicked.getBlockDisplay().getBlock();
-								else bdata = Bukkit.createBlockData(hand.getType());
+								else {
+									try {
+										bdata = Bukkit.createBlockData(hand.getType());
+									} catch (Exception ex) {
+										return;
+									}
+								}
 							}
 
 							Vector placingDimensions = DexUtils.getBlockDimensions(bdata);
