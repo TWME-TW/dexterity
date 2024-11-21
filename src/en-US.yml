@@ -17,6 +17,7 @@ must-finish-edit: "&^Use &*/d paste&^ or &*/d cancel&^ to finish the edit first!
 other-player-editing: "&^Cannot select until &*%editor%&^ finishes an in-progress edit!"
 help-page-header: "\n\n&^&lDexterity Commands: &**Page &**&l%page%&**/%maxpage%"
 list-page-header: "&^&lDisplay list: &**Page &**&l%page%&**/%maxpage%"
+schem-list-header: "&^&lSchematics: &**Page &**&l%page%&**/%maxpage%"
 saved-click-default: "&^Use &*/d unsave&^ to edit or &*/d cmd&^ to add a command on click!"
 cancelled-edit: "&^Cancelled edit!"
 unknown-subcommand: "&cUnknown sub-command."

@@ -74,7 +74,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		
 		for (int i = 0; i < commands.length; i++) {
 			descriptions[i] = plugin.getConfigString(commands[i] + "-description");
-			command_strs[i] = cc2 + "- /d " + commands[i] + " §8- " + cc + descriptions[i];
+			command_strs[i] = cc + "- " + cc2 + "/d " + commands[i] + " §8- " + cc + descriptions[i];
 		}
 	}
 	
@@ -1018,11 +1018,11 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			session.pushTransaction(t);
 		}
 		
-		else if (args[0].equals("schem") || args[0].equals("schematic")) {
+		else if (args[0].equals("schem") || args[0].equals("schematic")) { //d schem
 			if (!withPermission(p, "schem")) return true;
 
 			if (args.length == 1) p.sendMessage(getUsage("schematic"));
-			else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("load")) {
+			else if (args[1].equalsIgnoreCase("import") || args[1].equalsIgnoreCase("load")) { //d schem import, /d schem load
 				if (!withPermission(p, "schem.import") || testInEdit(session)) return true;
 				
 				if (args.length == 2 || defs.size() < 2) {
@@ -1044,7 +1044,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setSelected(d, false);
 				p.sendMessage(getConfigString("schem-import-success", session).replaceAll("\\Q%author%\\E", schem.getAuthor()));
 			}
-			else if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("save")) {
+			else if (args[1].equalsIgnoreCase("export") || args[1].equalsIgnoreCase("save")) { //d schem export, /d schem save
 				if (!withPermission(p, "schem.export")) return true;
 				DexterityDisplay d = getSelected(session, "export");
 				if (d == null || testInEdit(session)) return true;
@@ -1065,7 +1065,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else if (res == 1) p.sendMessage(getConfigString("file-already-exists", session).replaceAll("\\Q%input%\\E", "/schematics/" + d.getLabel().toLowerCase() + ".dexterity"));
 				else if (res == -1) p.sendMessage(getConfigString("console-exception", session));
 			}
-			else if (args[1].equalsIgnoreCase("delete")) {
+			else if (args[1].equalsIgnoreCase("delete")) { //d schem delete
 				String name = args[2].toLowerCase();
 				if (!name.endsWith(".dexterity")) name += ".dexterity";
 				File f = new File(plugin.getDataFolder().getAbsolutePath() + "/schematics/" + name);
@@ -1078,6 +1078,25 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 						p.sendMessage(plugin.getConfigString("file-not-found").replaceAll("\\Q%input%\\E", name));
 					}
 				} else p.sendMessage(plugin.getConfigString("file-not-found").replaceAll("\\Q%input%\\E", name));
+			}
+			else if (args[1].equalsIgnoreCase("list") || args[1].equalsIgnoreCase("lsit")) { //d schem list
+				int page = 0;
+				if (attrs.containsKey("page")) page = Math.max(attrs.get("page") - 1, 0);
+				else if (args.length >= 3) page = Math.max(DexUtils.parseInt(args[2]) - 1, 0);
+				List<String> schems = listSchematics();
+				
+				if (schems.size() == 0) {
+					p.sendMessage(plugin.getConfigString("list-empty"));
+					return true;
+				}
+				
+				String[] formatted = new String[schems.size()];
+				for (int i = 0; i < schems.size(); i++) formatted[i] = cc + "- " + cc2 + schems.get(i);
+				
+				int maxpage = DexUtils.maxPage(schems.size(), 5);
+				if (page >= maxpage) page = maxpage - 1;
+				p.sendMessage(plugin.getConfigString("schem-list-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
+				DexUtils.paginate(p, formatted, page, 5);
 			}
 			else p.sendMessage(plugin.getConfigString("unknown-subcommand"));
 		}
@@ -1447,6 +1466,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				ret.add("load");
 				ret.add("save");
 				ret.add("delete");
+				ret.add("list");
 			}
 			else if (argsr.length == 3) {
 				if (argsr[1].equalsIgnoreCase("export") || argsr[1].equalsIgnoreCase("save")) {
@@ -1456,6 +1476,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else if (argsr[1].equalsIgnoreCase("import") || argsr[1].equalsIgnoreCase("load") || argsr[1].equalsIgnoreCase("delete")) {
 					ret = listSchematics();
 				}
+				else if (argsr[1].equalsIgnoreCase("list") || argsr[1].equalsIgnoreCase("lsit")) ret.add("page=");
 			}
 		}
 		
