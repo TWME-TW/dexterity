@@ -21,6 +21,7 @@ import org.joml.Vector3d;
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.displays.animation.Animation;
+import me.c7dev.dexterity.displays.animation.RideableAnimation;
 import me.c7dev.dexterity.transaction.BlockTransaction;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
@@ -254,9 +255,11 @@ public class DexterityDisplay {
 	 * @see #removeAnimation(Animation)
 	 */
 	public void addAnimation(Animation a) {
+		if (a == null) return;
 		Animation existing = getAnimation(a.getClass());
+		if (existing == null && a instanceof RideableAnimation) existing = getAnimation(RideableAnimation.class);
 		if (existing != null) {
-			Bukkit.getLogger().warning("Dex API: Adding a " + a.getClass().getSimpleName() + " animation that replaces the existing old animation of this type!");
+			Bukkit.getLogger().warning("Dex API: Adding a " + a.getClass().getSimpleName() + " animation that replaces an existing animation!");
 			removeAnimation(existing);
 		}
 		animations.add(a);
@@ -281,7 +284,10 @@ public class DexterityDisplay {
 	 */
 	public Animation getAnimation(Class<?> clazz) { //animations list should hold unique animation types
 		for (Animation a : animations) {
-			if (a.getClass() == clazz) return a;
+			if (clazz.isInterface()) {
+				if (clazz.isInstance(a)) return a;
+			}
+			else if (a.getClass() == clazz) return a;
 		}
 		return null;
 	}

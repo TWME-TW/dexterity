@@ -29,7 +29,8 @@ import me.c7dev.dexterity.api.events.TransactionEvent;
 import me.c7dev.dexterity.api.events.TransactionRedoEvent;
 import me.c7dev.dexterity.api.events.TransactionUndoEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
-import me.c7dev.dexterity.displays.animation.RideAnimation;
+import me.c7dev.dexterity.displays.animation.Animation;
+import me.c7dev.dexterity.displays.animation.RideableAnimation;
 import me.c7dev.dexterity.transaction.RemoveTransaction;
 import me.c7dev.dexterity.util.ClickedBlock;
 import me.c7dev.dexterity.util.ClickedBlockDisplay;
@@ -96,10 +97,12 @@ public class EventListeners implements Listener {
 			if (clicked_display != null && clicked_display.isSaved() && (!holding_wand || !e.getPlayer().hasPermission("dexterity.build"))) {
 				if (clicked == null || clicked_block) return;
 				//click a display as normal player or with nothing in hand
-				RideAnimation ride = (RideAnimation) clicked_display.getAnimation(RideAnimation.class);
+				RideableAnimation ride = (RideableAnimation) clicked_display.getAnimation(RideableAnimation.class);
+				
 				if (ride != null && ride.getMountedPlayer() == null) {
 					ride.mount(e.getPlayer());
-					ride.start();
+					Animation anim = (Animation) ride;
+					anim.start();
 				}
 				e.setCancelled(true);
 

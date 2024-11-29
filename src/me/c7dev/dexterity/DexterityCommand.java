@@ -25,6 +25,9 @@ import me.c7dev.dexterity.DexSession.EditType;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.displays.animation.Animation;
+import me.c7dev.dexterity.displays.animation.RideableAnimation;
+import me.c7dev.dexterity.displays.animation.SitAnimation;
 import me.c7dev.dexterity.displays.schematics.Schematic;
 import me.c7dev.dexterity.displays.schematics.SchematicBuilder;
 import me.c7dev.dexterity.transaction.BlockTransaction;
@@ -56,7 +59,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
-		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "select", "schem", "undo", "unsave", "tile", "wand"
+		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "schem", "seat", "select", "undo", "unsave", "tile", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -225,16 +228,6 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 //			a1.start();
 //		}
 //		else if (args[0].equals("animtest2")) {
-//			DexterityDisplay d = getSelected(session, null);
-//			if (d == null) return true;
-//			RideAnimation r = new RideAnimation(d);
-//			//r.setSeatOffset(new Vector(0, -4.5, -0.5));
-//			//r.setSeatOffset(new Vector(0, -0.7, 0));
-//			r.setSpeed(5);
-//			r.mount(p);
-//			r.start();
-//		}
-//		else if (args[0].equals("animtest3")) {
 //			DexterityDisplay d = getSelected(session, null);
 //			if (d == null) return true;
 ////			d.getAnimations().clear();
@@ -676,6 +669,29 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			d.setGlow(c.getColor(), propegate);
 			if (d.getLabel() != null) p.sendMessage(getConfigString("glow-success", session));
+		}
+		
+		else if (args[0].equals("sittable") || args[0].equals("seat")) {
+			DexterityDisplay d = getSelected(session, "seat");
+			if (d == null) return true;
+			if (!d.isSaved()) {
+				p.sendMessage(getConfigString("not-saved", session));
+				return true;
+			}
+			
+			Animation anim = d.getAnimation(RideableAnimation.class);
+			if (anim == null) {
+				HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+				double y_offset = attrs_d.getOrDefault("y_offset", 0d);
+				
+				SitAnimation a = new SitAnimation(d);
+				if (y_offset != 0) a.setSeatOffset(new Vector(0, y_offset, 0));
+				d.addAnimation(a);
+				p.sendMessage(getConfigString("seat-success", session));
+			} else {
+				d.removeAnimation(anim);
+				p.sendMessage(getConfigString("seat-disable-success", session));
+			}
 		}
 		
 		else if (args[0].equals("command") || args[0].equals("cmd")) {
@@ -1380,6 +1396,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (argsr[0].equals("glow")) {
 			ret.add("-none");
 			for (ColorEnum c : ColorEnum.values()) ret.add(c.toString());
+		}
+		else if (argsr[0].equals("sittable") || argsr[0].equals("seat")) {
+			ret.add("y_offset=");
 		}
 		else if (argsr[0].equals("tile")) {
 			ret.add("x=");

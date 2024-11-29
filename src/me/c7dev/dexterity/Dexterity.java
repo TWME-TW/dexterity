@@ -35,6 +35,7 @@ import com.sk89q.worldedit.regions.Region;
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
 import me.c7dev.dexterity.displays.DexterityDisplay;
+import me.c7dev.dexterity.displays.animation.SitAnimation;
 import me.c7dev.dexterity.util.AxisPair;
 import me.c7dev.dexterity.util.DexBlock;
 import me.c7dev.dexterity.util.DexUtils;
@@ -357,7 +358,14 @@ public class Dexterity extends JavaPlugin {
 				for (BlockDisplay bd : blocks) {
 					disp.addBlock(new DexBlock(bd, disp));
 				}
-
+				
+				double seat_y_offset = afile.getDouble("seat-offset", Double.MAX_VALUE);
+				if (seat_y_offset < Double.MAX_VALUE) {
+					SitAnimation a = new SitAnimation(disp);
+					if (seat_y_offset != 0) a.setSeatOffset(new Vector(0, seat_y_offset, 0));
+					disp.addAnimation(a);
+				}
+				
 				new BukkitRunnable() {
 					@Override
 					public void run() {
@@ -431,6 +439,9 @@ public class Dexterity extends JavaPlugin {
 		if (disp.getScale().getX() != 1) afile.set("scale-x", disp.getScale().getX());
 		if (disp.getScale().getY() != 1) afile.set("scale-y", disp.getScale().getY());
 		if (disp.getScale().getZ() != 1) afile.set("scale-z", disp.getScale().getZ());
+		
+		SitAnimation seat = (SitAnimation) disp.getAnimation(SitAnimation.class);
+		if (seat != null) afile.set("seat-offset", seat.getSeatOffset().getY());
 
 		if (disp.getRotationManager() != null) {
 			DexRotation rot = disp.getRotationManager();

@@ -11,7 +11,7 @@ import org.bukkit.util.Vector;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.util.RotationPlan;
 
-public class RideAnimation extends Animation {
+public class RideAnimation extends Animation implements RideableAnimation {
 	
 	public enum LookMode {
 		NONE,
