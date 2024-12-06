@@ -23,7 +23,6 @@ public class Animation {
 		this.plugin = display.getPlugin();
 		if (ticks < 1) ticks = 1;
 		this.ticks = ticks;
-//		if (!display.getAnimations().contains(this)) display.getAnimations().add(this);
 	}
 	
 	public boolean tick() {

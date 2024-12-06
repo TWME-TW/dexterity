@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.util.Vector;
 
+import me.c7dev.dexterity.api.events.DisplayTranslationEvent;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 
 public class SitAnimation extends Animation implements RideableAnimation, Listener {
@@ -17,6 +18,7 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 	private ArmorStand mount;
 	private Player p;
 	private Vector seat_offset = new Vector(0, seat_y_offset, 0);
+	private boolean freeze_dismount_event = false;
 
 	public SitAnimation(DexterityDisplay display) {
 		super(display, 1);
@@ -32,7 +34,10 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 	}
 	
 	public void refreshMountedPlayer() {
-		if (mount == null) return;
+		if (mount == null) {
+			p = null;
+			return;
+		}
 		if (mount.getPassengers().size() == 0) p = null;
 	}
 	
@@ -49,6 +54,7 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 		mount.addPassenger(player);
 		return true;
 	}
+	
 	public void dismount() {
 		if (p == null) return;
 		if (mount != null) {
@@ -64,14 +70,27 @@ public class SitAnimation extends Animation implements RideableAnimation, Listen
 		if (mount != null) mount.teleport(mount.getLocation().add(diff));
 		seat_offset = v;
 	}
+	
 	public Vector getSeatOffset() {
 		return seat_offset.clone().subtract(new Vector(0, seat_y_offset, 0));
 	}
 	
 	@EventHandler
 	public void onDismountEvent(EntityDismountEvent e) {
-		if (p == null || mount == null || !e.getEntity().getUniqueId().equals(p.getUniqueId())) return;
+		if (p == null || mount == null || freeze_dismount_event || !e.getEntity().getUniqueId().equals(p.getUniqueId())) return;
 		dismount();
+	}
+	
+	@EventHandler
+	public void onDisplayMove(DisplayTranslationEvent e) {
+		if (!e.getDisplay().equals(super.getDisplay())) return;
+		refreshMountedPlayer();
+		if (mount == null) return;
+		freeze_dismount_event = true;
+		if (p != null) mount.removePassenger(p);
+		mount.teleport(e.getTo().add(seat_offset));
+		if (p != null) mount.addPassenger(p);
+		freeze_dismount_event = false;
 	}
 	
 	@Override

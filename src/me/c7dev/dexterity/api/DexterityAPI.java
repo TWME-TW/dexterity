@@ -349,11 +349,11 @@ public class DexterityAPI {
 					if (Math.abs(c.getY()) > scale.getY()) continue;
 				}
 								
-				Vector raw_offset = basis1.clone().multiply(c.getX())
-						.add(basis2.clone().multiply(c.getY()));
-				Vector blockoffset = locs[i].clone().add(raw_offset); //surface location
-				
 				if (dist < mindist) {
+					Vector raw_offset = basis1.clone().multiply(c.getX())
+							.add(basis2.clone().multiply(c.getY()));
+					Vector blockoffset = locs[i].clone().add(raw_offset); //surface location
+					
 					mindist = dist;
 					nearest = new ClickedBlockDisplay(e, faces[i], raw_offset, DexUtils.location(loc.getWorld(), blockoffset), 
 							loc, up_dir, east_dir, south_dir, dist);
@@ -477,6 +477,44 @@ public class DexterityAPI {
 		}
 		return disp;
 	}
+	
+	/**
+	 * Creates a small block display between from_loc and a second location defined by a vector offset. Useful for debugging or verifying location variables.
+	 * @param from_loc
+	 * @param delta
+	 * @param mat Required material type
+	 * @param glow The color of the vector
+	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
+	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
+	 */
+	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Material mat, Color glow, int seconds) {
+		return markerVector(from_loc, from_loc.clone().add(delta), mat, glow, seconds);
+	}
+	
+	/**
+	 * Creates a small block display between from_loc and a second location defined by a vector offset. Useful for debugging or verifying location variables.
+	 * @param from_loc
+	 * @param delta
+	 * @param glow The color of the vector
+	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
+	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
+	 */
+	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Color glow, int seconds) {
+		return markerVector(from_loc, from_loc.clone().add(delta), Material.WHITE_CONCRETE, glow, seconds);
+	}
+	
+	/**
+	 * Creates a small block display between the from_loc to the to_loc with precision. Useful for debugging or verifying location variables.
+	 * @param from_loc
+	 * @param to_loc
+	 * @param glow The color of the vector
+	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
+	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
+	 */
+	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Color glow, int seconds) {
+		return markerVector(from_loc, to_loc, Material.WHITE_CONCRETE, glow, seconds);
+	}
+
 	
 	/**
 	 * Creates a small block display between the from_loc to the to_loc with precision. Useful for debugging or verifying location variables.

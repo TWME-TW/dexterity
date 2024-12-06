@@ -20,6 +20,7 @@ import org.joml.Vector3d;
 
 import me.c7dev.dexterity.Dexterity;
 import me.c7dev.dexterity.api.DexRotation;
+import me.c7dev.dexterity.api.events.DisplayTranslationEvent;
 import me.c7dev.dexterity.displays.animation.Animation;
 import me.c7dev.dexterity.displays.animation.RideableAnimation;
 import me.c7dev.dexterity.transaction.BlockTransaction;
@@ -273,6 +274,7 @@ public class DexterityDisplay {
 	 */
 	public void removeAnimation(Animation a) {
 		a.kill();
+		a.stop();
 		animations.remove(a);
 	}
 	
@@ -639,6 +641,8 @@ public class DexterityDisplay {
 	 */
 	public void teleport(Location loc) {
 		
+		Location from = center.clone();
+		
 		if (loc.getWorld().getName().equals(center.getWorld().getName())) {
 			Vector diff = new Vector(loc.getX() - center.getX(), loc.getY() - center.getY(), loc.getZ() - center.getZ());
 			teleport(diff);
@@ -653,6 +657,9 @@ public class DexterityDisplay {
 			center = loc.clone();
 			for (DexterityDisplay subd : subdisplays) subd.teleport(loc);
 		}
+		
+		DisplayTranslationEvent event = new DisplayTranslationEvent(this, from, loc);
+		Bukkit.getPluginManager().callEvent(event);
 	}
 	
 	/**
