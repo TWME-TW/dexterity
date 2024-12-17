@@ -15,6 +15,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -262,6 +264,19 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			else {
 				api.markerPoint(b.getClickLocation(), Color.RED, 4);
 				p.sendMessage(cc + "Clicked " + b.getBlockFace() + ", " + b.getBlockDisplay().getBlock().getMaterial());
+			}
+		}
+		else if (args[0].equals("debug:kill")) {
+			HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
+			if (!attrs_d.containsKey("radius") && !attrs_d.containsKey("r")) {
+				p.sendMessage(plugin.getConfigString("must-enter-value").replaceAll("\\Q%value%\\E", "radius"));
+				return true;
+			}
+			double radius = attrs_d.getOrDefault("radius", attrs_d.get("r"));
+			List<Entity> entities = p.getNearbyEntities(radius, radius, radius);
+			for (Entity e : entities) {
+				if (!(e instanceof BlockDisplay)) continue;
+				e.remove();
 			}
 		}
 		
@@ -1497,6 +1512,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 				else if (argsr[1].equalsIgnoreCase("list") || argsr[1].equalsIgnoreCase("lsit")) ret.add("page=");
 			}
+		}
+		else if (argsr[0].equals("debug:kill")) {
+			ret.add("radius=");
 		}
 		
 		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
