@@ -2,3 +2,7 @@
 bin
 .classpath
 .project
+/.idea
+dexterity.iml
+*.iml
+/target
