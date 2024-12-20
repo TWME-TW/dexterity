@@ -573,15 +573,18 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
-			p.sendMessage(getConfigString("to-finish-edit", session));
-			
 			DexterityDisplay clone = api.clone(d);
 			
 			if (!clone.getCenter().getWorld().getName().equals(p.getWorld().getName()) || clone.getCenter().distance(p.getLocation()) >= 80) clone.teleport(p.getLocation());
 			
-			session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
-			
-			if (!flags.contains("nofollow")) session.startFollowing();
+			if (flags.contains("nofollow")) {
+				p.sendMessage(getConfigString("clone-success", session));
+				session.setSelected(clone, false);
+			} else {
+				p.sendMessage(getConfigString("to-finish-edit", session));
+				session.startEdit(clone, mergeafter ? EditType.CLONE_MERGE : EditType.CLONE, true);
+				session.startFollowing();
+			}
 			
 		}
 		
