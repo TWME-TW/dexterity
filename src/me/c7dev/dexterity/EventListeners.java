@@ -108,7 +108,10 @@ public class EventListeners implements Listener {
 
 				InteractionCommand[] cmds = clicked_display.getCommands();
 				if (cmds.length == 0) {
-					if (e.getPlayer().hasPermission("dexterity.buid") || e.getPlayer().hasPermission("dexterity.command.cmd")) session.clickMsg();
+					if ((e.getPlayer().hasPermission("dexterity.buid") || e.getPlayer().hasPermission("dexterity.command.cmd"))
+							&& clicked_display.hasOwner(e.getPlayer())) {
+						session.clickMsg();
+					}
 				} else for (InteractionCommand cmd : cmds) cmd.exec(e.getPlayer(), right_click);
 
 			} else if (e.getPlayer().hasPermission("dexterity.build")) {
@@ -137,7 +140,9 @@ public class EventListeners implements Listener {
 				else {
 					if (clicked == null || clicked_block) return;
 					e.setCancelled(true);
-
+					
+					if (clicked_display != null && !clicked_display.hasOwner(e.getPlayer())) return;
+					
 					//send event
 					PlayerClickBlockDisplayEvent click_event = new PlayerClickBlockDisplayEvent(e.getPlayer(), clicked, e.getAction(), clicked_display);
 					Bukkit.getPluginManager().callEvent(click_event);

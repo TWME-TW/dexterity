@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -16,6 +17,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -347,6 +349,10 @@ public class Dexterity extends JavaPlugin {
 				DexterityDisplay disp = new DexterityDisplay(this, center, scale, label);
 				disp.setBaseRotation(base_yaw, base_pitch, base_roll);
 				
+				for (BlockDisplay bd : blocks) {
+					disp.addBlock(new DexBlock(bd, disp));
+				}
+				
 				//get click commands
 				ConfigurationSection cmd_section = afile.getConfigurationSection("commands");
 				if (cmd_section != null) {
@@ -354,16 +360,23 @@ public class Dexterity extends JavaPlugin {
 						disp.addCommand(new InteractionCommand(afile.getConfigurationSection("commands." + key)));
 					}
 				}
-
-				for (BlockDisplay bd : blocks) {
-					disp.addBlock(new DexBlock(bd, disp));
-				}
 				
 				double seat_y_offset = afile.getDouble("seat-offset", Double.MAX_VALUE);
 				if (seat_y_offset < Double.MAX_VALUE) {
 					SitAnimation a = new SitAnimation(disp);
 					if (seat_y_offset != 0) a.setSeatOffset(new Vector(0, seat_y_offset, 0));
 					disp.addAnimation(a);
+				}
+				
+				List<String> owner_uuids = afile.getStringList("owners");
+				if (owner_uuids != null && owner_uuids.size() > 0) {
+					List<OfflinePlayer> owners = new ArrayList<>();
+					for (String u : owner_uuids) {
+						OfflinePlayer op = Bukkit.getOfflinePlayer(UUID.fromString(u));
+						if (op == null || op.getName() == null) continue;
+						owners.add(op);
+					}
+					disp.setOwners(owners);
 				}
 				
 				new BukkitRunnable() {
@@ -442,6 +455,13 @@ public class Dexterity extends JavaPlugin {
 		
 		SitAnimation seat = (SitAnimation) disp.getAnimation(SitAnimation.class);
 		if (seat != null) afile.set("seat-offset", seat.getSeatOffset().getY());
+		
+		OfflinePlayer[] owners = disp.getOwners();
+		if (owners.length > 0) {
+			List<String> uuids = new ArrayList<>();
+			for (OfflinePlayer owner : owners) uuids.add(owner.getUniqueId().toString());
+			afile.set("owners", uuids);
+		}
 
 		if (disp.getRotationManager() != null) {
 			DexRotation rot = disp.getRotationManager();
@@ -532,6 +552,14 @@ public class Dexterity extends JavaPlugin {
 	
 	public Set<String> getDisplayLabels(){
 		return all_displays.keySet();
+	}
+	
+	public Set<String> getDisplayLabels(Player p){
+		Set<String> r = new HashSet<>();
+		for (Entry<String,DexterityDisplay> entry : all_displays.entrySet()) {
+			if (entry.getValue().hasOwner(p)) r.add(entry.getKey());
+		}
+		return r;
 	}
 	
 	public Collection<DexterityDisplay> getDisplays() {

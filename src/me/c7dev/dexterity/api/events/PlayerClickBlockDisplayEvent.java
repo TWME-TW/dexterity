@@ -31,26 +31,50 @@ public class PlayerClickBlockDisplayEvent extends Event implements Cancellable {
 		display_ = display;
 	}
 	
+	/**
+	 * Gets the player who clicked the block display
+	 * @return
+	 */
 	public Player getPlayer() {
 		return player_;
 	}
 	
+	/**
+	 * Gets the living block display entity
+	 * @return
+	 */
 	public BlockDisplay getBlockDisplay() {
 		return clicked_.getBlockDisplay();
 	}
 	
+	/**
+	 * Gets the cardinal direction of the face that was clicked
+	 * @return
+	 */
 	public BlockFace getBlockFace() {
 		return clicked_.getBlockFace();
 	}
 	
+	/**
+	 * Gets the location that exists on the surface of the block that is the precise point that the player is looking at
+	 * @return
+	 */
 	public Location getPreciseClickLocation() {
 		return clicked_.getClickLocation();
 	}
 	
+	/**
+	 * Retrieves Action determining if player left or right clicked
+	 * @return
+	 */
 	public Action getAction() {
 		return action_;
 	}
 	
+	/**
+	 * Returns the DexterityDisplay if the clicked block display is part of one
+	 * @return
+	 */
 	public DexterityDisplay getClickedDisplay() {
 		return display_;
 	}
@@ -59,12 +83,28 @@ public class PlayerClickBlockDisplayEvent extends Event implements Cancellable {
 		return cancelled;
 	}
 	
+	/**
+	 * Returns a Vector that is perpendicular to the surface of the face of the block
+	 * @return
+	 */
 	public Vector getSurfaceNormal() {
 		return clicked_.getNormal();
 	}
 	
+	/**
+	 * Returns the number of blocks of distance from the surface of the block to the player's eye
+	 * @return
+	 */
 	public double getPreciseDistanceFromEye() {
 		return clicked_.getDistance();
+	}
+	
+	/**
+	 * Returns a vector relative to the face of the block display with the offset from the click location to the block display face center's location
+	 * @return
+	 */
+	public Vector getOffsetFromFaceCenter() {
+		return clicked_.getOffsetFromFaceCenter();
 	}
 	
 	public void setCancelled(boolean b) {

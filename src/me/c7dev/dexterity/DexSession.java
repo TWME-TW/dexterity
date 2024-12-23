@@ -20,6 +20,7 @@ import com.sk89q.worldedit.regions.Region;
 
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
+import me.c7dev.dexterity.api.events.SessionSelectionChangeEvent;
 import me.c7dev.dexterity.api.events.TransactionCompletionEvent;
 import me.c7dev.dexterity.api.events.TransactionRedoEvent;
 import me.c7dev.dexterity.api.events.TransactionUndoEvent;
@@ -155,6 +156,11 @@ public class DexSession {
 	public void setSelected(DexterityDisplay o, boolean msg) {
 		if (o == null) {
 			cancelEdit();
+			
+			SessionSelectionChangeEvent event = new SessionSelectionChangeEvent(this, selected, o);
+			Bukkit.getPluginManager().callEvent(event);
+			if (event.isCancelled()) return;
+
 			selected = null;
 			sent_click_msg = false;
 			updateAxisDisplays();
@@ -173,6 +179,15 @@ public class DexSession {
 				return;
 			}
 		}
+			
+		if (!o.hasOwner(p)) {
+			if (msg) p.sendMessage(plugin.getConfigString("no-permission"));
+			return;
+		}
+		
+		SessionSelectionChangeEvent event = new SessionSelectionChangeEvent(this, selected, o);
+		Bukkit.getPluginManager().callEvent(event);
+		if (event.isCancelled()) return;
 		
 		selected = o;
 		sent_click_msg = false;
@@ -586,6 +601,10 @@ public class DexSession {
 			DexterityDisplay d = plugin.api().selectFromLocations(l1, l2, mask, l1_scale_offset, l2_scale_offset);
 			if (d == null) setSelected(null, false);
 			else {
+				SessionSelectionChangeEvent event = new SessionSelectionChangeEvent(this, selected, d);
+				Bukkit.getPluginManager().callEvent(event);
+				if (event.isCancelled()) return;
+
 				highlightSelected(d);
 				selected = d;
 				updateAxisDisplays();

@@ -81,6 +81,15 @@ public class DexterityAPI {
 	}
 	
 	/**
+	 * Returns all names of displays that are saved and owned by the player across all worlds
+	 * @param p
+	 * @return
+	 */
+	public Set<String> getDisplayLabels(Player p) {
+		return plugin.getDisplayLabels(p);
+	}
+	
+	/**
 	 * Returns all displays that have been saved across all worlds
 	 * 
 	 * @return Unmodifiable collection of {@link DexterityDisplay} that have been saved

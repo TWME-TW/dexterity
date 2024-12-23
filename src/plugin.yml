@@ -1,5 +1,5 @@
 name: Dexterity
-version: 1.3.8
+version: 1.4.0
 author: c7dev
 main: me.c7dev.dexterity.Dexterity
 api-version: 1.19
@@ -16,6 +16,8 @@ permissions:
     description: Required for the engine to calculate whether a player clicked a display (such as for attached commands)
   dexterity.build:
     description: Ability to place or break a block display and click with the worldedit wand
+  dexterity.select.unowned:
+    description: Ability for player to select a display that they do not own
   dexterity.admin:
     description: Access to debug commands or actions that should only be given to admins
   dexterity.maxvolume.\#:
@@ -35,11 +37,13 @@ permissions:
       dexterity.command.glow: true
       dexterity.command.list: true
       dexterity.command.merge: true
+      dexterity.command.owner: true
       dexterity.command.save: true
       dexterity.command.recenter: true
       dexterity.command.remove: true
       dexterity.command.replace: true
       dexterity.command.rotate: true
+      dexterity.command.seat: true
       dexterity.command.scale: true
       dexterity.command.tile: true
       dexterity.command.schematic.*: true
@@ -70,6 +74,8 @@ permissions:
     description: Use /d list
   dexterity.command.merge:
     description: Use /d merge
+  dexterity.command.owner:
+    description: Use /d owner
   dexterity.command.save:
     description: Use /d save, /d unsave
   dexterity.command.recenter:
@@ -82,6 +88,8 @@ permissions:
     description: Use /d rotate
   dexterity.command.scale:
     description: Use /d scale
+  dexterity.command.seat:
+    description: Use /d seat
   dexterity.command.tile:
     description: Use /d tile
   dexterity.command.wand:

@@ -10,7 +10,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
@@ -51,6 +53,7 @@ public class DexterityDisplay {
 	private List<Animation> animations = new ArrayList<>();
 	private List<DexterityDisplay> subdisplays = new ArrayList<>();
 	private List<InteractionCommand> cmds = new ArrayList<>();
+	private List<UUID> owners = new ArrayList<>();
 	
 	/**
 	 * Initializes an empty selection.
@@ -78,11 +81,24 @@ public class DexterityDisplay {
 	 * @param label
 	 */
 	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, String label) {
+		this(plugin, center, scale, label, null);
+	}
+	
+	/**
+	 * Initializes a new saved display with a unique label
+	 * @param plugin
+	 * @param center
+	 * @param scale Vector with the regular block size being [1, 1, 1]
+	 * @param label
+	 * @param owner
+	 */
+	public DexterityDisplay(Dexterity plugin, Location center, Vector scale, String label, List<OfflinePlayer> owners) {
 		this.plugin = plugin;
 		this.scale = scale == null ? new Vector(1, 1, 1) : scale;
 		if (center == null) recalculateCenter();
 		else this.center = center;
 		if (label != null) setLabel(label);
+		setOwners(owners);
 	}
 	
 	public UUID getUniqueId() {
@@ -106,11 +122,63 @@ public class DexterityDisplay {
 	public double getYaw() {
 		return rot == null ? 0 : rot.getYaw();
 	}
+	
 	public double getPitch() {
 		return rot == null ? 0 : rot.getPitch();
 	}
+	
 	public double getRoll() {
 		return rot == null ? 0 : rot.getRoll();
+	}
+	
+	/**
+	 * Returns an array of the player(s) that own this display
+	 * @return
+	 */
+	public OfflinePlayer[] getOwners() {
+		if (owners == null) return new OfflinePlayer[0];
+		OfflinePlayer[] r = new OfflinePlayer[owners.size()];
+		for (int i = 0; i < owners.size(); i++) r[i] = Bukkit.getOfflinePlayer(owners.get(i));
+		return r;
+	}
+	
+	/**
+	 * Sets the players that own this display
+	 * @param u
+	 */
+	public void setOwners(List<OfflinePlayer> new_owners) {
+		owners = new ArrayList<>();
+		if (new_owners == null) return;
+		for (OfflinePlayer o : new_owners) owners.add(o.getUniqueId());
+	}
+	
+	/**
+	 * Returns true if the player is one of the owners OR if the player has permission dexterity.select.unowned
+	 * @param p
+	 * @return
+	 */
+	public boolean hasOwner(Player p) {
+		if (owners == null || owners.size() == 0 || p.hasPermission("dexterity.select.unowned")) return true;
+		for (UUID owner : owners) if (owner.equals(p.getUniqueId())) return true;
+		return false;
+	}
+	
+	/**
+	 * Appends a player who can edit this display
+	 * @param p
+	 */
+	public void addOwner(OfflinePlayer p) {
+		if (p == null || owners.contains(p.getUniqueId())) return;
+		owners.add(p.getUniqueId());
+	}
+	
+	/**
+	 * Removes a player from the owners list
+	 * @param p
+	 */
+	public void removeOwner(OfflinePlayer p) {
+		if (p == null) return;
+		owners.remove(p.getUniqueId());
 	}
 	
 	/**
