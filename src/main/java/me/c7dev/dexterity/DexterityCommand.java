@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
@@ -61,7 +62,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 	
 	private String[] commands = {
 		"align", "axis", "clone", "command", "consolidate", "convert", "deconvert", "deselect", "glow", "highlight", "info", "list", "mask", 
-		"merge", "move", "name", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "schem", "seat", "select", "undo", "unsave", "tile", "wand"
+		"merge", "move", "name", "owner", "pos1", "recenter", "redo", "reload", "remove", "replace", "rotate", "scale", "schem", "seat", "select", 
+		"undo", "unsave", "tile", "wand"
 	};
 	private String[] descriptions = new String[commands.length];
 	private String[] command_strs = new String[commands.length];
@@ -567,8 +569,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.setSelected(d, false);
 			}
 			
-			boolean mergeafter = flags.contains("merge");
-			if (mergeafter && !d.canHardMerge()) {
+			boolean mergeafter = flags.contains("merge"), nofollow = flags.contains("nofollow");
+			if (mergeafter && !nofollow && !d.canHardMerge()) {
 				p.sendMessage(getConfigString("cannot-clone", session));
 				return true;
 			}
@@ -577,7 +579,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			
 			if (!clone.getCenter().getWorld().getName().equals(p.getWorld().getName()) || clone.getCenter().distance(p.getLocation()) >= 80) clone.teleport(p.getLocation());
 			
-			if (flags.contains("nofollow")) {
+			if (nofollow) {
 				p.sendMessage(getConfigString("clone-success", session));
 				session.setSelected(clone, false);
 			} else {
@@ -586,6 +588,45 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				session.startFollowing();
 			}
 			
+		}
+		
+		else if (args[0].equals("owner") || args[0].equalsIgnoreCase("owners")) {
+			DexterityDisplay d = getSelected(session, "owner");
+			
+			if (args.length == 1 || args[1].equalsIgnoreCase("list")) {
+				int page = 0;
+				if (attrs.containsKey("page")) page = Math.max(attrs.get("page") - 1, 0);
+				
+				List<String> owners_str = new ArrayList<>();
+				OfflinePlayer[] owners = d.getOwners();
+				if (owners.length == 0) owners_str.add(cc + "- " + cc2 + "*");
+				else {
+					for (OfflinePlayer owner : owners) owners_str.add(cc + "- " + cc2 + owner.getName());
+				}
+				
+				int maxpage = DexUtils.maxPage(owners_str.size(), 5);
+				if (page >= maxpage) page = maxpage - 1;
+				p.sendMessage(plugin.getConfigString("owner-list-header").replaceAll("\\Q%page%\\E", "" + (page+1)).replaceAll("\\Q%maxpage%\\E", "" + maxpage));
+				DexUtils.paginate(p, owners_str.toArray(new String[owners_str.size()]), page, 5);
+			}
+			else if (args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")) {
+				boolean adding = args[1].equalsIgnoreCase("add");
+				if (args.length <= 2) {
+					p.sendMessage(getUsage("owner-" + (adding ? "add" : "remove")));
+					return true;
+				}
+				OfflinePlayer owner = Bukkit.getOfflinePlayer(args[2]);
+				if (owner == null) {
+					p.sendMessage(plugin.getConfigString("player-not-found").replaceAll("\\Q%player%\\E", args[2]));
+					return true;
+				}
+				
+				if (adding) d.addOwner(owner);
+				else d.removeOwner(owner);
+				p.sendMessage(getConfigString(adding ? "owner-add-success" : "owner-remove-success", session).replaceAll("\\Q%player%\\E", owner.getName()));
+				if (d.getOwners().length == 0) p.sendMessage(getConfigString("owner-remove-success-warning", session));
+			}
+			else p.sendMessage("unknown-subcommand");
 		}
 		
 		else if (args[0].equals("tile") || args[0].equals("stack")) {
@@ -698,6 +739,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			}
 			
 			Animation anim = d.getAnimation(RideableAnimation.class);
+			
 			if (anim == null) {
 				HashMap<String, Double> attrs_d = DexUtils.getAttributesDoubles(args);
 				double y_offset = attrs_d.getOrDefault("y_offset", 0d);
@@ -907,7 +949,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			
-			if (d.setLabel(args[1])) p.sendMessage(getConfigString("rename-success", session));
+			if (d.setLabel(args[1])) {
+				d.addOwner(p);
+				p.sendMessage(getConfigString("rename-success", session));
+			}
 			else p.sendMessage(getConfigString("name-in-use", session).replaceAll("\\Q%input%\\E", args[1]));
 		}
 		
@@ -1070,6 +1115,7 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				try {
 					schem = new Schematic(plugin, name);
 					d = schem.paste(p.getLocation());
+					d.addOwner(p);
 				} catch (Exception ex) {
 					ex.printStackTrace();
 					p.sendMessage(plugin.getConfigString("console-exception"));
@@ -1138,9 +1184,15 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		else if (args[0].equals("info") || args[0].equals("i")) {
 			DexterityDisplay d = getSelected(session, null);
 			if (d == null) return true;
-			p.sendMessage(cc + "Selected " + cc2 + d.getBlocksCount() + cc + " block display" + (d.getBlocksCount() == 1 ? "" : "s") + " in " + cc2 + d.getCenter().getWorld().getName() + (d.getLabel() != null ? cc + " labelled " + cc2 + d.getLabel() : ""));
+			String msg = plugin.getConfigString(d.getLabel() == null ? "info-format" : "info-format-saved")
+					.replaceAll("\\Q%count%\\E", "" + d.getBlocksCount())
+					.replaceAll("\\Q%world%\\E", d.getCenter().getWorld().getName());
+			if (d.getLabel() != null) msg = msg.replaceAll("\\Q%label%\\E", d.getLabel());
+			
+			p.sendMessage(msg);
 			api.markerPoint(d.getCenter(), Color.AQUA, 4);
 		}
+		
 		else if (args[0].equals("rm") || args[0].equals("remove") || args[0].equals("restore") || args[0].equals("deconvert") || args[0].equals("deconv")) {
 			boolean res = !(args[0].equals("remove") || args[0].equals("rm"));
 			if ((res && !withPermission(p, "remove")) || (!res && !withPermission(p, "deconvert"))) return true;
@@ -1472,6 +1524,28 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				}
 			}
 		}
+		else if (argsr[0].equals("owner") || argsr[0].equals("owners")) {
+			if (argsr.length == 2) {
+				ret.add("list");
+				ret.add("add");
+				ret.add("remove");
+			}
+			else if (argsr[1].equalsIgnoreCase("list")) {
+				if (argsr.length == 3) ret.add("page=");
+			}
+			else if (argsr[1].equalsIgnoreCase("add")) {
+				for (Player p : Bukkit.getOnlinePlayers()) ret.add(p.getName());
+			}
+			else if (argsr[1].equalsIgnoreCase("remove")) {
+				Player p = (Player) sender;
+				DexSession session = plugin.getEditSession(p.getUniqueId());
+				DexterityDisplay s = session.getSelected();
+				if (s != null) {
+					OfflinePlayer[] owners = s.getOwners();
+					for (OfflinePlayer owner : owners) ret.add(owner.getName());
+				}
+			}
+		}
 		else if (argsr[0].equals("axis")) {
 			if (argsr.length == 2) {
 				ret.add("show");
@@ -1520,7 +1594,10 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			ret.add("radius=");
 		}
 		
-		if (add_labels) for (String s : plugin.getDisplayLabels()) ret.add(s);
+		if (add_labels) {
+			Player p = (Player) sender;
+			for (String s : plugin.getDisplayLabels(p)) ret.add(s);
+		}
 		return ret;
 	}
 
