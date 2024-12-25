@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
 import me.c7dev.dexterity.DexSession.AxisType;
 import me.c7dev.dexterity.DexSession.EditType;
@@ -275,9 +276,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				return true;
 			}
 			double radius = attrs_d.getOrDefault("radius", attrs_d.get("r"));
+			double min_scale = attrs_d.getOrDefault("min_scale", Double.MIN_VALUE), max_scale = attrs_d.getOrDefault("max_scale", Double.MAX_VALUE);
+			
 			List<Entity> entities = p.getNearbyEntities(radius, radius, radius);
 			for (Entity e : entities) {
 				if (!(e instanceof BlockDisplay)) continue;
+				BlockDisplay bd = (BlockDisplay) e;
+				Vector3f scale = bd.getTransformation().getScale();
+				if (scale.x < min_scale || scale.x > max_scale
+						|| scale.y < min_scale || scale.y > max_scale 
+						|| scale.z < min_scale || scale.z > max_scale) continue;
 				e.remove();
 			}
 		}
@@ -1592,6 +1600,8 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		}
 		else if (argsr[0].equals("debug:kill")) {
 			ret.add("radius=");
+			ret.add("min_scale=");
+			ret.add("max_scale=");
 		}
 		
 		if (add_labels) {
