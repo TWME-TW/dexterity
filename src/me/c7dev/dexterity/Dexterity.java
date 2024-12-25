@@ -36,6 +36,7 @@ import com.sk89q.worldedit.regions.Region;
 
 import me.c7dev.dexterity.api.DexRotation;
 import me.c7dev.dexterity.api.DexterityAPI;
+import me.c7dev.dexterity.command.DexterityCommand;
 import me.c7dev.dexterity.displays.DexterityDisplay;
 import me.c7dev.dexterity.displays.animation.SitAnimation;
 import me.c7dev.dexterity.util.AxisPair;
