@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -14,9 +15,11 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.type.Snow;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Matrix3d;
 import org.joml.Quaterniond;
@@ -25,6 +28,9 @@ import org.joml.Vector3d;
 import org.joml.Vector3f;
 
 import com.sk89q.worldedit.math.BlockVector3;
+
+import me.c7dev.dexterity.Dexterity;
+import me.c7dev.dexterity.api.DexterityAPI;
 
 /**
  * Defines commonly used static methods used globally in the plugin or API
@@ -252,6 +258,15 @@ public class DexUtils {
 	public static Vector hadimard(Vector a, Vector b) {
 		return new Vector(a.getX()*b.getX(), a.getY()*b.getY(), a.getZ()*b.getZ());
 	}
+	
+	/**
+	 * Returns the sum of x, y, and z, each scaled respectively by coefficients defined in u
+	 * @param x1
+	 * @param y1
+	 * @param z1
+	 * @param u
+	 * @return
+	 */
 	public static Vector linearCombination(Vector x1, Vector y1, Vector z1, Vector u) {
 		Vector v = new Vector();
 		v.add(x1.clone().multiply(u.getX()));
@@ -364,6 +379,18 @@ public class DexUtils {
 		case COMPARATOR: return new Vector(1, 7.0/16, 1);
 		default: return new Vector(1, 1, 1);
 		}
+	}
+	
+	public static Vector3f cloneV(Vector3f x) {
+		return new Vector3f(x.x, x.y, x.z);
+	}
+	
+	public static Quaternionf quaternion(Quaterniond q) {
+		return new Quaternionf(q.x, q.y, q.z, q.w);
+	}
+	
+	public static Quaterniond quaternion(Quaternionf q) {
+		return new Quaterniond(q);
 	}
 	
 	public static List<String> materials(String start) {

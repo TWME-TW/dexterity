@@ -83,6 +83,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 		case "debug:removetransformation":
 			handler.debug_removetransformation(ctx);
 			return true;
+		case "debug:resettransformation":
+			handler.debug_resettransformation(ctx);
+			return true;
 		case "debug:testnear":
 			handler.debug_testnear(ctx);
 			return true;
@@ -411,6 +414,9 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 				else if (argsr[1].equalsIgnoreCase("list") || argsr[1].equalsIgnoreCase("lsit")) ret.add("page=");
 			}
 			return ret;
+		case "debug:centers":
+			if (sender.hasPermission("dexterity.admin")) ret.add("-entities");
+			return ret;
 		case "debug:kill":
 			if (sender.hasPermission("dexterity.admin")) {
 				ret.add("radius=");
@@ -431,6 +437,16 @@ public class DexterityCommand implements CommandExecutor, TabCompleter {
 			Player p = (Player) sender;
 			for (String s : plugin.getDisplayLabels(p)) ret.add(s);
 			return ret;
+		}
+		
+		if (argsr[0].startsWith("debug:") && sender.hasPermission("dexterity.admin")) {
+			if (argsr.length == 1) {
+				ret.add("debug:centers");
+				ret.add("debug:testnear");
+				ret.add("debug:resettransformation");
+				ret.add("debug:kill");
+				return ret;
+			}
 		}
 		
 		return ret;

@@ -458,7 +458,7 @@ public class DexterityAPI {
 	 * @param seconds The number of seconds until the marker point is removed, negative if permanent
 	 * @return The {@link BlockDisplay} of the created marker point
 	 */
-	public BlockDisplay markerPoint(Location loc, Color glow, int seconds) {
+	public BlockDisplay markerPoint(Location loc, Color glow, double seconds) {
 		float size = 0.035f;
 		Location loc_ = loc.clone();
 		loc_.setPitch(0);
@@ -476,13 +476,13 @@ public class DexterityAPI {
 		});
 		markerPoints.add(disp.getUniqueId());
 
-		if (seconds > 0) {
+		if (seconds >= 0.05) {
 			new BukkitRunnable() {
 				public void run() {
 					markerPoints.remove(disp.getUniqueId());
 					disp.remove();
 				}
-			}.runTaskLater(plugin, seconds*20l);
+			}.runTaskLater(plugin, (int) Math.round(seconds*20l));
 		}
 		return disp;
 	}
@@ -496,7 +496,7 @@ public class DexterityAPI {
 	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
 	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
 	 */
-	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Material mat, Color glow, int seconds) {
+	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Material mat, Color glow, double seconds) {
 		return markerVector(from_loc, from_loc.clone().add(delta), mat, glow, seconds);
 	}
 	
@@ -508,7 +508,7 @@ public class DexterityAPI {
 	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
 	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
 	 */
-	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Color glow, int seconds) {
+	public BlockDisplay[] markerVector(Location from_loc, Vector delta, Color glow, double seconds) {
 		return markerVector(from_loc, from_loc.clone().add(delta), Material.WHITE_CONCRETE, glow, seconds);
 	}
 	
@@ -520,7 +520,7 @@ public class DexterityAPI {
 	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
 	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
 	 */
-	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Color glow, int seconds) {
+	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Color glow, double seconds) {
 		return markerVector(from_loc, to_loc, Material.WHITE_CONCRETE, glow, seconds);
 	}
 
@@ -534,7 +534,7 @@ public class DexterityAPI {
 	 * @param seconds The number of seconds until marker vector is removed, negative if permanent
 	 * @return The BlockDisplays used in the created marker vector, formatted as {body, head}
 	 */
-	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Material mat, Color glow, int seconds) {
+	public BlockDisplay[] markerVector(Location from_loc, Location to_loc, Material mat, Color glow, double seconds) {
 		float width = 0.035f;
 		Location from = from_loc.clone(), to = to_loc.clone();
 		double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
@@ -580,7 +580,7 @@ public class DexterityAPI {
 
 		markerPoints.add(body.getUniqueId());
 		final BlockDisplay headf = head;
-		if (seconds > 0) {
+		if (seconds >= 0.05) {
 			new BukkitRunnable() {
 				public void run() {
 					markerPoints.remove(body.getUniqueId());
@@ -588,7 +588,7 @@ public class DexterityAPI {
 					body.remove();
 					headf.remove();
 				}
-			}.runTaskLater(plugin, seconds*20l);
+			}.runTaskLater(plugin, (int) Math.round(seconds*20l));
 		}
 		BlockDisplay[] r = {body, head};
 		return r;

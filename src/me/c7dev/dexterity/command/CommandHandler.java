@@ -17,7 +17,10 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import me.c7dev.dexterity.DexSession;
@@ -48,6 +51,7 @@ import me.c7dev.dexterity.util.DexUtils;
 import me.c7dev.dexterity.util.DexterityException;
 import me.c7dev.dexterity.util.InteractionCommand;
 import me.c7dev.dexterity.util.Mask;
+import me.c7dev.dexterity.util.RollOffset;
 import me.c7dev.dexterity.util.RotationPlan;
 
 /**
@@ -198,6 +202,17 @@ public class CommandHandler {
 			db.getEntity().setTransformation(new DexTransformation(db.getEntity().getTransformation()).setDisplacement(new Vector(0, 0, 0)).setRollOffset(new Vector(0, 0, 0)).build());
 			api.markerPoint(db.getEntity().getLocation(), Color.AQUA, 2);
 		}
+	}
+	
+	public void debug_resettransformation(CommandContext ct) {
+		if (!ct.getPlayer().hasPermission("dexterity.admin")) return;
+		DexterityDisplay d = getSelected(ct.getSession(), null);
+		if (d == null) return;
+		for (DexBlock db : d.getBlocks()) {
+			db.loadTransformationAndRoll();
+			api.markerPoint(db.getLocation(), Color.AQUA, 2);
+		}
+		d.recalculateCenter();
 	}
 	
 	public void debug_testnear(CommandContext ct) {
@@ -1211,7 +1226,10 @@ public class CommandHandler {
 		DexterityDisplay d = session.getSelected();
 		if (d == null) {
 			String def = ct.getDefaultArg();
-			if (def == null) return;
+			if (def == null) {
+				ct.getPlayer().sendMessage(plugin.getConfigString("must-select-display"));
+				return;
+			}
 			d = plugin.getDisplay(def);
 			if (d == null) {
 				p.sendMessage(plugin.getConfigString("display-not-found").replaceAll("\\Q%input%\\E", def));

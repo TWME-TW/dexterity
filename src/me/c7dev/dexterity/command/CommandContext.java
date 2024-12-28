@@ -24,6 +24,10 @@ public class CommandContext {
 	private List<String> flags, defs;
 	
 	public CommandContext(Dexterity plugin, Player p, String[] args) {
+		if (plugin == null) throw new IllegalArgumentException("Plugin instance cannot be null!");
+		if (p == null) throw new IllegalArgumentException("Player cannot be null!");
+		if (args == null) throw new IllegalArgumentException("Arguments cannot be null!");
+		
 		this.p = p;
 		this.args = args;
 		this.plugin = plugin;

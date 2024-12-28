@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -53,7 +54,6 @@ import net.md_5.bungee.api.ChatColor;
 public class Dexterity extends JavaPlugin {
 	
 	private HashMap<String,DexterityDisplay> displays = new HashMap<>();
-	private HashMap<String,DexterityDisplay> all_displays = new HashMap<>();
 	private HashMap<UUID,DexSession> sessions = new HashMap<>();
 	private HashMap<UUID,DexBlock> display_map = new HashMap<>();
 	private FileConfiguration lang, defaultLang;
@@ -107,7 +107,6 @@ public class Dexterity extends JavaPlugin {
 		int config_mv = getConfig().getInt("max-selection-volume");
 		if (config_mv > 0) max_volume = config_mv;
 		loadLanguageFile(false);
-		//TODO wand item type
 	}
 	
 	public void reload() {
@@ -401,18 +400,18 @@ public class Dexterity extends JavaPlugin {
 					}
 				}
 
-				if (disp.getParent() == null) displays.put(disp.getLabel(), disp);
-				all_displays.put(disp.getLabel(), disp);
+				displays.put(disp.getLabel(), disp);
 			}
 
 			//purge empty displays if any were loaded
-			DexterityDisplay[] allLabeled = new DexterityDisplay[displays.size()];
+			List<DexterityDisplay> allRootNodes = new LinkedList<>();
 			int i = 0;
 			for (Entry<String,DexterityDisplay> entry : displays.entrySet()) {
-				allLabeled[i] = entry.getValue();
+				if (entry.getValue().getParent() != null) continue;
+				allRootNodes.add(entry.getValue());
 				i++;
 			}
-			for (DexterityDisplay disp : allLabeled) purgeHelper(disp);
+			for (DexterityDisplay disp : allRootNodes) purgeHelper(disp);
 
 			return display_count;
 
@@ -510,9 +509,8 @@ public class Dexterity extends JavaPlugin {
 	 */
 	public void registerDisplay(String label, DexterityDisplay d) {
 		if (label == null || d == null) throw new IllegalArgumentException("Parameters cannot be null!");
-		if (all_displays.containsKey(label) && all_displays.get(label) != d) return;
-		if (d.getParent() == null) displays.put(label, d);
-		all_displays.put(label, d);
+		if (displays.containsKey(label) && displays.get(label) != d) return;
+		displays.put(label, d);
 		saveDisplay(d);
 	}
 	
@@ -528,7 +526,6 @@ public class Dexterity extends JavaPlugin {
 	 */
 	public void unregisterDisplay(DexterityDisplay d, boolean from_merge) {
 		if (!d.isSaved()) return;
-		if (!from_merge) all_displays.remove(d.getLabel());
 		displays.remove(d.getLabel());
 		
 		try {
@@ -540,36 +537,40 @@ public class Dexterity extends JavaPlugin {
 	}
 	
 	public String getNextLabel(String s) {
-		if (!all_displays.containsKey(s)) return s;
+		if (!displays.containsKey(s)) return s;
 		return getNextLabelHelper(s, 1);
 	}
 	
 	private String getNextLabelHelper(String s, int num) {
-		if (!all_displays.containsKey(s + "-" + num)) return s + "-" + num;
+		if (!displays.containsKey(s + "-" + num)) return s + "-" + num;
 		return getNextLabelHelper(s, num+1);
 	}
 	
 	//////////////////////////////////////////////////////////
 	
 	public Set<String> getDisplayLabels(){
-		return all_displays.keySet();
+		return displays.keySet();
 	}
 	
 	public Set<String> getDisplayLabels(Player p){
 		Set<String> r = new HashSet<>();
-		for (Entry<String,DexterityDisplay> entry : all_displays.entrySet()) {
+		for (Entry<String,DexterityDisplay> entry : displays.entrySet()) {
 			if (entry.getValue().hasOwner(p)) r.add(entry.getKey());
 		}
 		return r;
 	}
 	
 	public Collection<DexterityDisplay> getDisplays() {
-		return displays.values();
+		Collection<DexterityDisplay> r = new ArrayList<>();
+		for (Entry<String, DexterityDisplay> entry : displays.entrySet()) {
+			if (entry.getValue().getParent() == null) r.add(entry.getValue());
+		}
+		return r;
 	}
 	
 	public DexterityDisplay getDisplay(String label) {
-		if (!all_displays.containsKey(label)) return null;
-		return all_displays.get(label);
+		if (!displays.containsKey(label)) return null;
+		return displays.get(label);
 	}
 	
 	public Set<Entry<UUID, DexSession>> editSessionIter() {

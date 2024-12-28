@@ -23,7 +23,6 @@ public class RollOffset {
 		roll_deg = deg;
 		float frad = (float) Math.toRadians(deg);
 		q = new Quaternionf(new AxisAngle4f(frad, 0f, 0f, 1f));
-//		offset = new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0);
 		
 		scale = scale.clone().multiply(0.5);
 		double sin = Math.sin(frad), cos = Math.cos(frad);
@@ -42,7 +41,6 @@ public class RollOffset {
 		double frad = -Math.acos(-r.w) * 2;
 		roll_deg = (float) Math.toDegrees(frad);
 		
-//		offset = new Vector(0.5 - (ROOT2INV*Math.cos(frad + PI4)), 0.5 - (ROOT2INV*Math.sin(frad+PI4)), 0);
 		scale = scale.clone().multiply(0.5);
 		double sin = Math.sin(frad), cos = Math.cos(frad);
 		offset = new Vector((scale.getX()*(1-cos)) + (scale.getY()*sin), (scale.getY()*(1-cos)) - (scale.getX()*sin), 0);
