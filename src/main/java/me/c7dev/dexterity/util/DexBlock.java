@@ -3,11 +3,13 @@ package me.c7dev.dexterity.util;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Vector;
+import org.joml.Quaterniond;
 import org.joml.Quaternionf;
 
 import me.c7dev.dexterity.displays.DexterityDisplay;
@@ -67,7 +69,6 @@ public class DexBlock {
 		disp = d;
 		uuid = bd.getUniqueId();
 		this.roll = roll;
-//		if (!d.getPlugin().isLegacy()) bd.setTeleportDuration(TELEPORT_DURATION);
 		bd.setInterpolationDuration(TELEPORT_DURATION);
 		trans = new DexTransformation(bd.getTransformation());
 		d.getPlugin().setMappedDisplay(this);
@@ -124,6 +125,9 @@ public class DexBlock {
 		
 		OrientationKey key = new OrientationKey(trans.getScale().getX(), trans.getScale().getY(), r);
 		RollOffset cached = cache.get(key);
+		
+		
+		
 		if (cached != null) {
 			trans.getDisplacement().add(trans.getRollOffset());
 			trans.setRollOffset(cached.getOffset());
@@ -158,6 +162,45 @@ public class DexBlock {
 				roll = c.getRoll();
 			}
 		}
+	}
+	
+	/**
+	 * Sets up the Block Display's transformation to follow Dexterity convention, centers the block display, and loads roll data
+	 */
+	public void loadTransformationAndRoll() {
+		double lw = entity.getTransformation().getLeftRotation().w, rw = entity.getTransformation().getRightRotation().w;
+		if (lw != 1 && rw != 1) return;
+		Quaternionf q = entity.getTransformation().getLeftRotation();
+		q.mul(entity.getTransformation().getRightRotation());
+		
+		Quaterniond rot = new Quaterniond();
+		rot.rotateY(-Math.toRadians(entity.getLocation().getYaw()));
+		rot.rotateX(Math.toRadians(entity.getLocation().getPitch()));
+		
+		Location visible_center = entity.getLocation()
+				.add(DexUtils.vector(rot.transform(entity.getTransformation().getTranslation())))
+				.add(DexUtils.vector(rot.transform(q.transform(entity.getTransformation().getScale().mul(0.5f)))));
+		AxisPair ap = new AxisPair();
+		
+		rot.mul(DexUtils.quaternion(q));
+		ap.transform(rot);
+		Vector pyr = ap.getPitchYawRoll();
+		
+		Vector scale = DexUtils.vector(entity.getTransformation().getScale());
+		RollOffset ro = new RollOffset((float) pyr.getZ(), scale);
+		
+		DexTransformation trans = new DexTransformation();
+		trans.setDisplacement(scale.clone().multiply(-0.5));
+		trans.setScale(scale);
+		trans.setLeftRotation(ro.getQuaternion());
+		trans.setRollOffset(ro.getOffset());
+		
+		roll = ro.getRoll();
+		this.trans = trans;
+		entity.teleport(visible_center);
+		entity.setTransformation(trans.build());
+		entity.setRotation((float) pyr.getY(), (float) pyr.getX());
+		entity.setInterpolationDelay(TELEPORT_DURATION);
 	}
 	
 	public BlockDisplay getEntity() {

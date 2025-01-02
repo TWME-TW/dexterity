@@ -38,12 +38,28 @@ public class DexTransformation {
 		return ret;
 	}
 	
+	/**
+	 * Returns a transformation set so that the scale is 1 and location is in the block center
+	 * @return
+	 */
 	public static DexTransformation newDefaultTransformation() {
 		return new DexTransformation(new Transformation(
-				new Vector3f(-0.5f, -0.5f, -0.5f),
-				new AxisAngle4f(0f, 0f, 0f, 0f),
+				new Vector3f(-0.5f, -0.5f, -0.5f), //translation
+				new AxisAngle4f(0f, 0f, 0f, 1f), //l rotation
+				new Vector3f(1, 1, 1), //scale
+				new AxisAngle4f(0f, 0f, 0f, 1f))); //r rotation
+	}
+	
+	/**
+	 * Returns a transformation set so that the scale is 1 and translation is 0 (the block display's corner)
+	 * @return
+	 */
+	public static DexTransformation newEmptyTransformation() {
+		return new DexTransformation(new Transformation(
+				new Vector3f(0f, 0f, 0f),
+				new AxisAngle4f(0f, 0f, 0f, 1f),
 				new Vector3f(1, 1, 1),
-				new AxisAngle4f(0f, 0f, 0f, 0f)));
+				new AxisAngle4f(0f, 0f, 0f, 1f)));
 	}
 	
 	public Vector getScale() {
@@ -63,8 +79,19 @@ public class DexTransformation {
 	}
 	
 	public Vector getRollOffset() {
-//		return DexUtils.hadimard(disp2, scale);
 		return disp2;
+	}
+	
+	/**
+	 * Sets the scale to the input Vector and resets the displacement
+	 * Creates an easy way to set scale and keep the block display centered
+	 * @param s
+	 * @return
+	 */
+	public DexTransformation rescale(Vector s) {
+		scale = s;
+		disp = s.clone().multiply(-0.5);
+		return this;
 	}
 	
 	public DexTransformation setScale(Vector s) {
